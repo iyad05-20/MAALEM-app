@@ -1,0 +1,31 @@
+{
+  "name": "@maalem/backend",
+  "version": "2.0.0",
+  "description": "Maalem backend API server",
+  "private": true,
+  "type": "module",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "ts-node-esm src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint src --ext .ts"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "socket.io": "^4.7.1",
+    "firebase-admin": "^12.0.0",
+    "@supabase/supabase-js": "^2.38.0",
+    "jsonwebtoken": "^9.0.0",
+    "bcryptjs": "^2.4.3"
+  },
+  "devDependencies": {
+    "typescript": "~5.8.2",
+    "@types/node": "^20.9.0",
+    "@types/express": "^4.17.20",
+    "ts-node": "^10.9.1"
+  }
+}

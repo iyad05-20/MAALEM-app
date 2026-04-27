@@ -1,0 +1,8 @@
+{
+  "name": "@maalem/shared",
+  "version": "2.0.0",
+  "description": "Shared types and utilities between frontend and backend",
+  "private": true,
+  "main": "types/index.ts",
+  "types": "types/index.ts"
+}

@@ -1,18 +1,29 @@
 {
-  "name": "vork-app-v2-main-root",
+  "name": "maalem-app-monorepo",
+  "version": "2.0.0",
+  "description": "Scalable marketplace platform with independent frontend and backend",
   "private": true,
   "workspaces": [
-    "frontend",
-    "backend"
+    "apps/frontend",
+    "apps/backend",
+    "shared"
   ],
   "scripts": {
-    "frontend:dev": "npx npm run dev --workspace=frontend",
-    "frontend:build": "npm run build --workspace=frontend",
-    "dev": "npx npm run frontend:dev",
-    "build": "npm run frontend:build"
+    "dev": "npm run dev --workspace=apps/frontend & npm run dev --workspace=apps/backend",
+    "dev:frontend": "npm run dev --workspace=apps/frontend",
+    "dev:backend": "npm run dev --workspace=apps/backend",
+    "build": "npm run build --workspace=apps/frontend && npm run build --workspace=apps/backend",
+    "build:frontend": "npm run build --workspace=apps/frontend",
+    "build:backend": "npm run build --workspace=apps/backend",
+    "type-check": "npm run type-check --workspace=apps/frontend && npm run type-check --workspace=apps/backend",
+    "lint": "npm run lint --workspace=apps/frontend && npm run lint --workspace=apps/backend",
+    "test": "npm run test --workspace=apps/frontend && npm run test --workspace=apps/backend"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "form-data": "^4.0.5"
+  },
+  "devDependencies": {
+    "typescript": "~5.8.2"
   }
 }
