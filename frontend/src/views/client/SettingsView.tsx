@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { ChevronLeft, Bell, Lock, Globe, Moon, Shield, Info, ChevronRight, CreditCard, Trash2 } from 'lucide-react';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 interface Props {
   onBack: () => void;
@@ -9,6 +10,8 @@ interface Props {
 }
 
 export const SettingsView: React.FC<Props> = ({ onBack, isDarkMode, setIsDarkMode }) => {
+  const { language, setLanguage, t } = useLanguage();
+
   return (
     <div className="min-h-screen bg-[#0a0a0c] animate-in slide-in-from-right duration-500 pb-32 overflow-y-auto no-scrollbar">
       <header className="px-6 pt-12 pb-6 sticky top-0 bg-[#0a0a0c]/90 backdrop-blur-xl z-50 border-b border-white/5 flex items-center gap-4">
@@ -19,45 +22,50 @@ export const SettingsView: React.FC<Props> = ({ onBack, isDarkMode, setIsDarkMod
           <ChevronLeft className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-xl font-black text-white tracking-tight uppercase">Paramètres</h1>
-          <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest">Configuration App</p>
+          <h1 className="text-xl font-black text-white tracking-tight uppercase">{t('settings.title')}</h1>
+          <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest">{t('settings.config')}</p>
         </div>
       </header>
 
       <div className="px-6 mt-8 space-y-10">
         {/* Section: Compte */}
         <section className="space-y-4">
-          <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] px-2">Compte & Sécurité</h3>
+          <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] px-2">{t('settings.account_security')}</h3>
           <div className="space-y-2">
-            <SettingsItem icon={<Lock size={18} />} label="Changer le mot de passe" />
-            <SettingsItem icon={<CreditCard size={18} />} label="Méthodes de Paiement" />
-            <SettingsItem icon={<Shield size={18} />} label="Confidentialité des données" />
+            <SettingsItem icon={<Lock size={18} />} label={t('settings.change_password')} />
+            <SettingsItem icon={<CreditCard size={18} />} label={t('settings.payment_methods')} />
+            <SettingsItem icon={<Shield size={18} />} label={t('settings.privacy')} />
           </div>
         </section>
 
         {/* Section: Notifications */}
         <section className="space-y-4">
-          <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] px-2">Préférences</h3>
+          <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] px-2">{t('settings.preferences')}</h3>
           <div className="space-y-2">
-            <SettingsItem icon={<Bell size={18} />} label="Notifications Push" toggle active />
+            <SettingsItem icon={<Bell size={18} />} label={t('settings.push_notifications')} toggle active />
             <SettingsItem
               icon={<Moon size={18} />}
-              label="Mode Sombre"
+              label={t('settings.dark_mode')}
               toggle
               active={isDarkMode}
               onToggle={() => setIsDarkMode(!isDarkMode)}
             />
-            <SettingsItem icon={<Globe size={18} />} label="Langue" value="Français" />
+            <SettingsItem
+              icon={<Globe size={18} />}
+              label={t('settings.language')}
+              value={language === 'fr' ? 'Français' : 'العربية'}
+              onClick={() => setLanguage(language === 'fr' ? 'ar' : 'fr')}
+            />
           </div>
         </section>
 
         {/* Section: Support */}
         <section className="space-y-4">
-          <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] px-2">Support & Info</h3>
+          <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] px-2">{t('settings.support_info')}</h3>
           <div className="space-y-2">
-            <SettingsItem icon={<Info size={18} />} label="Centre d'aide" />
-            <SettingsItem icon={<Shield size={18} />} label="Conditions d'utilisation" />
-            <SettingsItem icon={<Info size={18} />} label="À propos de Vork" value="v2.1.0" />
+            <SettingsItem icon={<Info size={18} />} label={t('settings.help_center')} />
+            <SettingsItem icon={<Shield size={18} />} label={t('settings.terms')} />
+            <SettingsItem icon={<Info size={18} />} label={t('settings.about')} value="v2.1.0" />
           </div>
         </section>
 
@@ -68,8 +76,8 @@ export const SettingsView: React.FC<Props> = ({ onBack, isDarkMode, setIsDarkMod
               <Trash2 size={18} />
             </div>
             <div className="flex-1 text-left">
-              <p className="text-xs font-black text-red-500 uppercase tracking-tight">Supprimer le compte</p>
-              <p className="text-[8px] text-red-500/40 font-bold uppercase tracking-widest mt-0.5">Cette action est irréversible</p>
+              <p className="text-xs font-black text-red-500 uppercase tracking-tight">{t('settings.delete_account')}</p>
+              <p className="text-[8px] text-red-500/40 font-bold uppercase tracking-widest mt-0.5">{t('settings.irreversible')}</p>
             </div>
           </button>
         </section>
@@ -78,16 +86,20 @@ export const SettingsView: React.FC<Props> = ({ onBack, isDarkMode, setIsDarkMod
   );
 };
 
-const SettingsItem = ({ icon, label, value, toggle, active, onToggle }: {
+const SettingsItem = ({ icon, label, value, toggle, active, onToggle, onClick }: {
   icon: React.ReactNode,
   label: string,
   value?: string,
   toggle?: boolean,
   active?: boolean,
-  onToggle?: () => void
+  onToggle?: () => void,
+  onClick?: () => void
 }) => (
   <button
-    onClick={() => !toggle && null}
+    onClick={() => {
+      if (toggle) return;
+      if (onClick) onClick();
+    }}
     className="w-full flex items-center gap-4 bg-white/[0.03] border border-white/5 rounded-3xl p-5 hover:bg-white/[0.06] transition-all group"
   >
     <div className="size-10 bg-white/5 rounded-2xl flex items-center justify-center text-slate-500 group-hover:text-indigo-400 transition-colors">

@@ -1,9 +1,9 @@
-
 import React from 'react';
 import { ChevronLeft, Star, Heart, ShieldCheck, MapPin } from 'lucide-react';
 import { Artisan } from '../../types';
 import { ARTISANS } from '../../data/mockData';
 import { SmartAvatar } from '../../components/Shared/SmartAvatar';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 interface Props {
   favoriteIds: string[];
@@ -13,6 +13,7 @@ interface Props {
 }
 
 export const FavoritesListView: React.FC<Props> = ({ favoriteIds, artisans, onBack, onSelectArtisan }) => {
+  const { t } = useLanguage();
   const favoriteArtisans = artisans.filter(art => favoriteIds.includes(art.id));
 
   return (
@@ -25,8 +26,8 @@ export const FavoritesListView: React.FC<Props> = ({ favoriteIds, artisans, onBa
           <ChevronLeft className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-xl font-black text-white tracking-tight uppercase">Mes Favoris</h1>
-          <p className="text-[10px] text-purple-400 font-bold uppercase tracking-widest">{favoriteIds.length} Experts</p>
+          <h1 className="text-xl font-black text-white tracking-tight uppercase">{t('favorites.title')}</h1>
+          <p className="text-[10px] text-purple-400 font-bold uppercase tracking-widest">{t('favorites.experts_count', { count: favoriteIds.length })}</p>
         </div>
       </header>
 
@@ -55,7 +56,7 @@ export const FavoritesListView: React.FC<Props> = ({ favoriteIds, artisans, onBa
                   <div className="flex justify-between items-start">
                     <div>
                       <h3 className="text-white font-black text-lg uppercase tracking-tight group-hover:text-purple-400 transition-colors leading-none mb-1">{art.name}</h3>
-                      <p className="text-purple-400 text-[10px] font-black uppercase tracking-[0.1em]">{art.category} Expert</p>
+                      <p className="text-purple-400 text-[10px] font-black uppercase tracking-[0.1em]">{t('favorites.expert_badge', { category: t(`categories.${art.category.toLowerCase().replace(/\s+/g, '_')}`) || art.category })}</p>
                     </div>
                     <div className="flex items-center gap-1 bg-white/5 px-2 py-1 rounded-lg border border-white/5">
                       <Star className="size-3 text-yellow-400 fill-yellow-400" />
@@ -65,7 +66,7 @@ export const FavoritesListView: React.FC<Props> = ({ favoriteIds, artisans, onBa
 
                   <div className="flex items-center gap-2 mt-3">
                     <ShieldCheck className="size-4 text-emerald-500" />
-                    <span className="text-emerald-500 text-[9px] font-bold uppercase tracking-widest">Vérifié par VORK</span>
+                    <span className="text-emerald-500 text-[9px] font-bold uppercase tracking-widest">{t('favorites.verified_badge')}</span>
                   </div>
 
                   <div className="flex items-center gap-3 mt-3">
@@ -83,7 +84,7 @@ export const FavoritesListView: React.FC<Props> = ({ favoriteIds, artisans, onBa
         ) : (
           <div className="flex flex-col items-center justify-center py-40 opacity-20">
             <Heart size={64} className="mb-6 text-slate-500" />
-            <p className="font-black uppercase tracking-[0.4em] text-xs text-center leading-relaxed">Ta liste de favoris <br />est vide</p>
+            <p className="font-black uppercase tracking-[0.4em] text-xs text-center leading-relaxed whitespace-pre-line">{t('favorites.empty_title')}</p>
           </div>
         )}
       </div>

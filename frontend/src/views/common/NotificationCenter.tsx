@@ -1,6 +1,7 @@
 import React from 'react';
 import { Bell, X, Check, Trash2, Package, MessageSquare, Info, ChevronLeft, Zap } from 'lucide-react';
 import { Notification } from '../../types';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 interface Props {
     notifications: Notification[];
@@ -12,6 +13,8 @@ interface Props {
 }
 
 export const NotificationCenter: React.FC<Props> = ({ notifications, onClose, onClearAll, onMarkAllRead, onMarkAsRead, onAction }) => {
+    const { t } = useLanguage();
+
     return (
         <div className="fixed inset-0 z-[120] bg-[#0a0a0c] flex flex-col animate-in slide-in-from-right duration-500">
             <header className="px-6 pt-12 pb-6 flex items-center justify-between border-b border-white/5 bg-[#0a0a0c]/90 backdrop-blur-xl">
@@ -19,14 +22,14 @@ export const NotificationCenter: React.FC<Props> = ({ notifications, onClose, on
                     <button onClick={onClose} className="p-2 -ml-2 text-white active:scale-90 transition-transform">
                         <ChevronLeft size={28} />
                     </button>
-                    <h1 className="text-2xl font-black text-white tracking-tighter uppercase ml-1">Notifications</h1>
+                    <h1 className="text-2xl font-black text-white tracking-tighter uppercase ml-1">{t('notifications.title')}</h1>
                 </div>
                 <div className="flex items-center gap-2">
                     {notifications.some(n => !n.read) && (
                         <button
                             onClick={onMarkAllRead}
                             className="p-2 text-indigo-400 hover:text-indigo-300 transition-colors active:scale-90"
-                            title="Tout marquer comme lu"
+                            title={t('notifications.mark_read')}
                         >
                             <Check size={20} />
                         </button>
@@ -35,7 +38,7 @@ export const NotificationCenter: React.FC<Props> = ({ notifications, onClose, on
                         <button
                             onClick={onClearAll}
                             className="p-2 text-slate-500 hover:text-red-400 transition-colors active:scale-90"
-                            title="Tout effacer"
+                            title={t('notifications.clear_all')}
                         >
                             <Trash2 size={20} />
                         </button>
@@ -47,7 +50,7 @@ export const NotificationCenter: React.FC<Props> = ({ notifications, onClose, on
                 {notifications.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-40 opacity-20">
                         <Bell size={64} className="text-slate-500 mb-6" />
-                        <p className="text-sm font-black uppercase tracking-widest text-white">Aucune notification</p>
+                        <p className="text-sm font-black uppercase tracking-widest text-white">{t('notifications.empty')}</p>
                     </div>
                 ) : (
                     notifications.map((notif) => (
@@ -78,7 +81,7 @@ export const NotificationCenter: React.FC<Props> = ({ notifications, onClose, on
                                             {notif.title}
                                         </h3>
                                         <div className="flex items-center gap-2 ml-2">
-                                            {!notif.read && <span className="text-[7px] font-black bg-purple-500 text-white px-1.5 py-0.5 rounded-full tracking-widest animate-pulse">NOUVEAU</span>}
+                                            {!notif.read && <span className="text-[7px] font-black bg-purple-500 text-white px-1.5 py-0.5 rounded-full tracking-widest animate-pulse">{t('notifications.new')}</span>}
                                             <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest whitespace-nowrap">
                                                 {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </span>

@@ -5,6 +5,7 @@ import { db, auth } from '../../services/firebase.config';
 import { collection, addDoc, doc, updateDoc, onSnapshot, query, orderBy, getDoc, increment } from "firebase/firestore";
 import { SmartAvatar } from '../../components/Shared/SmartAvatar';
 import { sanitizeFirestoreData } from '../../utils';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 interface Props {
   chat: Chat;
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export const ChatDetailView: React.FC<Props> = ({ chat, onBack, onOpenProfile }) => {
+  const { t } = useLanguage();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -46,8 +48,8 @@ export const ChatDetailView: React.FC<Props> = ({ chat, onBack, onOpenProfile })
           if (data.phone) setCounterpartPhone(data.phone);
 
           // If I am an Artisan and the user name is generic, update it
-          if (isArtisan && (!dynamicUserName || dynamicUserName === 'Client')) {
-            const realName = data.name || 'Client';
+          if (isArtisan && (!dynamicUserName || dynamicUserName === t('profile.user'))) {
+            const realName = data.name || (t('profile.user'));
             const realImage = data.avatar || data.image || '';
             setDynamicUserName(realName);
             setDynamicUserImage(realImage);
@@ -64,10 +66,10 @@ export const ChatDetailView: React.FC<Props> = ({ chat, onBack, onOpenProfile })
     };
 
     fetchCounterpartDetails();
-  }, [chat.id, isArtisan, chat.userId, chat.artisanId, dynamicUserName]);
+  }, [chat.id, isArtisan, chat.userId, chat.artisanId, dynamicUserName, t]);
 
 
-  const counterpartName = isArtisan ? (dynamicUserName || 'Client') : chat.artisanName;
+  const counterpartName = isArtisan ? (dynamicUserName || (t('profile.user'))) : chat.artisanName;
   const counterpartImage = isArtisan ? (dynamicUserImage || '') : chat.artisanImage;
   const counterpartId = isArtisan ? chat.userId : chat.artisanId;
 
@@ -155,7 +157,7 @@ export const ChatDetailView: React.FC<Props> = ({ chat, onBack, onOpenProfile })
       // 3. Add persistent notification for global alerts
       await addDoc(collection(db, "notifications"), {
         userId: counterpartId,
-        title: `Nouveau message de ${isArtisan ? chat.artisanName : chat.userName} `,
+        title: t('chat_detail.new_message_from', { name: isArtisan ? chat.artisanName : chat.userName }),
         message: inputText.substring(0, 50) + (inputText.length > 50 ? '...' : ''),
         type: 'message',
         read: false,
@@ -186,7 +188,7 @@ export const ChatDetailView: React.FC<Props> = ({ chat, onBack, onOpenProfile })
       {/* Improved Header with Profile Link and Native Call */}
       <header className="px-4 pt-12 pb-4 flex items-center justify-between bg-[#0a0a0c]/90 backdrop-blur-xl z-20 border-b border-white/5 shadow-2xl">
         <div className="flex items-center gap-1">
-          <button onClick={onBack} className="p-2 text-white hover:bg-white/5 rounded-full transition-colors active:scale-90"><ChevronLeft size={24} /></button>
+          <button onClick={onBack} className="p-2 text-white hover:bg-white/5 rounded-full transition-all active:scale-90"><ChevronLeft size={24} /></button>
 
           <div
             onClick={() => !isArtisan && onOpenProfile?.(counterpartId)}
@@ -201,7 +203,7 @@ export const ChatDetailView: React.FC<Props> = ({ chat, onBack, onOpenProfile })
               <h2 className="text-sm font-black text-white uppercase tracking-tight leading-none">{counterpartName}</h2>
               {!isArtisan && (
                 <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-1 flex items-center gap-1">
-                  Voir Profil
+                  {t('chat_detail.view_profile')}
                 </p>
               )}
             </div>
@@ -213,14 +215,14 @@ export const ChatDetailView: React.FC<Props> = ({ chat, onBack, onOpenProfile })
           <button
             onClick={() => {
               if (counterpartPhone) {
-                window.location.href = `tel:${counterpartPhone} `;
+                window.location.href = `tel:${counterpartPhone}`;
               } else {
                 setShowPhoneError(true);
                 setTimeout(() => setShowPhoneError(false), 3000);
               }
             }}
             className="p-2.5 text-emerald-400 hover:bg-emerald-500/10 rounded-full transition-colors active:scale-90"
-            title="Appeler"
+            title={t('chat_detail.call')}
           >
             <Phone size={20} />
           </button>
@@ -230,9 +232,9 @@ export const ChatDetailView: React.FC<Props> = ({ chat, onBack, onOpenProfile })
             <button
               onClick={() => onOpenProfile?.(counterpartId)}
               className="p-2.5 text-purple-400 hover:bg-purple-500/10 rounded-full transition-colors active:scale-90"
-              title="Informations"
+              title={t('chat_detail.info')}
             >
-              <span className="sr-only">Informations</span>
+              <span className="sr-only">{t('chat_detail.info')}</span>
               <Info size={20} />
             </button>
           )}
@@ -242,7 +244,7 @@ export const ChatDetailView: React.FC<Props> = ({ chat, onBack, onOpenProfile })
       {/* Phone Error Message */}
       {showPhoneError && (
         <div className="mx-4 mt-2 bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-black uppercase tracking-widest py-3 px-4 rounded-xl flex items-center justify-center gap-2 animate-in slide-in-from-top duration-300">
-          <Info size={14} /> Aucun numéro enregistré. Utilisez le chat VORK.
+          <Info size={14} /> {t('chat_detail.no_phone')}
         </div>
       )}
 
@@ -258,11 +260,11 @@ export const ChatDetailView: React.FC<Props> = ({ chat, onBack, onOpenProfile })
           </div>
           <div className="space-y-1">
             <h3 className="text-white font-black text-xl uppercase tracking-tighter">{counterpartName}</h3>
-            <p className="text-[10px] text-purple-500/60 font-black uppercase tracking-[0.2em]">{isArtisan ? 'Client VORK' : 'Expert certifié VORK'}</p>
+            <p className="text-[10px] text-purple-500/60 font-black uppercase tracking-[0.2em]">{isArtisan ? t('chat_detail.client_vork') : t('chat_detail.expert_vork')}</p>
           </div>
           {!isArtisan && (
             <button className="px-4 py-2 bg-white/5 rounded-full border border-white/5 text-[9px] font-black uppercase tracking-widest text-slate-500 group-hover:bg-white/10 transition-colors">
-              Ouvrir le profil complet
+              {t('chat_detail.open_full_profile')}
             </button>
           )}
         </div>
@@ -308,7 +310,7 @@ export const ChatDetailView: React.FC<Props> = ({ chat, onBack, onOpenProfile })
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-              placeholder="Message..."
+              placeholder={t('chat_detail.placeholder')}
               className="flex-1 bg-transparent text-sm text-white focus:outline-none py-2 min-w-0 placeholder:text-slate-700"
             />
 

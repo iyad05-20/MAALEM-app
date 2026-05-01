@@ -24,20 +24,23 @@ const RegisterClientView = React.lazy(() => import('./views/auth/RegisterClientV
 const RegisterArtisanView = React.lazy(() => import('./views/auth/RegisterArtisanView').then(m => ({ default: m.RegisterArtisanView })));
 const VerifyEmailView = React.lazy(() => import('./views/auth/VerifyEmailView').then(m => ({ default: m.VerifyEmailView })));
 
+import { LanguageProvider } from './i18n/LanguageContext';
 
 export const App = () => {
     return (
         <ErrorBoundary>
-            <AuthProvider>
-                <AppContent />
-            </AuthProvider>
+            <LanguageProvider>
+                <AuthProvider>
+                    <AppContent />
+                </AuthProvider>
+            </LanguageProvider>
         </ErrorBoundary>
     );
 };
 
 const AppContent = () => {
     const appLogic = useAppLogic();
-    
+
     const {
         view, setView,
         userRole, setUserRole,

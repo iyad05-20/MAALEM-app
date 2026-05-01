@@ -29,6 +29,8 @@ export interface GeminiResponse {
   reason: string;
   suggestion: string | null;
   message_to_user: string;
+  imageUrl?: string | null;
+  isImagePending?: boolean;
 }
 
 export interface ChatMessage {

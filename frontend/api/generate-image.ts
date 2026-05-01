@@ -61,7 +61,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 contentType: 'image/jpeg',
             });
 
-            // SPEC REQUIREMENT: flux-2-dev call must be JSON-wrapped multipart
+            // Send raw multipart/form-data — Cloudflare Workers AI requires this format
             const formBuffer = formData.getBuffer();
             const formHeaders = formData.getHeaders();
 
@@ -69,14 +69,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 method: 'POST',
                 headers: {
                     Authorization: `Bearer ${process.env.CLOUDFLARE_API_TOKEN}`,
-                    'Content-Type': 'application/json',
+                    ...formHeaders,   // includes Content-Type + multipart boundary
                 },
-                body: JSON.stringify({
-                    multipart: {
-                        body: formBuffer.toString('base64'),
-                        contentType: formHeaders['content-type'],
-                    },
-                }),
+                body: formBuffer,   // raw multipart body, NOT JSON-wrapped
             });
 
         } else {

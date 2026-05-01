@@ -1,0 +1,84 @@
+{
+  "name": "zellij",
+  "type": "traditional_craft",
+  "clarity_threshold": 7,
+  "urgency_signals": [],
+  "urgency_instructions": [],
+  "renovation_questions": [
+    {
+      "id": "room_type",
+      "question": "Quelle pièce souhaitez-vous décorer en zellij?",
+      "options": ["Sol salon", "Salle de bain", "Cuisine", "Fontaine"]
+    },
+    {
+      "id": "style",
+      "question": "Quel style de zellij préférez-vous?",
+      "options": ["Traditionnel", "Moderne marocain", "Andalou"]
+    },
+    {
+      "id": "pattern",
+      "question": "Avez-vous une préférence pour le motif?",
+      "options": ["Géométrique", "Étoile de Fès", "Losanges", "Mixte"]
+    },
+    {
+      "id": "colors",
+      "question": "Quelles couleurs aimeriez-vous intégrer?",
+      "options": ["Bleu et blanc", "Tons chauds", "Noir et blanc", "Multicolore"]
+    },
+    {
+      "id": "surface_area",
+      "question": "Avez-vous une idée approximative de la surface (en m2)?",
+      "options": null
+    }
+  ],
+  "suggestion_chips": {
+    "room_type": ["Sol salon", "Salle de bain", "Cuisine", "Fontaine"],
+    "style": ["Traditionnel", "Moderne marocain", "Andalou"],
+    "pattern": ["Géométrique", "Étoile de Fès", "Losanges", "Mixte"],
+    "colors": ["Bleu et blanc", "Tons chauds", "Noir et blanc", "Multicolore"],
+    "surface_area": null
+  },
+  "image_prompt_context": {
+    "scene_context": "moroccan interior with handmade zellige tilework, traditional riad context",
+    "typical_materials": [
+      "handmade zellige geometric pattern",
+      "smooth tadelakt plaster",
+      "dark carved cedar wood",
+      "brushed brass fixtures"
+    ],
+    "typical_colors": [
+      "cobalt blue",
+      "terracotta",
+      "ivory",
+      "emerald green"
+    ],
+    "renovation_subjects": [
+      {
+        "type": "zellige floor",
+        "description": "handmade zellige geometric pattern, cobalt blue and ivory",
+        "pose": "covering the floor",
+        "position": "foreground"
+      },
+      {
+        "type": "zellige fountain",
+        "description": "traditional wall fountain, star pattern zellige, brass spout",
+        "pose": "mounted on tadelakt wall",
+        "position": "midground"
+      }
+    ],
+    "construction_subjects": [
+      {
+        "type": "zellige wall panel",
+        "description": "partially installed geometric pattern zellige tiles on wall",
+        "pose": "vertical installation",
+        "position": "midground"
+      },
+      {
+        "type": "artisan tools",
+        "description": "traditional zellige cutting tools and raw tile pieces",
+        "pose": "scattered on floor",
+        "position": "foreground"
+      }
+    ]
+  }
+}

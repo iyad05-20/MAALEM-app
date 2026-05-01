@@ -1,9 +1,8 @@
-
 import React from 'react';
-import { MessageSquare, Bell } from 'lucide-react';
+import { MessageSquare, Bell } from 'lucide-react'; import { useLanguage } from '../../i18n/LanguageContext';
 import { View } from '../../types';
 
-interface HeaderProps {
+export const Header = ({ view, userRole, userProfile, chats, notifications, onToggleRole, onOpenChats, onOpenNotifications }: {
     view: View;
     userRole: 'user' | 'artisan';
     userProfile: any;
@@ -12,34 +11,18 @@ interface HeaderProps {
     onToggleRole: () => void;
     onOpenChats: () => void;
     onOpenNotifications: () => void;
-}
-
-export const Header: React.FC<HeaderProps> = ({
-    view,
-    userRole,
-    userProfile,
-    chats,
-    notifications,
-    onToggleRole,
-    onOpenChats,
-    onOpenNotifications
 }) => {
+    const { t } = useLanguage();
+    const isProfileHeader = view === 'profile';
+    const isArtisanDashboard = view === 'home' && userRole === 'artisan';
+    const isClientHome = view === 'home' && userRole === 'user';
+
     // Hide header on certain views
-    const hiddenViews = [
-        'artisan-detail', 'urgent', 'create-order', 'order-detail',
-        'all-categories', 'category-detail', 'search', 'portfolio',
-        'work-detail', 'reviews', 'chat-detail', 'chats',
-        'favorites-list', 'settings', 'marketplace', 'update-email',
-        'artisan-history'
-    ];
+    const hideHeader = ['chat-detail', 'order-detail', 'artisan-detail', 'category-detail', 'all-categories', 'portfolio', 'work-detail', 'reviews', 'favorites-list', 'settings', 'update-email', 'urgent', 'generic-form', 'artisan-history'].includes(view);
+    if (hideHeader) return null;
 
-    if (hiddenViews.includes(view)) return null;
-
-    const hasUnreadMessages = chats.some(c =>
-        userRole === 'artisan' ? (c.unreadCountArtisan || 0) > 0 : (c.unreadCountClient || 0) > 0
-    );
-
-    const hasUnreadNotifications = notifications.some(n => !n.read);
+    const unreadChats = chats.reduce((acc, c) => acc + (userRole === 'artisan' ? (c.unreadCountArtisan || 0) : (c.unreadCountClient || 0)), 0);
+    const unreadNotifications = notifications.filter(n => !n.read).length;
 
     return (
         <header className="px-6 pt-10 pb-4 sticky top-0 z-40 bg-[#0a0a0c]/80 backdrop-blur-xl border-b border-white/5 flex justify-between items-center">
@@ -49,9 +32,12 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
                 <div>
                     <h1 className="text-lg font-black tracking-tighter text-white uppercase leading-none">VORK</h1>
-                    <p className="text-[10px] text-indigo-400 font-black uppercase tracking-widest mt-1">
-                        {userRole === 'artisan' ? 'EXPERT' : 'CLIENT'}
-                    </p>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                        <div className={`size-1.5 rounded-full ${userProfile?.isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-600'}`}></div>
+                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none">
+                            {userProfile?.isOnline ? t('common.online') : t('common.offline')}
+                        </span>
+                    </div>
                 </div>
             </div>
             <div className="flex items-center gap-2">
@@ -59,14 +45,14 @@ export const Header: React.FC<HeaderProps> = ({
                     onClick={onToggleRole}
                     className="px-3 py-2 bg-white/5 rounded-xl text-[8px] font-black uppercase tracking-widest text-slate-400 border border-white/5 hover:text-white transition-colors"
                 >
-                    Vers {userRole === 'user' ? 'Artisan' : 'Client'}
+                    {t('nav.switch_to')} {userRole === 'user' ? t('auth.artisan') : t('auth.client')}
                 </button>
                 <button
                     onClick={onOpenChats}
                     className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center relative active:scale-90 transition-all border border-white/5"
                 >
                     <MessageSquare className="w-5 h-5 text-slate-400" />
-                    {hasUnreadMessages && (
+                    {unreadChats > 0 && (
                         <>
                             <div className="absolute top-2 right-2 size-2 bg-purple-500 rounded-full animate-ping"></div>
                             <div className="absolute top-2 right-2 size-2 bg-purple-500 rounded-full border border-[#0a0a0c]"></div>
@@ -78,7 +64,7 @@ export const Header: React.FC<HeaderProps> = ({
                     className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center relative active:scale-90 transition-all border border-white/5"
                 >
                     <Bell className="w-5 h-5 text-slate-400" />
-                    {hasUnreadNotifications && (
+                    {unreadNotifications > 0 && (
                         <div className="absolute top-2 right-2 size-2 bg-red-500 rounded-full border border-[#0a0a0c]"></div>
                     )}
                 </button>

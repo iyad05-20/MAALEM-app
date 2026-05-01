@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { ChevronLeft, ImageIcon, MoreVertical, MessageCircle, Phone, MapPin, X, Maximize2, Clock } from 'lucide-react';
 import { Order, Artisan } from '../../types';
 import { SmartAvatar } from '../../components/Shared/SmartAvatar';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 interface Props {
     order: Order;
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export const ArtisanOrderDetailView: React.FC<Props> = ({ order, onBack, onOpenChat }) => {
+    const { t } = useLanguage();
     const [fullScreenImage, setFullScreenImage] = useState<string | null>(null);
 
     const handleChatWithClient = () => {
@@ -29,67 +31,67 @@ export const ArtisanOrderDetailView: React.FC<Props> = ({ order, onBack, onOpenC
         <div className="min-h-screen bg-[#0a0a0c] flex flex-col animate-in slide-in-from-right duration-500 pb-32">
             <header className="px-6 pt-12 pb-6 flex items-center justify-between sticky top-0 bg-[#0a0a0c]/90 backdrop-blur-xl z-50 border-b border-white/5">
                 <button onClick={onBack} className="size-10 bg-white/5 rounded-xl flex items-center justify-center text-white border border-white/10 active:scale-90"><ChevronLeft className="w-5 h-5" /></button>
-                <h1 className="text-[11px] font-black text-white tracking-[0.2em] uppercase">MISSION #{order.id.slice(-5).toUpperCase()}</h1>
+                <h1 className="text-[11px] font-black text-white tracking-[0.2em] uppercase">{t('artisan_order_detail.header_mission', { id: order.id.slice(-5).toUpperCase() })}</h1>
                 <button className="size-10 bg-white/5 rounded-xl flex items-center justify-center text-slate-500 border border-white/10"><MoreVertical size={20} /></button>
             </header>
 
             <div className="flex-1 overflow-y-auto no-scrollbar space-y-8 p-6 bg-[#0a0a0c]">
                 {/* Header Info */}
-                <div className="glass-card p-6 rounded-[2.5rem] bg-[#1a1a20]/60 border border-white/5">
+                <div className="glass-card p-6 rounded-[2.5rem] bg-[#1a1a20]/60 border border-white/5 text-left">
                     <div className="flex items-center gap-5">
                         <div className="size-16 bg-purple-600/20 rounded-2xl flex items-center justify-center text-purple-500 border border-purple-500/10"><ImageIcon size={28} /></div>
                         <div className="flex-1">
-                            <h2 className="text-2xl font-black text-white uppercase tracking-tight mb-1">{order.title || order.category}</h2>
+                            <h2 className="text-2xl font-black text-white uppercase tracking-tight mb-1">{order.title || t(`categories.${order.category.toLowerCase().replace(/\s+/g, '_')}`) || order.category}</h2>
                             <div className="flex items-center gap-2 text-slate-400">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-purple-400">{order.category}</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-purple-400">{t(`categories.${order.category.toLowerCase().replace(/\s+/g, '_')}`) || order.category}</span>
                                 <span className="text-slate-700">•</span>
-                                <MapPin size={12} /><span className="text-[10px] font-black uppercase tracking-widest">{order.location || 'Localisation inconnue'}</span>
+                                <MapPin size={12} /><span className="text-[10px] font-black uppercase tracking-widest">{order.location || t('artisan_order_detail.no_location')}</span>
                             </div>
                         </div>
                     </div>
                     <div className="flex items-center justify-between mt-6 pt-6 border-t border-white/5">
-                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">STATUT</span>
+                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('artisan_order_detail.field_status')}</span>
                         <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${order.status === 'Terminé' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-orange-500/10 border-orange-500/20 text-orange-400'}`}>
                             <div className={`size-2 rounded-full ${order.status === 'Terminé' ? 'bg-emerald-500' : 'bg-orange-500 animate-pulse'}`}></div>
-                            <span className="text-[9px] font-black uppercase tracking-widest">{isPendingClosure ? 'ACTION REQUISE' : order.status}</span>
+                            <span className="text-[9px] font-black uppercase tracking-widest">{isPendingClosure ? t('artisan_order_detail.status_action_required') : (t(`orders.status_types.${order.status.toLowerCase().replace(/\s+/g, '_')}`) || order.status)}</span>
                         </div>
                     </div>
                 </div>
 
                 {/* Mission Progress Indicator */}
                 {(order.status === 'En cours' || order.status === 'Accepté' || isPendingClosure) && (
-                    <div className="glass-card p-6 rounded-[2rem] bg-emerald-900/5 border border-emerald-500/20 flex items-center gap-4 shadow-xl">
+                    <div className="glass-card p-6 rounded-[2rem] bg-emerald-900/5 border border-emerald-500/20 flex items-center gap-4 shadow-xl text-left">
                         <div className="size-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 shrink-0 border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
                             <Clock size={20} className="animate-pulse" />
                         </div>
                         <div>
-                            <h4 className="text-white font-black text-sm uppercase tracking-tight">{isPendingClosure ? 'Validation finale...' : 'Mission en cours'}</h4>
-                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{isPendingClosure ? 'Validation du paiement et archivage par le client en cours' : 'Attendez la validation du client pour clôturer.'}</p>
+                            <h4 className="text-white font-black text-sm uppercase tracking-tight">{isPendingClosure ? t('artisan_order_detail.progress_validation') : t('artisan_order_detail.progress_ongoing')}</h4>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{isPendingClosure ? t('artisan_order_detail.progress_validation_desc') : t('artisan_order_detail.progress_ongoing_desc')}</p>
                         </div>
                     </div>
                 )}
 
                 {/* Client info & Chat */}
                 <div className="space-y-6">
-                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">CLIENT</h3>
-                    <div className="glass-card p-6 rounded-[2.5rem] bg-[#121214] border border-white/10 shadow-2xl relative overflow-hidden">
+                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1 text-left">{t('artisan_order_detail.section_client')}</h3>
+                    <div className="glass-card p-6 rounded-[2.5rem] bg-[#121214] border border-white/10 shadow-2xl relative overflow-hidden text-left">
                         <div className="flex items-center gap-5">
                             <div className="size-16 rounded-full overflow-hidden border-2 border-slate-700">
                                 <SmartAvatar src={order.userImage} name={order.userName || 'Client'} initialsClassName="text-xl font-black text-white" />
                             </div>
                             <div className="flex-1">
                                 <h4 className="text-xl font-black text-white tracking-tighter mb-2">
-                                    {order.userName || 'Client'}
+                                    {order.userName || t('common.client')}
                                 </h4>
-                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Voir détails dans le chat</p>
+                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{t('artisan_order_detail.chat_info')}</p>
                             </div>
                         </div>
                         <div className="grid grid-cols-2 gap-3 mt-8">
                             <button onClick={handleChatWithClient} className="col-span-2 py-4 bg-indigo-600 rounded-2xl flex items-center justify-center gap-3 text-white font-black text-[11px] uppercase tracking-widest active:scale-95 transition-all shadow-xl shadow-indigo-600/20">
-                                <MessageCircle size={16} /> Discuter avec le client
+                                <MessageCircle size={16} /> {t('artisan_order_detail.action_chat')}
                             </button>
                             <a href="tel:+" className="col-span-2 py-4 bg-white/5 border border-white/5 rounded-2xl flex items-center justify-center gap-3 text-slate-300 font-black text-[11px] uppercase tracking-widest active:scale-95 transition-all">
-                                <Phone size={16} /> Appeler
+                                <Phone size={16} /> {t('artisan_order_detail.action_call')}
                             </a>
                         </div>
                     </div>
@@ -97,15 +99,15 @@ export const ArtisanOrderDetailView: React.FC<Props> = ({ order, onBack, onOpenC
 
                 {/* Description */}
                 <div className="space-y-4">
-                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">DESCRIPTION</h3>
-                    <div className="glass-card p-6 rounded-[2rem] bg-[#121214] border border-white/5">
+                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1 text-left">{t('artisan_order_detail.section_description')}</h3>
+                    <div className="glass-card p-6 rounded-[2rem] bg-[#121214] border border-white/5 text-left">
                         <p className="text-slate-400 text-sm font-medium italic leading-relaxed">"{order.description}"</p>
                     </div>
                 </div>
 
                 {/* Photos */}
                 <div className="space-y-4">
-                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">PHOTOS INITIALES</h3>
+                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1 text-left">{t('artisan_order_detail.section_photos_initial')}</h3>
                     <div className="grid grid-cols-4 gap-2.5">
                         {order.images?.map((url, idx) => (
                             <div key={idx} onClick={() => setFullScreenImage(url)} className="relative aspect-square rounded-2xl overflow-hidden border border-white/10 group cursor-pointer">
@@ -119,7 +121,7 @@ export const ArtisanOrderDetailView: React.FC<Props> = ({ order, onBack, onOpenC
                 {/* Result Photos */}
                 {order.resultImages && order.resultImages.length > 0 && (
                     <div className="space-y-4 pt-4 border-t border-white/5">
-                        <h3 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest px-1">RÉSULTAT FINAL</h3>
+                        <h3 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest px-1 text-left">{t('artisan_order_detail.section_photos_final')}</h3>
                         <div className="grid grid-cols-4 gap-2.5">
                             {order.resultImages.map((url, idx) => (
                                 <div key={idx} onClick={() => setFullScreenImage(url)} className="relative aspect-square rounded-2xl overflow-hidden border border-emerald-500/20 group cursor-pointer">

@@ -4,6 +4,7 @@ import React from 'react';
 import { Zap, TrendingUp, CheckCircle, Clock, Star, ArrowRight, Wallet, Activity, Briefcase, LayoutGrid, CheckCircle2 } from 'lucide-react';
 import { Artisan, Order, View } from '../../types';
 import { SmartAvatar } from '../../components/Shared/SmartAvatar';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 interface Props {
     artisan: Artisan;
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export const ArtisanDashboardView: React.FC<Props> = ({ artisan, activeOrders, archivedOrders, onViewOrder, setView, onToggleOnline }) => {
+    const { t } = useLanguage();
     const isOnline = artisan.isExplicitlyOnline || false;
 
     // Calculate real earnings from archived orders
@@ -29,7 +31,7 @@ export const ArtisanDashboardView: React.FC<Props> = ({ artisan, activeOrders, a
         <div className="pt-6 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-40 px-6">
             <div className="mb-10">
                 <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em]">TABLEAU DE BORD EXPERT</h2>
+                    <h2 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em]">{t('artisan_dashboard.welcome_title')}</h2>
 
                     <button
                         onClick={() => onToggleOnline(!isOnline)}
@@ -40,7 +42,7 @@ export const ArtisanDashboardView: React.FC<Props> = ({ artisan, activeOrders, a
                     >
                         <div className={`size-3 rounded-full transition-all ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-700'}`}></div>
                         <span className="text-[9px] font-black uppercase tracking-widest">
-                            {isOnline ? 'EN LIGNE' : 'HORS LIGNE'}
+                            {isOnline ? t('artisan_dashboard.online') : t('artisan_dashboard.offline')}
                         </span>
                         {/* Switch Track */}
                         <div className={`w-8 h-4 rounded-full relative transition-colors ${isOnline ? 'bg-emerald-500/40' : 'bg-slate-700'}`}>
@@ -54,13 +56,13 @@ export const ArtisanDashboardView: React.FC<Props> = ({ artisan, activeOrders, a
                         <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-500/5 blur-2xl group-hover:bg-emerald-500/10 transition-all"></div>
                         <Wallet size={16} className="text-emerald-500 mb-2" />
                         <h3 className="text-2xl font-black text-white tracking-tighter">{earnings.toLocaleString()} dh</h3>
-                        <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Revenus Estimés</p>
+                        <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">{t('artisan_dashboard.estimated_earnings')}</p>
                     </div>
                     <div className="bg-[#121214] border border-white/5 p-6 rounded-[2.5rem] shadow-xl relative overflow-hidden group">
                         <div className="absolute top-0 right-0 w-20 h-20 bg-indigo-500/5 blur-2xl group-hover:bg-indigo-500/10 transition-all"></div>
                         <Briefcase size={16} className="text-indigo-500 mb-2" />
                         <h3 className="text-2xl font-black text-white tracking-tighter">{artisan.jobsDone}</h3>
-                        <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Jobs Effectués</p>
+                        <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">{t('artisan_dashboard.jobs_done')}</p>
                     </div>
                 </div>
             </div>
@@ -77,8 +79,8 @@ export const ArtisanDashboardView: React.FC<Props> = ({ artisan, activeOrders, a
                             <Zap size={24} className="fill-current animate-pulse" />
                         </div>
                         <div className="text-left">
-                            <h3 className="text-lg font-black text-white uppercase tracking-tight">Ouvrir le Marché</h3>
-                            <p className="text-slate-500 text-[9px] font-bold uppercase tracking-widest">Postulez aux nouvelles offres</p>
+                            <h3 className="text-lg font-black text-white uppercase tracking-tight">{t('artisan_dashboard.open_market')}</h3>
+                            <p className="text-slate-500 text-[9px] font-bold uppercase tracking-widest">{t('artisan_dashboard.open_market_subtitle')}</p>
                         </div>
                     </div>
                     <ArrowRight className="text-slate-700 group-hover:text-indigo-400 group-hover:translate-x-1 transition-all" />
@@ -88,8 +90,8 @@ export const ArtisanDashboardView: React.FC<Props> = ({ artisan, activeOrders, a
             {/* Active Missions */}
             <div className="space-y-4 mb-10">
                 <div className="flex justify-between items-end px-2">
-                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">MISSIONS ACTIVES</h3>
-                    <span className="text-[9px] font-black text-indigo-500 uppercase">{activeOrders.length} EN COURS</span>
+                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">{t('artisan_dashboard.active_missions')}</h3>
+                    <span className="text-[9px] font-black text-indigo-500 uppercase">{t('artisan_dashboard.active_missions_count', { count: activeOrders.length })}</span>
                 </div>
 
                 {activeOrders.length > 0 ? (
@@ -103,13 +105,13 @@ export const ArtisanDashboardView: React.FC<Props> = ({ artisan, activeOrders, a
                                 <div className="size-12 bg-white/5 rounded-xl flex items-center justify-center text-indigo-400">
                                     <Clock size={24} />
                                 </div>
-                                <div>
-                                    <h4 className="text-white font-black text-sm uppercase tracking-tight">{order.category}</h4>
+                                <div className="text-left">
+                                    <h4 className="text-white font-black text-sm uppercase tracking-tight">{t(`categories.${order.category.toLowerCase().replace(/\s+/g, '_')}`) || order.category}</h4>
                                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{order.location}</p>
                                 </div>
                             </div>
                             <div className="flex flex-col items-end gap-1">
-                                <span className="text-[8px] font-black px-2 py-0.5 bg-indigo-500/10 text-indigo-400 rounded-full border border-indigo-500/20">{order.status}</span>
+                                <span className="text-[8px] font-black px-2 py-0.5 bg-indigo-500/10 text-indigo-400 rounded-full border border-indigo-500/20">{t(`orders.status_types.${order.status.toLowerCase().replace(/\s+/g, '_')}`) || order.status}</span>
                                 <ArrowRight size={14} className="text-slate-700 group-hover:translate-x-1 transition-all" />
                             </div>
                         </div>
@@ -119,7 +121,7 @@ export const ArtisanDashboardView: React.FC<Props> = ({ artisan, activeOrders, a
                         <div className="size-16 bg-white/5 rounded-full flex items-center justify-center text-slate-700">
                             <LayoutGrid size={32} />
                         </div>
-                        <p className="text-slate-600 font-black text-[10px] uppercase tracking-widest">Aucune mission en cours</p>
+                        <p className="text-slate-600 font-black text-[10px] uppercase tracking-widest">{t('artisan_dashboard.no_active_missions')}</p>
                     </div>
                 )}
             </div>
@@ -127,12 +129,12 @@ export const ArtisanDashboardView: React.FC<Props> = ({ artisan, activeOrders, a
             {/* Realizations / Archive */}
             <div className="space-y-4">
                 <div className="flex justify-between items-end px-2">
-                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">HISTORIQUE & RÉALISATIONS</h3>
+                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">{t('artisan_dashboard.history_title')}</h3>
                     <button
                         onClick={() => setView('artisan-history')}
                         className="text-[9px] font-black text-emerald-500 hover:text-emerald-400 uppercase flex items-center gap-1 transition-colors"
                     >
-                        Voir tout <ArrowRight size={10} />
+                        {t('artisan_dashboard.view_all')} <ArrowRight size={10} />
                     </button>
                 </div>
 
@@ -151,8 +153,8 @@ export const ArtisanDashboardView: React.FC<Props> = ({ artisan, activeOrders, a
                                         <CheckCircle2 size={24} />
                                     </div>
                                 </div>
-                                <div>
-                                    <h4 className="text-white font-black text-sm uppercase tracking-tight">{order.category}</h4>
+                                <div className="text-left">
+                                    <h4 className="text-white font-black text-sm uppercase tracking-tight">{t(`categories.${order.category.toLowerCase().replace(/\s+/g, '_')}`) || order.category}</h4>
                                     <div className="flex items-center gap-2 mt-0.5">
                                         <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{order.date}</span>
                                         {(order as any).finalReview && (
@@ -166,13 +168,13 @@ export const ArtisanDashboardView: React.FC<Props> = ({ artisan, activeOrders, a
                             </div>
                             <div className="text-right">
                                 <span className="text-emerald-400 font-black text-sm tracking-tight">{order.assignedPrice || 'N/A'}</span>
-                                <p className="text-[8px] text-slate-600 font-black uppercase tracking-widest mt-0.5">Gagné</p>
+                                <p className="text-[8px] text-slate-600 font-black uppercase tracking-widest mt-0.5">{t('artisan_dashboard.earned')}</p>
                             </div>
                         </div>
                     ))
                 ) : (
                     <div className="py-10 bg-white/[0.02] border border-dashed border-white/10 rounded-[2.5rem] text-center flex flex-col items-center justify-center">
-                        <p className="text-slate-600 font-black text-[10px] uppercase tracking-widest">Aucune réalisation pour le moment</p>
+                        <p className="text-slate-600 font-black text-[10px] uppercase tracking-widest">{t('artisan_dashboard.no_realizations')}</p>
                     </div>
                 )}
             </div>

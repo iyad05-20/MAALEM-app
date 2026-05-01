@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { ChevronLeft, Camera, MapPin, Sparkles, Trash2, User } from 'lucide-react';
 import { Category, View, Order, Artisan, Coordinates } from '../../types';
@@ -7,6 +6,8 @@ import { SmartAvatar } from '../../components/Shared/SmartAvatar';
 import { getInitialArtisans } from '../../services/recommendation.service';
 import { reverseGeocode, MARRAKECH_CENTER } from '../../services/location.service';
 import { ChatbotModal } from '../../components/chatbot/ChatbotModal';
+import { useLanguage } from '../../i18n/LanguageContext';
+import { useFilePreviews } from '../../hooks/useFilePreview';
 
 interface Props {
   category: Category;
@@ -18,9 +19,8 @@ interface Props {
   userLocation?: Coordinates | null;
 }
 
-import { useFilePreviews } from '../../hooks/useFilePreview';
-
 export const CreateOrderView: React.FC<Props> = ({ category, preSelectedArtisan, hideArtisanName, onBack, onSubmit, showToast, userLocation }) => {
+  const { t } = useLanguage();
   const [description, setDescription] = useState('');
   const [images, setImages] = useState<File[]>([]);
   const [chatbotOpen, setChatbotOpen] = useState(false);
@@ -60,8 +60,10 @@ export const CreateOrderView: React.FC<Props> = ({ category, preSelectedArtisan,
           <ChevronLeft className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-xl font-black text-white tracking-tight uppercase">Demande {category.name}</h1>
-          <p className="text-[10px] text-purple-400 font-bold uppercase tracking-widest">Nouvelle Publication</p>
+          <h1 className="text-xl font-black text-white tracking-tight uppercase">
+            {t('create_order.title').replace('{category}', t(`categories.${category.id.toLowerCase()}`))}
+          </h1>
+          <p className="text-[10px] text-purple-400 font-bold uppercase tracking-widest">{t('create_order.subtitle')}</p>
         </div>
       </header>
 
@@ -73,24 +75,26 @@ export const CreateOrderView: React.FC<Props> = ({ category, preSelectedArtisan,
               <SmartAvatar src={preSelectedArtisan.image} name={preSelectedArtisan.name} />
             </div>
             <div>
-              <h3 className="text-white font-bold text-sm">Réservation directe</h3>
-              <p className="text-[10px] text-indigo-400 font-medium">{hideArtisanName ? 'Expert Vork' : `Pour ${preSelectedArtisan.name}`}</p>
+              <h3 className="text-white font-bold text-sm">{t('create_order.direct_booking')}</h3>
+              <p className="text-[10px] text-indigo-400 font-medium">
+                {hideArtisanName ? t('create_order.expert_vork') : t('create_order.for_artisan').replace('{name}', preSelectedArtisan.name)}
+              </p>
             </div>
           </div>
         )}
 
         <div className="space-y-4">
-          <label className="text-xl font-bold text-white tracking-tight">Description</label>
+          <label className="text-xl font-bold text-white tracking-tight">{t('create_order.description_label')}</label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Décrivez votre problème en détail..."
+            placeholder={t('create_order.description_placeholder')}
             className="w-full h-40 bg-[#121214] border border-white/5 rounded-[1.5rem] p-6 text-slate-300 placeholder:text-slate-600 focus:outline-none focus:border-purple-500/50 transition-all resize-none shadow-xl"
           />
         </div>
 
         <div className="space-y-4">
-          <label className="text-xl font-bold text-white tracking-tight">Photos <span className="text-slate-500 font-medium text-sm">(max 4)</span></label>
+          <label className="text-xl font-bold text-white tracking-tight">{t('create_order.photos_label')}</label>
           <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
             {/* Add Image Button - Hide if 4 images reached */}
             {images.length < 4 && (
@@ -99,7 +103,7 @@ export const CreateOrderView: React.FC<Props> = ({ category, preSelectedArtisan,
                 className="size-24 shrink-0 rounded-2xl border-2 border-dashed border-white/10 bg-white/5 flex flex-col items-center justify-center gap-1 group hover:border-purple-500/50 transition-all"
               >
                 <Camera size={20} className="text-slate-500 group-hover:text-purple-400" />
-                <span className="text-[10px] font-bold text-slate-500 group-hover:text-purple-400 uppercase tracking-widest">Ajouter</span>
+                <span className="text-[10px] font-bold text-slate-500 group-hover:text-purple-400 uppercase tracking-widest">{t('create_order.add_photo')}</span>
               </button>
             )}
             <input
@@ -125,7 +129,7 @@ export const CreateOrderView: React.FC<Props> = ({ category, preSelectedArtisan,
         </div>
 
         <div className="space-y-4">
-          <label className="text-xl font-bold text-white tracking-tight">Ville</label>
+          <label className="text-xl font-bold text-white tracking-tight">{t('create_order.city_label')}</label>
           <div className="relative group">
             <div className="absolute left-6 top-1/2 -translate-y-1/2 flex items-center gap-3">
               <MapPin className="size-5 text-pink-500 fill-pink-500/20" />
@@ -133,11 +137,11 @@ export const CreateOrderView: React.FC<Props> = ({ category, preSelectedArtisan,
             <input
               type="text"
               readOnly
-              value={isUsingRealGPS ? "Localisation GPS Active" : "Marrakech, Localisation Actuelle"}
+              value={isUsingRealGPS ? t('create_order.gps_active') : t('create_order.marrakech_default')}
               className="w-full bg-[#121214] border border-white/5 rounded-2xl py-5 pl-14 pr-16 text-white font-medium shadow-xl"
             />
             <button className="absolute right-6 top-1/2 -translate-y-1/2 text-purple-400 text-xs font-black uppercase tracking-widest hover:text-white transition-colors">
-              Auto
+              {t('create_order.auto_btn')}
             </button>
           </div>
         </div>
@@ -150,7 +154,7 @@ export const CreateOrderView: React.FC<Props> = ({ category, preSelectedArtisan,
           >
             <div className="flex items-center justify-center gap-3">
               <Sparkles size={20} className="text-white animate-pulse" />
-              <span className="uppercase tracking-[0.1em]">Valider avec Vork AI</span>
+              <span className="uppercase tracking-[0.1em]">{t('create_order.validate_ai')}</span>
             </div>
 
             <div className="absolute inset-0 bg-white/5 translate-x-full group-hover:translate-x-0 transition-transform duration-500 pointer-events-none"></div>

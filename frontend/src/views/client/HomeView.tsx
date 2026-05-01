@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Zap, ChevronRight, Star, ShieldCheck } from 'lucide-react';
 import { Category, Artisan, View, Coordinates } from '../../types';
@@ -7,6 +6,7 @@ import { CATEGORIES } from '../../data/mockData';
 import { CategoryIcon } from '../../components/Shared/CategoryIcon';
 import { SmartAvatar } from '../../components/Shared/SmartAvatar';
 import { HomeSkeleton } from './HomeSkeleton';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 interface Props {
   userRole?: 'user' | 'artisan';
@@ -20,18 +20,22 @@ interface Props {
   loading?: boolean;
 }
 
-const SectionHeader = React.memo(({ title, onSeeAll }: { title: string, onSeeAll?: () => void }) => (
-  <div className="flex justify-between items-end mb-4 px-6">
-    <h2 className="text-xl font-bold text-white tracking-tight">{title}</h2>
-    {onSeeAll && (
-      <button onClick={onSeeAll} className="text-[#a855f7] text-sm font-semibold flex items-center gap-1 hover:text-[#ec4899] transition-colors">
-        Voir tout <ChevronRight className="w-4 h-4" />
-      </button>
-    )}
-  </div>
-));
+const SectionHeader = React.memo(({ title, onSeeAll }: { title: string, onSeeAll?: () => void }) => {
+  const { t } = useLanguage();
+  return (
+    <div className="flex justify-between items-end mb-4 px-6">
+      <h2 className="text-xl font-bold text-white tracking-tight">{title}</h2>
+      {onSeeAll && (
+        <button onClick={onSeeAll} className="text-[#a855f7] text-sm font-semibold flex items-center gap-1 hover:text-[#ec4899] transition-colors">
+          {t('common.see_all')} <ChevronRight className="w-4 h-4" />
+        </button>
+      )}
+    </div>
+  );
+});
 
 const ArtisanCard: React.FC<{ art: Artisan, userLocation: Coordinates | null, onSelect: () => void, onReserve: (a: Artisan) => void }> = React.memo(({ art, userLocation, onSelect, onReserve }) => {
+  const { t } = useLanguage();
   const displayDistance = getFormattedDistance(userLocation, art.locationCoords) || art.distance;
   return (
     <div
@@ -56,7 +60,7 @@ const ArtisanCard: React.FC<{ art: Artisan, userLocation: Coordinates | null, on
             </div>
             <div className="pt-1">
               <h3 className="text-white text-lg font-black leading-tight tracking-tight mb-1">{art.name}</h3>
-              <p className="text-[#6366f1] text-[10px] font-black uppercase tracking-[0.1em]">{art.category} Expert</p>
+              <p className="text-[#6366f1] text-[10px] font-black uppercase tracking-[0.1em]">{t(`categories.${art.category.toLowerCase()}`)} {t('common.expert')}</p>
               <div className="flex items-center gap-1 mt-2">
                 <Star className="w-3 h-3 text-yellow-400 fill-current" />
                 <span className="text-yellow-400 text-xs font-black">{art.rating}</span>
@@ -69,20 +73,20 @@ const ArtisanCard: React.FC<{ art: Artisan, userLocation: Coordinates | null, on
         </div>
         <div className="flex items-center gap-2 px-1">
           <ShieldCheck className="w-4 h-4 text-[#34d399]" />
-          <span className="text-[#34d399] text-[10px] font-bold uppercase tracking-widest">VORK Verified Expert</span>
+          <span className="text-[#34d399] text-[10px] font-bold uppercase tracking-widest">{t('common.verified')}</span>
         </div>
         <div className="flex gap-3 pt-2">
           <button
             onClick={(e) => { e.stopPropagation(); onSelect(); }}
             className="flex-1 bg-white/5 py-4 rounded-2xl font-black text-[11px] text-white uppercase tracking-widest hover:bg-white/10 transition-colors border border-white/5"
           >
-            Profil
+            {t('nav.profile')}
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); onReserve(art); }}
             className="flex-1 bg-gradient-to-br from-[#a855f7] to-[#ec4899] py-4 rounded-2xl font-black text-[11px] text-white uppercase tracking-widest shadow-xl shadow-purple-500/20 active:scale-95 transition-all"
           >
-            Réserver
+            {t('common.reserve')}
           </button>
         </div>
       </div>
@@ -91,6 +95,7 @@ const ArtisanCard: React.FC<{ art: Artisan, userLocation: Coordinates | null, on
 });
 
 export const HomeView: React.FC<Props> = ({ userRole, setView, artisans, userLocation, setSelectedArtisan, openCategory, onReserve, onOpenAllCategories, loading }) => {
+  const { t } = useLanguage();
   if (loading) return <HomeSkeleton />;
 
   // Strict Role Check to hide Urgent Banner for Artisans
@@ -109,15 +114,15 @@ export const HomeView: React.FC<Props> = ({ userRole, setView, artisans, userLoc
               <Zap className="w-10 h-10 text-white animate-pulse" />
             </div>
             <div className="text-left relative z-10">
-              <h3 className="text-3xl font-black text-white tracking-tighter uppercase leading-none mb-1">BESOIN URGENT ?</h3>
-              <p className="text-red-200/60 font-medium">Réponse d'experts en 2 min chrono</p>
+              <h3 className="text-3xl font-black text-white tracking-tighter uppercase leading-none mb-1">{t('home.urgent_title')}</h3>
+              <p className="text-red-200/60 font-medium">{t('home.urgent_subtitle')}</p>
             </div>
           </button>
         </div>
       )}
 
       <div className="mb-10">
-        <SectionHeader title="Catégories" onSeeAll={onOpenAllCategories} />
+        <SectionHeader title={t('home.categories_title')} onSeeAll={onOpenAllCategories} />
         <div className="flex overflow-x-auto gap-4 px-6 hide-scrollbar">
           {CATEGORIES.map(cat => (
             <CategoryCard key={cat.id} cat={cat} openCategory={openCategory} />
@@ -126,7 +131,7 @@ export const HomeView: React.FC<Props> = ({ userRole, setView, artisans, userLoc
       </div>
 
       <div className="mb-10">
-        <SectionHeader title="Top Artisans Pro" onSeeAll={() => setView('search')} />
+        <SectionHeader title={t('home.top_artisans_title')} onSeeAll={() => setView('search')} />
         <div className="grid grid-cols-1 gap-6 px-6">
           {artisans.slice(0, 5).map(art => (
             <ArtisanCard key={art.id} art={art} userLocation={userLocation} onSelect={() => { setSelectedArtisan(art); setView('artisan-detail'); }} onReserve={onReserve} />
@@ -137,14 +142,17 @@ export const HomeView: React.FC<Props> = ({ userRole, setView, artisans, userLoc
   );
 };
 
-const CategoryCard = React.memo(({ cat, openCategory }: { cat: Category; openCategory: (c: Category) => void }) => (
-  <button
-    onClick={() => openCategory(cat)}
-    className="flex flex-col items-center gap-3 min-w-[100px] p-5 glass-card rounded-[2rem] hover:bg-white/10 transition-all active:scale-90"
-  >
-    <div className={`${cat.color.split(' ')[0]} w-12 h-12 rounded-2xl flex items-center justify-center shadow-xl shadow-white/5`}>
-      <CategoryIcon name={cat.icon} className={cat.color.split(' ')[1]} />
-    </div>
-    <span className="text-[11px] font-bold text-slate-300 uppercase tracking-tight">{cat.name}</span>
-  </button>
-));
+const CategoryCard = React.memo(({ cat, openCategory }: { cat: Category; openCategory: (c: Category) => void }) => {
+  const { t } = useLanguage();
+  return (
+    <button
+      onClick={() => openCategory(cat)}
+      className="flex flex-col items-center gap-3 min-w-[100px] p-5 glass-card rounded-[2rem] hover:bg-white/10 transition-all active:scale-90"
+    >
+      <div className={`${cat.color.split(' ')[0]} w-12 h-12 rounded-2xl flex items-center justify-center shadow-xl shadow-white/5`}>
+        <CategoryIcon name={cat.icon} className={cat.color.split(' ')[1]} />
+      </div>
+      <span className="text-[11px] font-bold text-slate-300 uppercase tracking-tight">{t(`categories.${cat.name.toLowerCase()}`)}</span>
+    </button>
+  );
+});

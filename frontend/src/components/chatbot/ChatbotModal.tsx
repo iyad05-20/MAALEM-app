@@ -4,6 +4,7 @@ import { ChatBubble } from './ChatBubble';
 import { ChatInput } from './ChatInput';
 import { OrderPreview } from './OrderPreview';
 import { useChatbot } from '../../hooks/useChatbot';
+import { auth } from '../../services/firebase.config';
 import type { Category, Artisan, Coordinates, Order } from '../../types';
 
 interface Props {
@@ -35,7 +36,6 @@ export const ChatbotModal: React.FC<Props> = ({
         messages,
         isLoading,
         isPublishing,
-        isGeneratingImage,
         askForPhoto,
         userPhoto,
         generatedImage,
@@ -55,6 +55,7 @@ export const ChatbotModal: React.FC<Props> = ({
         onSubmit,
         showToast,
         onClose,
+        sessionId: auth.currentUser?.uid || 'anonymous-session',
     });
 
     // Start chatbot with initial description when modal opens
@@ -147,7 +148,6 @@ export const ChatbotModal: React.FC<Props> = ({
                             userPhoto={userPhoto}
                             generatedImage={generatedImage}
                             isPublishing={isPublishing}
-                            isGeneratingImage={isGeneratingImage}
                             onTitleChange={setOrderTitle}
                             onDescriptionChange={setOrderDescription}
                             onPublish={publishOrder}

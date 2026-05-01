@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { ChatMessage, GeminiResponse, Order } from '../types';
-import { sendMessage, sendMessageWithPhoto, resetSession, ORDER_CHANGE_KEYWORDS } from '../services/ai/geminiService';
-import { generateImage, resizeForFlux2dev, fileToBase64 } from '../services/ai/imageGenService';
+import { sendMessage, sendMessageWithPhoto, resetSession, fetchGeneratedImage, ORDER_CHANGE_KEYWORDS } from '../services/ai/geminiService';
+import { fileToBase64 } from '../services/ai/imageGenService';
 import { uploadToSupabase } from '../services/supabase.config';
 import { getInitialArtisans } from '../services/recommendation.service';
 import { reverseGeocode, MARRAKECH_CENTER } from '../services/location.service';
@@ -14,6 +14,7 @@ interface UseChatbotOptions {
     onSubmit: (order: Order) => Promise<void>;
     showToast: (msg: string, type?: 'success' | 'error' | 'info') => void;
     onClose: () => void;
+    sessionId: string;
 }
 
 let msgCounter = 0;
@@ -30,6 +31,7 @@ export function useChatbot({
     onSubmit,
     showToast,
     onClose,
+    sessionId,
 }: UseChatbotOptions) {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -39,7 +41,6 @@ export function useChatbot({
     const [orderTitle, setOrderTitle] = useState('');
     const [orderDescription, setOrderDescription] = useState('');
     const [userPhoto, setUserPhoto] = useState<string | null>(null);
-    const [userPhoto511, setUserPhoto511] = useState<string | null>(null);
     const [isPublishing, setIsPublishing] = useState(false);
     const [isGeneratingImage, setIsGeneratingImage] = useState(false);
     // Multi-order tracking
@@ -72,44 +73,37 @@ export function useChatbot({
                 riskLevel: json.risk_level
             });
 
-            // Photo quality bad — retake needed
-            if (json.photo_quality === 'bad') {
-                setAskForPhoto(true); // Re-enable photo button for retake
-                return;
-            }
-
-            // Request photo upload button
+            // Request photo upload button — now driven by backend's ask_for_photo field
             if (json.ask_for_photo) {
                 setAskForPhoto(true);
             }
 
-            // Trigger image generation
-            if (json.needs_image_gen && json.image_prompt && json.model && !imageGenTriggeredRef.current) {
+            // Image pending: backend queued a job, fetch it asynchronously
+            if (json.isImagePending && !imageGenTriggeredRef.current) {
                 imageGenTriggeredRef.current = true;
                 setIsGeneratingImage(true);
+                // Add a loading placeholder bubble
                 const loadingId = newId();
-                addMessage({ id: loadingId, role: 'bot', type: 'text', text: '🎨 Génération de l\'image en cours…' });
+                addMessage({ id: loadingId, role: 'bot', type: 'text', text: '🎨 Génération de la simulation en cours...' });
 
-                try {
-                    const steps = json.image_steps ?? 8;
-                    const photo = json.model === 'flux-2-dev' ? userPhoto511 ?? undefined : undefined;
-                    const imageUrl = await generateImage(json.image_prompt, steps, json.model, photo);
-                    setGeneratedImage(imageUrl);
-                    setMessages((prev) =>
-                        prev.map((m) =>
-                            m.id === loadingId
-                                ? { id: loadingId, role: 'bot', type: 'image', imageUrl }
-                                : m,
-                        ),
-                    );
-                } catch (err) {
-                    console.error('[useChatbot] Image gen failed:', err);
-                    imageGenTriggeredRef.current = false; // Allow retrying if AI triggers it again
-                    setMessages((prev) => prev.filter((m) => m.id !== loadingId));
-                    addMessage(botTextMessage("La génération d'image a échoué. Vous pouvez publier maintenant sans image ou essayer de me donner plus de détails."));
-                } finally {
+                // Fire and forget — doesn't block the chat
+                fetchGeneratedImage(sessionId).then((imageUrl) => {
                     setIsGeneratingImage(false);
-                }
+                    if (imageUrl) {
+                        setGeneratedImage(imageUrl);
+                        // Replace loader bubble with real image bubble
+                        setMessages((prev) => prev
+                            .filter((m) => m.id !== loadingId)
+                            .concat({ id: newId(), role: 'bot', type: 'image', imageUrl })
+                        );
+                    } else {
+                        // Replace loader bubble with error bubble
+                        setMessages((prev) => prev
+                            .filter((m) => m.id !== loadingId)
+                            .concat({ id: newId(), role: 'bot', type: 'text', text: '⚠️ Oups, je n\'ai pas pu générer l\'image cette fois-ci.' })
+                        );
+                    }
+                });
             }
 
             // Order ready
@@ -131,7 +125,7 @@ export function useChatbot({
                 // We'll intercept the user's specific chip choice if they pick "Changer de catégorie".
             }
         },
-        [userPhoto511],
+        [],
     );
 
     // ─── Send Text ──────────────────────────────────────────────────────────
@@ -143,6 +137,7 @@ export function useChatbot({
             // Intercept category rejection if user taps "Changer de catégorie"
             // Let the UI handle closing, we don't send this to Gemini
             if (text === "Changer de catégorie") {
+                resetSession(sessionId); // Clear backend session state
                 onClose();
                 return;
             }
@@ -161,7 +156,7 @@ export function useChatbot({
                     ? `Nouvelle commande. Oublie la conversation précédente.\n\n${text}`
                     : text;
 
-                const json = await sendMessage(payloadText);
+                const json = await sendMessage(payloadText, sessionId);
                 await handleGeminiResponse(json);
             } catch (err) {
                 console.error('[useChatbot] sendMessage error:', err);
@@ -188,15 +183,11 @@ export function useChatbot({
             imageGenTriggeredRef.current = false;
 
             try {
-                // Read original photo for Gemini (no resize)
+                // Read original photo for LLM and backend processing (no frontend resize needed)
                 const originalBase64 = await fileToBase64(file);
                 setUserPhoto(originalBase64);
 
-                // Resize to 511px for flux-2-dev
-                const resized = await resizeForFlux2dev(file);
-                setUserPhoto511(resized);
-
-                const json = await sendMessageWithPhoto('Voici ma photo.', originalBase64);
+                const json = await sendMessageWithPhoto('Voici ma photo.', originalBase64, sessionId);
                 await handleGeminiResponse(json);
             } catch (err) {
                 console.error('[useChatbot] sendPhoto error:', err);
@@ -218,7 +209,7 @@ export function useChatbot({
             setIsLoading(true);
 
             try {
-                const json = await sendMessage(firstMessage);
+                const json = await sendMessage(firstMessage, sessionId);
                 await handleGeminiResponse(json);
             } catch (err) {
                 console.error('[useChatbot] startChatbot error:', err);
@@ -248,7 +239,8 @@ export function useChatbot({
                     const url = await uploadToSupabase('vork-profilepic-bucket', `orders/${orderId}/user_photo.jpg`, file);
                     imageUrls.push(url);
                 } catch (e) {
-                    console.warn('Photo upload failed, continuing without it:', e);
+                    console.error('Photo upload failed:', e);
+                    throw new Error('Erreur lors du téléchargement de votre photo. Veuillez réessayer.');
                 }
             }
 
@@ -260,7 +252,8 @@ export function useChatbot({
                     const url = await uploadToSupabase('vork-profilepic-bucket', `orders/${orderId}/generated.png`, file);
                     imageUrls.push(url);
                 } catch (e) {
-                    console.warn('Generated image upload failed, continuing without it:', e);
+                    console.error('Generated image upload failed:', e);
+                    throw new Error('Erreur lors de l\'enregistrement de la simulation. Veuillez réessayer.');
                 }
             }
 
@@ -306,7 +299,6 @@ export function useChatbot({
             setOrderTitle('');
             setOrderDescription('');
             setUserPhoto(null);
-            setUserPhoto511(null);
             setAskForPhoto(false);
             imageGenTriggeredRef.current = false;
 
@@ -322,7 +314,7 @@ export function useChatbot({
                 try {
                     // Tell Gemini to start the second order
                     const transitionMsg = `[Transition automatique vers la deuxième demande: ${secondOrderName}]`;
-                    const json = await sendMessage(transitionMsg);
+                    const json = await sendMessage(transitionMsg, sessionId);
                     await handleGeminiResponse(json);
                 } catch (err) {
                     console.error('[useChatbot] multi-order transition error:', err);
@@ -334,28 +326,28 @@ export function useChatbot({
             }
 
             // Single order or second order done — reset session and close
-            await resetSession();
+            await resetSession(sessionId);
             setMessages([]);
             setPendingOrders(null);
             setOrderSequence(null);
             onClose();
-        } catch (err) {
+        } catch (err: any) {
             console.error('[useChatbot] publishOrder error:', err);
-            showToast('Erreur lors de la publication.', 'error');
+            const errorMessage = err?.message || 'Erreur lors de la publication.';
+            showToast(errorMessage, 'error');
         } finally {
             setIsPublishing(false);
         }
     }, [
         userLocation, userPhoto, generatedImage, preSelectedArtisan,
         category.name, orderDescription, orderTitle, onSubmit, showToast, onClose,
-        orderSequence, pendingOrders, handleGeminiResponse,
+        orderSequence, pendingOrders, handleGeminiResponse, sessionId,
     ]);
 
     return {
         messages,
         isLoading,
         isPublishing,
-        isGeneratingImage,
         askForPhoto,
         userPhoto,
         generatedImage,

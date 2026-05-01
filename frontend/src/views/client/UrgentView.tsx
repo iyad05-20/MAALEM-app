@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Zap, ShieldAlert, Clock, CheckCircle2, Search, Send, Sparkles, AlertTriangle, Camera, Image as ImageIcon, Trash2, Loader2, MapPin, Edit2, Mic, StopCircle } from 'lucide-react';
 import { Order, Coordinates } from '../../types';
@@ -6,6 +5,7 @@ import { uploadToSupabase, base64ToBlob } from '../../services/supabase.config';
 import { CATEGORIES } from '../../data/mockData';
 import { reverseGeocode, MARRAKECH_CENTER } from '../../services/location.service';
 import { getInitialArtisans } from '../../services/recommendation.service';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 interface Props {
   onClose: () => void;
@@ -16,9 +16,26 @@ interface Props {
 type Step = 'input' | 'analyzing' | 'proposal' | 'matching';
 
 export const UrgentView: React.FC<Props> = ({ onClose, onAddOrder, userLocation }) => {
+  const { t, language } = useLanguage();
   const [step, setStep] = useState<Step>('input');
   const [description, setDescription] = useState('');
   const [images, setImages] = useState<string[]>([]);
+
+  // AI Priority mapping to translate
+  const priorityMap: Record<string, string> = {
+    'Basse': t('urgent.priority_levels.low'),
+    'Moyenne': t('urgent.priority_levels.medium'),
+    'Haute': t('urgent.priority_levels.high'),
+    'Critique': t('urgent.priority_levels.critical')
+  };
+
+  // Reverse mapping for editing
+  const reversePriorityMap: Record<string, string> = {
+    [t('urgent.priority_levels.low')]: 'Basse',
+    [t('urgent.priority_levels.medium')]: 'Moyenne',
+    [t('urgent.priority_levels.high')]: 'Haute',
+    [t('urgent.priority_levels.critical')]: 'Critique'
+  };
 
   // Analysis State
   const [analysis, setAnalysis] = useState<{
@@ -74,8 +91,10 @@ export const UrgentView: React.FC<Props> = ({ onClose, onAddOrder, userLocation 
     try {
       const { GoogleGenerativeAI } = await import('@google/generative-ai');
       const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
+      // AI Prompt remains in French to get consistent JSON structure, or we can use English.
+      // I will keep it in French but ask it to respond with standard keys.
       const prompt = `Tu es un expert en bâtiment et urgences domestiques. Analyse ce problème. 
       Photos fournies: ${images?.length || 0}. 
       Description: ${promptDescription || "Aucune description"}.
@@ -87,7 +106,8 @@ export const UrgentView: React.FC<Props> = ({ onClose, onAddOrder, userLocation 
         "summary": "résumé pro en 1 phrase",
         "advice": "conseil de sécurité immédiat",
         "estimatedPriceRange": "min-max"
-      }`;
+      }
+      Important: Garde les noms de catégories proches des standards (Plomberie, Électricité, Serrurerie, etc.) et la priorité parmi les 4 options.`;
 
       let resultText = "";
       if (images.length > 0) {
@@ -109,7 +129,7 @@ export const UrgentView: React.FC<Props> = ({ onClose, onAddOrder, userLocation 
 
       setAnalysis(result);
       setEditedCategory(result.category);
-      setEditedPriority(result.priority);
+      setEditedPriority(priorityMap[result.priority] || result.priority);
       setStep('proposal');
     } catch (error) {
       console.error("AI Analysis failed:", error);
@@ -117,13 +137,13 @@ export const UrgentView: React.FC<Props> = ({ onClose, onAddOrder, userLocation 
       const fallback = {
         category: "Multi-services",
         priority: "Haute" as const,
-        summary: description || "Problème technique urgent",
-        advice: "Coupez les arrivées (eau/élec) et ne touchez à rien en attendant le pro.",
+        summary: description || t('urgent.fallback_summary'),
+        advice: t('urgent.fallback_advice'),
         estimatedPriceRange: "Sur devis"
       };
       setAnalysis(fallback);
       setEditedCategory(fallback.category);
-      setEditedPriority(fallback.priority);
+      setEditedPriority(priorityMap[fallback.priority]);
       setStep('proposal');
     }
   };
@@ -146,10 +166,10 @@ export const UrgentView: React.FC<Props> = ({ onClose, onAddOrder, userLocation 
     }
 
     const finalCategory = isEditing ? editedCategory : (analysis?.category || 'Urgence');
-    const finalPriority = isEditing ? editedPriority : (analysis?.priority || 'Haute');
+    const finalPriority = isEditing ? (reversePriorityMap[editedPriority] || editedPriority) : (analysis?.priority || 'Haute');
 
     // Numeric Date Format
-    const numericDate = new Date().toLocaleString('fr-FR', {
+    const numericDate = new Date().toLocaleString(language === 'fr' ? 'fr-FR' : 'ar-SA', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -174,7 +194,7 @@ export const UrgentView: React.FC<Props> = ({ onClose, onAddOrder, userLocation 
       status: "EN ATTENTE D'EXPERT",
       date: numericDate, // Accurate numeric date
       description: (analysis?.summary || description) + (analysis?.estimatedPriceRange ? ` (Budget est.: ${analysis.estimatedPriceRange} dh)` : ''),
-      location: userLocation ? 'Ma position actuelle (GPS)' : 'Marrakech, Centre',
+      location: userLocation ? (t('urgent.gps_locked')) : 'Marrakech, Centre',
       locationCoords: effectiveLocation,
       city: detectedCity,
       isUrgent: true,
@@ -206,14 +226,14 @@ export const UrgentView: React.FC<Props> = ({ onClose, onAddOrder, userLocation 
             <Zap className="size-5 text-white animate-pulse" />
           </div>
           <div>
-            <h1 className="text-xl font-black text-white tracking-tight uppercase leading-none">URGENCE VORK</h1>
+            <h1 className="text-xl font-black text-white tracking-tight uppercase leading-none">{t('urgent.header_title')}</h1>
             <div className="flex items-center gap-1.5 mt-1">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
               </span>
               <p className="text-[10px] text-red-400 font-bold uppercase tracking-widest">
-                {step === 'matching' ? 'Recherche active...' : 'Mode Assistance'}
+                {step === 'matching' ? t('urgent.active_search') : t('urgent.assistance_mode')}
               </p>
             </div>
           </div>
@@ -230,7 +250,7 @@ export const UrgentView: React.FC<Props> = ({ onClose, onAddOrder, userLocation 
       <div className="bg-orange-500/10 border-y border-orange-500/20 px-6 py-2 flex items-center gap-3">
         <ShieldAlert size={16} className="text-orange-500 shrink-0" />
         <p className="text-[10px] text-orange-200 font-medium leading-tight">
-          Conseil sécurité : En cas de danger (feu, gaz), évacuez immédiatement avant d'utiliser l'app.
+          {t('urgent.safety_banner')}
         </p>
       </div>
 
@@ -246,23 +266,22 @@ export const UrgentView: React.FC<Props> = ({ onClose, onAddOrder, userLocation 
                 <MapPin size={16} className={locationStatus === 'locating' ? 'animate-bounce' : ''} />
               </div>
               <div>
-                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Localisation</p>
+                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">{t('urgent.location_label')}</p>
                 <p className={`text-xs font-bold ${userLocation ? 'text-white' : 'text-slate-400'}`}>
-                  {userLocation ? 'GPS Verrouillé: 5m' : 'Recherche GPS...'}
+                  {userLocation ? t('urgent.gps_locked') : t('urgent.searching_gps')}
                 </p>
               </div>
             </div>
 
             <div className="relative group">
-              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 mb-2 block">Que se passe-t-il ?</label>
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 mb-2 block">{t('urgent.description_label')}</label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Ex: Une canalisation a éclaté dans la cuisine..."
+                placeholder={t('urgent.description_placeholder')}
                 className="w-full h-32 bg-white/5 border border-white/10 rounded-[2rem] p-6 text-lg text-white placeholder:text-slate-600 focus:outline-none focus:border-red-500/50 transition-all resize-none shadow-inner"
               />
               <div className="absolute bottom-4 right-4 flex gap-2">
-                {/* Mock Voice Input - Just visuals */}
                 <button className="size-10 bg-white/10 rounded-full flex items-center justify-center text-slate-400 hover:text-white hover:bg-red-600 transition-all">
                   <Mic size={18} />
                 </button>
@@ -271,7 +290,7 @@ export const UrgentView: React.FC<Props> = ({ onClose, onAddOrder, userLocation 
 
             <div className="space-y-3">
               <div className="flex justify-between items-center px-2">
-                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Preuves (IA)</h3>
+                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">{t('urgent.evidence_label')}</h3>
                 <span className="text-[9px] text-red-500/50 font-bold uppercase">{images.length}/4</span>
               </div>
 
@@ -281,7 +300,7 @@ export const UrgentView: React.FC<Props> = ({ onClose, onAddOrder, userLocation 
                   className="size-24 shrink-0 rounded-[1.8rem] bg-red-600/10 border-2 border-dashed border-red-600/30 flex flex-col items-center justify-center gap-2 group hover:bg-red-600 hover:border-red-600 transition-all active:scale-95"
                 >
                   <Camera size={24} className="text-red-500 group-hover:text-white" />
-                  <span className="text-[8px] font-black text-red-500 group-hover:text-white uppercase tracking-widest">Photo</span>
+                  <span className="text-[8px] font-black text-red-500 group-hover:text-white uppercase tracking-widest">{t('urgent.photo_button')}</span>
                 </button>
 
                 <button
@@ -289,7 +308,7 @@ export const UrgentView: React.FC<Props> = ({ onClose, onAddOrder, userLocation 
                   className="size-24 shrink-0 rounded-[1.8rem] bg-white/5 border-2 border-dashed border-white/10 flex flex-col items-center justify-center gap-2 group hover:border-purple-500/30 transition-all active:scale-95"
                 >
                   <ImageIcon size={20} className="text-slate-500 group-hover:text-purple-500" />
-                  <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Galerie</span>
+                  <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">{t('urgent.gallery_button')}</span>
                 </button>
 
                 {images.map((img, idx) => (
@@ -315,7 +334,7 @@ export const UrgentView: React.FC<Props> = ({ onClose, onAddOrder, userLocation 
                 disabled={(!description.trim() && images.length === 0)}
                 className="w-full py-6 rounded-[2.5rem] bg-gradient-to-r from-red-600 to-orange-600 text-white font-black text-sm uppercase tracking-[0.2em] shadow-[0_10px_40px_rgba(220,38,38,0.4)] disabled:opacity-50 disabled:shadow-none transition-all active:scale-[0.98] flex items-center justify-center gap-3 relative overflow-hidden group"
               >
-                <span className="relative z-10 flex items-center gap-2">Lancer l'alerte <Zap size={18} className="fill-current" /></span>
+                <span className="relative z-10 flex items-center gap-2">{t('urgent.alert_button')} <Zap size={18} className="fill-current" /></span>
                 <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
               </button>
             </div>
@@ -333,8 +352,8 @@ export const UrgentView: React.FC<Props> = ({ onClose, onAddOrder, userLocation 
               </div>
             </div>
             <div className="text-center space-y-2">
-              <h3 className="text-2xl font-black text-white uppercase tracking-tight">Analyse IA en cours...</h3>
-              <p className="text-slate-500 text-sm animate-pulse font-medium">Diagnostic des images et de la description</p>
+              <h3 className="text-2xl font-black text-white uppercase tracking-tight">{t('urgent.analyzing_title')}</h3>
+              <p className="text-slate-500 text-sm animate-pulse font-medium">{t('urgent.analyzing_subtitle')}</p>
             </div>
           </div>
         )}
@@ -350,35 +369,35 @@ export const UrgentView: React.FC<Props> = ({ onClose, onAddOrder, userLocation 
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-2">
                     <Sparkles size={16} className="text-purple-400" />
-                    <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest">Diagnostic IA</span>
+                    <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest">{t('urgent.diagnostic_label')}</span>
                   </div>
                   <button
                     onClick={() => setIsEditing(!isEditing)}
                     className="text-[10px] font-black text-slate-500 hover:text-white uppercase tracking-widest flex items-center gap-1 transition-colors"
                   >
-                    <Edit2 size={12} /> {isEditing ? 'Fermer' : 'Modifier'}
+                    <Edit2 size={12} /> {isEditing ? t('urgent.close_button') : t('urgent.edit_button')}
                   </button>
                 </div>
 
                 <div className="mb-6 space-y-4">
                   {/* Priority */}
                   <div className="flex items-center gap-4">
-                    <div className={`size-12 rounded-2xl flex items-center justify-center ${(isEditing ? editedPriority : analysis.priority) === 'Critique' ? 'bg-red-600 text-white shadow-lg shadow-red-600/30' : 'bg-orange-500/20 text-orange-500'
+                    <div className={`size-12 rounded-2xl flex items-center justify-center ${(isEditing ? reversePriorityMap[editedPriority] : analysis.priority) === 'Critique' ? 'bg-red-600 text-white shadow-lg shadow-red-600/30' : 'bg-orange-500/20 text-orange-500'
                       }`}>
                       <AlertTriangle size={24} />
                     </div>
                     <div className="flex-1">
-                      <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Priorité</p>
+                      <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">{t('urgent.priority_label')}</p>
                       {isEditing ? (
                         <select
                           value={editedPriority}
                           onChange={(e) => setEditedPriority(e.target.value as any)}
                           className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white font-bold text-sm mt-1 focus:outline-none focus:border-red-500"
                         >
-                          {['Basse', 'Moyenne', 'Haute', 'Critique'].map(p => <option key={p} value={p} className="bg-black">{p}</option>)}
+                          {Object.values(priorityMap).map(p => <option key={p} value={p} className="bg-black">{p}</option>)}
                         </select>
                       ) : (
-                        <h3 className="text-xl font-black text-white uppercase tracking-tight">{analysis.priority}</h3>
+                        <h3 className="text-xl font-black text-white uppercase tracking-tight">{priorityMap[analysis.priority] || analysis.priority}</h3>
                       )}
                     </div>
                   </div>
@@ -389,17 +408,17 @@ export const UrgentView: React.FC<Props> = ({ onClose, onAddOrder, userLocation 
                       <Zap size={24} />
                     </div>
                     <div className="flex-1">
-                      <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Expert Requis</p>
+                      <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">{t('urgent.expert_required')}</p>
                       {isEditing ? (
                         <select
                           value={editedCategory}
                           onChange={(e) => setEditedCategory(e.target.value)}
                           className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white font-bold text-sm mt-1 focus:outline-none focus:border-indigo-500"
                         >
-                          {CATEGORIES.map(c => <option key={c.name} value={c.name} className="bg-black">{c.name}</option>)}
+                          {CATEGORIES.map(c => <option key={c.id} value={t(`categories.${c.id}`)} className="bg-black">{t(`categories.${c.id}`)}</option>)}
                         </select>
                       ) : (
-                        <h3 className="text-xl font-black text-white uppercase tracking-tight">{analysis.category}</h3>
+                        <h3 className="text-xl font-black text-white uppercase tracking-tight">{t(`categories.${analysis.category.toLowerCase().replace(/\s+/g, '_')}`) || analysis.category}</h3>
                       )}
                     </div>
                   </div>
@@ -422,15 +441,15 @@ export const UrgentView: React.FC<Props> = ({ onClose, onAddOrder, userLocation 
 
             {/* Estimated Price */}
             <div className="flex items-center justify-between px-6 py-4 bg-white/5 border border-white/5 rounded-3xl">
-              <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Budget Estimé</span>
-              <span className="text-white font-black text-sm tracking-tight">{analysis.estimatedPriceRange || 'Sur devis'} dh</span>
+              <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{t('urgent.budget_estimated')}</span>
+              <span className="text-white font-black text-sm tracking-tight">{analysis.estimatedPriceRange || t('urgent.on_quote')} dh</span>
             </div>
 
             <button
               onClick={startMatching}
               className="w-full py-6 rounded-[2.5rem] bg-white text-black font-black text-sm uppercase tracking-[0.2em] shadow-[0_0_40px_rgba(255,255,255,0.2)] active:scale-[0.98] transition-all flex items-center justify-center gap-3 mt-4 hover:bg-slate-200"
             >
-              Confirmer et Chercher <Search size={18} />
+              {t('urgent.confirm_button')} <Search size={18} />
             </button>
           </div>
         )}
@@ -463,18 +482,18 @@ export const UrgentView: React.FC<Props> = ({ onClose, onAddOrder, userLocation 
 
             <div className="text-center space-y-6 max-w-xs mx-auto">
               <div className="space-y-1">
-                <h3 className="text-3xl font-black text-white uppercase tracking-tighter">Recherche...</h3>
-                <p className="text-slate-500 text-sm font-medium">Nous contactons les experts <span className="text-white font-bold">{isEditing ? editedCategory : analysis?.category}</span> à proximité.</p>
+                <h3 className="text-3xl font-black text-white uppercase tracking-tighter">{t('urgent.searching_title')}</h3>
+                <p className="text-slate-500 text-sm font-medium">{t('urgent.searching_subtitle', { category: isEditing ? editedCategory : (t(`categories.${(analysis?.category || 'Urgence').toLowerCase().replace(/\s+/g, '_')}`) || analysis?.category) })}</p>
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center gap-3 bg-white/5 px-4 py-3 rounded-xl border border-white/5 animate-in slide-in-from-bottom duration-500">
                   <CheckCircle2 size={16} className="text-emerald-500" />
-                  <span className="text-xs font-bold text-white">Analyse terminée</span>
+                  <span className="text-xs font-bold text-white">{t('urgent.analysis_finished')}</span>
                 </div>
                 <div className="flex items-center gap-3 bg-white/5 px-4 py-3 rounded-xl border border-white/5 animate-in slide-in-from-bottom duration-500 delay-300">
                   <Loader2 size={16} className="text-indigo-500 animate-spin" />
-                  <span className="text-xs font-bold text-white">3 Experts notifiés...</span>
+                  <span className="text-xs font-bold text-white">{t('urgent.experts_notified', { count: 3 })}</span>
                 </div>
               </div>
             </div>

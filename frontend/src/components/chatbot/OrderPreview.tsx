@@ -7,7 +7,6 @@ interface Props {
     userPhoto: string | null;
     generatedImage: string | null;
     isPublishing: boolean;
-    isGeneratingImage: boolean;
     onTitleChange: (v: string) => void;
     onDescriptionChange: (v: string) => void;
     onPublish: () => void;
@@ -19,7 +18,6 @@ export const OrderPreview: React.FC<Props> = ({
     userPhoto,
     generatedImage,
     isPublishing,
-    isGeneratingImage,
     onTitleChange,
     onDescriptionChange,
     onPublish,
@@ -72,7 +70,7 @@ export const OrderPreview: React.FC<Props> = ({
             )}
 
             {/* Image thumbnails */}
-            {(userPhoto || generatedImage || isGeneratingImage) && (
+            {(userPhoto || generatedImage) && (
                 <div className="flex gap-3">
                     {userPhoto && (
                         <div className="shrink-0">
@@ -84,20 +82,14 @@ export const OrderPreview: React.FC<Props> = ({
                             />
                         </div>
                     )}
-                    {(generatedImage || isGeneratingImage) && (
+                    {generatedImage && (
                         <div className="shrink-0">
                             <p className="text-[10px] text-purple-400 uppercase tracking-widest mb-1">Image IA</p>
-                            {isGeneratingImage ? (
-                                <div className="size-16 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center animate-pulse">
-                                    <Loader2 className="size-4 text-purple-500 animate-spin" />
-                                </div>
-                            ) : (
-                                <img
-                                    src={generatedImage!}
-                                    className="size-16 rounded-xl object-cover border border-purple-500/30"
-                                    alt="Image générée"
-                                />
-                            )}
+                            <img
+                                src={generatedImage}
+                                className="size-16 rounded-xl object-cover border border-purple-500/30"
+                                alt="Image générée"
+                            />
                         </div>
                     )}
                 </div>
@@ -106,7 +98,7 @@ export const OrderPreview: React.FC<Props> = ({
             {/* Publish button */}
             <button
                 onClick={onPublish}
-                disabled={isPublishing || isGeneratingImage}
+                disabled={isPublishing}
                 className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-500 text-white font-black text-sm uppercase tracking-widest disabled:opacity-50 active:scale-[0.98] transition-all shadow-xl shadow-emerald-900/30 flex items-center justify-center gap-2"
             >
                 {isPublishing ? (

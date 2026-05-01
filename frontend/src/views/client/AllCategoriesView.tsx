@@ -1,9 +1,9 @@
-
 import React from 'react';
 import { ArrowLeft, ChevronRight } from 'lucide-react';
 import { CATEGORIES } from '../../data/mockData';
 import { CategoryIcon } from '../../components/Shared/CategoryIcon';
 import { Category, View } from '../../types';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 interface Props {
     onBack: () => void;
@@ -11,6 +11,7 @@ interface Props {
 }
 
 export const AllCategoriesView: React.FC<Props> = ({ onBack, onSelectCategory }) => {
+    const { t } = useLanguage();
     return (
         <div className="min-h-screen bg-[#0a0a0c] pt-12 pb-32 px-6">
             <header className="flex items-center gap-4 mb-10">
@@ -21,8 +22,8 @@ export const AllCategoriesView: React.FC<Props> = ({ onBack, onSelectCategory })
                     <ArrowLeft size={20} />
                 </button>
                 <div>
-                    <h1 className="text-2xl font-black text-white tracking-tighter uppercase leading-none">Toutes les catégories</h1>
-                    <p className="text-[10px] text-indigo-400 font-black uppercase tracking-widest mt-1">Explorez nos services</p>
+                    <h1 className="text-2xl font-black text-white tracking-tighter uppercase leading-none">{t('all_categories.title')}</h1>
+                    <p className="text-[10px] text-indigo-400 font-black uppercase tracking-widest mt-1">{t('all_categories.subtitle')}</p>
                 </div>
             </header>
 
@@ -37,8 +38,8 @@ export const AllCategoriesView: React.FC<Props> = ({ onBack, onSelectCategory })
                             <CategoryIcon name={cat.icon} className={`size-8 ${cat.color.split(' ')[1]}`} />
                         </div>
                         <div className="text-center">
-                            <span className="text-xs font-black text-white uppercase tracking-tight block">{cat.name}</span>
-                            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-1 block">Explorer</span>
+                            <span className="text-xs font-black text-white uppercase tracking-tight block">{t(`categories.${cat.name}`)}</span>
+                            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-1 block">{t('all_categories.explore')}</span>
                         </div>
                     </button>
                 ))}

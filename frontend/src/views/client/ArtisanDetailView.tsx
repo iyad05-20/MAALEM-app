@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { ChevronLeft, Share2, MapPin, ShieldCheck, Star, Phone, Mail, X, Info, MessageCircle, Heart, MessageSquareText, MessageSquare, Users, CheckCircle2 } from 'lucide-react';
 import { Artisan, View, PortfolioItem, Order, Review } from '../../types';
@@ -7,6 +6,7 @@ import { SmartAvatar } from '../../components/Shared/SmartAvatar';
 import { uploadToSupabase, deleteFromSupabase, extractPathFromUrl } from '../../services/supabase.config';
 import { db } from '../../services/firebase.config';
 import { doc, updateDoc, collection, query, where, onSnapshot, orderBy, limit, documentId } from "firebase/firestore";
+import { useLanguage } from '../../i18n/LanguageContext';
 
 interface Props {
   art: Artisan;
@@ -29,6 +29,7 @@ interface ShareBottomSheetProps {
 }
 
 const ShareBottomSheet: React.FC<ShareBottomSheetProps> = ({ isOpen, onClose, artisan, onShareViaDM }) => {
+  const { t } = useLanguage();
   if (!isOpen) return null;
 
   const handleShareDM = () => {
@@ -61,12 +62,12 @@ const ShareBottomSheet: React.FC<ShareBottomSheetProps> = ({ isOpen, onClose, ar
         </button>
 
         <div className="flex flex-col items-center text-center mb-8">
-          <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-purple-500 mb-6">Partager le Profil</h3>
+          <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-purple-500 mb-6">{t('artisan_detail.share_profile')}</h3>
           <div className="size-24 rounded-full overflow-hidden border-4 border-white/10 shadow-xl mb-4">
             <SmartAvatar src={artisan.image} name={artisan.name} initialsClassName="text-3xl font-black text-white" />
           </div>
           <h2 className="text-xl font-black text-white tracking-tight">{artisan.name}</h2>
-          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{artisan.category} Expert</p>
+          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{t('artisan_detail.expert', { category: artisan.category })}</p>
         </div>
 
         <div className="space-y-6">
@@ -75,11 +76,11 @@ const ShareBottomSheet: React.FC<ShareBottomSheetProps> = ({ isOpen, onClose, ar
             className="w-full py-5 rounded-2xl bg-gradient-to-r from-purple-600 to-pink-500 text-white font-black text-sm uppercase tracking-[0.2em] shadow-[0_10px_20px_rgba(168,85,247,0.3)] active:scale-[0.98] transition-all flex items-center justify-center gap-3"
           >
             <MessageSquareText size={20} />
-            Envoyer en Message Direct
+            {t('artisan_detail.send_dm')}
           </button>
 
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-4 text-center">Partager sur les Réseaux</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-4 text-center">{t('artisan_detail.share_social')}</p>
             <div className="flex justify-center gap-4">
               {[
                 { icon: <MessageSquare size={22} />, platform: 'WhatsApp' },
@@ -105,6 +106,7 @@ const ShareBottomSheet: React.FC<ShareBottomSheetProps> = ({ isOpen, onClose, ar
 };
 
 export const ArtisanDetailView: React.FC<Props> = ({ art, setView, onBack, onOpenChats, reviewRatingFilter, setReviewRatingFilter, onSelectWork, onReserve, isFavorite, onToggleFavorite }) => {
+  const { t } = useLanguage();
   const [showContactOverlay, setShowContactOverlay] = useState(false);
   const [showShareSheet, setShowShareSheet] = useState(false);
   const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
@@ -144,7 +146,7 @@ export const ArtisanDetailView: React.FC<Props> = ({ art, setView, onBack, onOpe
         .filter(o => (o.resultImages && o.resultImages.length > 0) || (o.images && o.images.length > 0))
         .map(o => ({
           id: `job-${o.id}`,
-          title: `Mission ${o.category}`,
+          title: t('artisan_detail.mission_category', { category: o.category }),
           // Prioritize result images (the final work) over initial problem images
           image: (o.resultImages && o.resultImages.length > 0) ? o.resultImages[0] : o.images![0],
           description: o.description,
@@ -152,17 +154,17 @@ export const ArtisanDetailView: React.FC<Props> = ({ art, setView, onBack, onOpe
           date: o.completedAt || o.date,
           customerReview: o.finalReview ? {
             id: `rev-${o.id}`,
-            userName: 'Client Vork',
+            userName: t('profile.user'),
             userAvatar: 'CV',
             rating: o.finalReview.rating,
-            date: o.completedAt ? new Date(o.completedAt).toLocaleDateString() : 'Récemment',
+            date: o.completedAt ? new Date(o.completedAt).toLocaleDateString() : t('artisan_detail.recent'),
             comment: o.finalReview.comment
           } : undefined
         }));
       setPortfolioItems(items);
     });
     return () => unsubscribe();
-  }, [art.id]);
+  }, [art.id, t]);
 
   // 2. Fetch Recent Reviews
   useEffect(() => {
@@ -240,18 +242,18 @@ export const ArtisanDetailView: React.FC<Props> = ({ art, setView, onBack, onOpe
               >
                 <X size={16} />
               </button>
-              <h4 className="text-[9px] font-black uppercase tracking-[0.4em] text-purple-500 mb-6 text-center">Contact Direct</h4>
+              <h4 className="text-[9px] font-black uppercase tracking-[0.4em] text-purple-500 mb-6 text-center">{t('artisan_detail.contact_direct')}</h4>
               <div className="w-full max-w-sm space-y-3">
                 {liveArtisan.phone && (
                   <a href={`tel:${liveArtisan.phone}`} className="flex items-center gap-4 group bg-white/[0.03] p-3.5 rounded-[1.5rem] border border-white/5 hover:bg-purple-600/10 transition-all shadow-xl">
                     <div className="size-10 bg-purple-600 rounded-xl flex items-center justify-center text-white"><Phone size={18} /></div>
-                    <div className="flex-1"><p className="text-[7px] text-slate-500 font-black uppercase tracking-[0.15em]">Appeler</p><p className="text-white font-black text-sm tracking-tight">{liveArtisan.phone}</p></div>
+                    <div className="flex-1"><p className="text-[7px] text-slate-500 font-black uppercase tracking-[0.15em]">{t('artisan_detail.call')}</p><p className="text-white font-black text-sm tracking-tight">{liveArtisan.phone}</p></div>
                   </a>
                 )}
                 {liveArtisan.email && (
                   <a href={`mailto:${liveArtisan.email}`} className="flex items-center gap-4 group bg-white/[0.03] p-3.5 rounded-[1.5rem] border border-white/5 hover:bg-blue-600/10 transition-all shadow-xl">
                     <div className="size-10 bg-blue-600 rounded-xl flex items-center justify-center text-white"><Mail size={18} /></div>
-                    <div className="flex-1 min-w-0"><p className="text-[7px] text-slate-500 font-black uppercase tracking-[0.15em]">Email</p><p className="text-white font-black text-sm truncate tracking-tight">{liveArtisan.email}</p></div>
+                    <div className="flex-1 min-w-0"><p className="text-[7px] text-slate-500 font-black uppercase tracking-[0.15em]">{t('artisan_detail.email')}</p><p className="text-white font-black text-sm truncate tracking-tight">{liveArtisan.email}</p></div>
                   </a>
                 )}
               </div>
@@ -264,18 +266,18 @@ export const ArtisanDetailView: React.FC<Props> = ({ art, setView, onBack, onOpe
               {liveArtisan.isExplicitlyOnline ? (
                 <div className="flex items-center gap-2 bg-[#34d399]/10 px-3 py-1.5 rounded-xl border border-[#34d399]/20 shadow-sm">
                   <div className="size-2 bg-[#34d399] rounded-full animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.5)]"></div>
-                  <span className="text-[10px] text-[#34d399] font-black uppercase tracking-widest">En ligne</span>
+                  <span className="text-[10px] text-[#34d399] font-black uppercase tracking-widest">{t('profile.online')}</span>
                 </div>
               ) : (
                 <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-xl border border-white/10 shadow-sm">
                   <div className="size-2 bg-slate-600 rounded-full"></div>
-                  <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Hors ligne</span>
+                  <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{t('profile.offline')}</span>
                 </div>
               )}
               {liveArtisan.verified && (
                 <div className="flex items-center gap-2 bg-indigo-500/10 px-3 py-1.5 rounded-xl border border-indigo-500/20 text-[#34d399] shadow-sm">
                   <ShieldCheck className="size-3.5 text-[#34d399]" />
-                  <span className="text-[10px] font-black uppercase tracking-widest">Vérifié</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest">{t('artisan_detail.verified')}</span>
                 </div>
               )}
             </div>
@@ -303,7 +305,7 @@ export const ArtisanDetailView: React.FC<Props> = ({ art, setView, onBack, onOpe
                 className="flex-1 py-5 rounded-[1.8rem] bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-500 text-white font-black text-xs uppercase tracking-[0.25em] shadow-[0_15px_30px_-5px_rgba(168,85,247,0.4)] active:scale-[0.97] transition-all relative overflow-hidden group"
               >
                 <span className="relative z-10 flex items-center justify-center gap-2">
-                  Réserver l'expert
+                  {t('artisan_detail.reserve_expert')}
                 </span>
                 <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               </button>
@@ -312,14 +314,14 @@ export const ArtisanDetailView: React.FC<Props> = ({ art, setView, onBack, onOpe
                 <button
                   onClick={() => setShowContactOverlay(true)}
                   className="size-14 bg-[#1a1a20] border border-white/5 rounded-[1.8rem] flex items-center justify-center text-slate-400 shadow-xl active:scale-90 transition-all hover:bg-white/5 hover:text-white"
-                  title="Voir contact"
+                  title={t('artisan_detail.view_contact')}
                 >
                   <Info size={24} />
                 </button>
                 <button
                   onClick={onOpenChats}
                   className="size-14 bg-[#1a1a20] border border-white/5 rounded-[1.8rem] flex items-center justify-center text-indigo-400 shadow-xl active:scale-90 transition-all hover:bg-indigo-600/10 hover:text-indigo-300"
-                  title="Envoyer un message"
+                  title={t('artisan_detail.send_message')}
                 >
                   <MessageCircle size={24} className="fill-indigo-400/5" />
                 </button>
@@ -331,9 +333,9 @@ export const ArtisanDetailView: React.FC<Props> = ({ art, setView, onBack, onOpe
 
       <div className="px-6 grid grid-cols-3 gap-3 mt-8 relative z-20">
         {[
-          { label: 'Note', value: displayRating, icon: <Star className="size-3 fill-current" />, color: 'text-yellow-400' },
-          { label: 'Exp.', value: `${liveArtisan.experience} ans`, icon: null, color: 'text-white' },
-          { label: 'Missions', value: displayJobs, icon: null, color: 'text-white' }
+          { label: t('artisan_detail.rating_label'), value: displayRating, icon: <Star className="size-3 fill-current" />, color: 'text-yellow-400' },
+          { label: t('artisan_detail.exp_label'), value: t('artisan_detail.exp_years', { years: liveArtisan.experience }), icon: null, color: 'text-white' },
+          { label: t('artisan_detail.missions_label'), value: displayJobs, icon: null, color: 'text-white' }
         ].map((stat, idx) => (
           <div key={idx} className="bg-[#121214]/90 backdrop-blur-xl border border-white/5 p-5 rounded-[2.2rem] flex flex-col items-center justify-center gap-1 shadow-2xl transition-transform hover:-translate-y-1">
             <div className={`flex items-center gap-1 ${stat.color}`}>
@@ -348,14 +350,14 @@ export const ArtisanDetailView: React.FC<Props> = ({ art, setView, onBack, onOpe
       <div className="mt-14 px-6">
         <div className="flex justify-between items-end mb-6 px-1">
           <div className="space-y-0.5">
-            <h3 className="text-xl font-black text-white tracking-tighter uppercase">Réalisations</h3>
-            <p className="text-[8px] text-slate-500 font-black uppercase tracking-widest">Travaux récents ({displayPortfolio.length})</p>
+            <h3 className="text-xl font-black text-white tracking-tighter uppercase">{t('artisan_detail.achievements')}</h3>
+            <p className="text-[8px] text-slate-500 font-black uppercase tracking-widest">{t('artisan_detail.recent_works', { count: displayPortfolio.length })}</p>
           </div>
           <button
             onClick={() => setView('portfolio')}
             className="text-purple-500 text-[9px] font-black hover:text-white transition-colors uppercase tracking-[0.2em] bg-purple-500/10 px-3 py-1.5 rounded-full"
           >
-            Voir Tout
+            {t('artisan_detail.view_all')}
           </button>
         </div>
         <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 snap-x">
@@ -374,7 +376,7 @@ export const ArtisanDetailView: React.FC<Props> = ({ art, setView, onBack, onOpe
           ))}
           {displayPortfolio.length === 0 && (
             <div className="min-w-[200px] h-[140px] rounded-[2.2rem] border border-dashed border-white/10 flex flex-col items-center justify-center opacity-40">
-              <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">Aucune photo</p>
+              <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">{t('artisan_detail.no_photos')}</p>
             </div>
           )}
         </div>
@@ -383,20 +385,20 @@ export const ArtisanDetailView: React.FC<Props> = ({ art, setView, onBack, onOpe
       <div className="px-6 mt-12 pb-32">
         <div className="flex justify-between items-end mb-6 px-1">
           <div className="space-y-0.5">
-            <h3 className="text-xl font-black text-white tracking-tighter uppercase">Témoignages</h3>
+            <h3 className="text-xl font-black text-white tracking-tighter uppercase">{t('artisan_detail.testimonials')}</h3>
             <div className="flex items-center gap-1.5">
               <div className="flex items-center gap-0.5 text-yellow-400">
                 <Star className="size-2.5 fill-current" />
                 <span className="text-[9px] font-black">{displayRating}</span>
               </div>
-              <span className="text-[9px] text-slate-600 font-black uppercase tracking-widest">• {displayCount} avis</span>
+              <span className="text-[9px] text-slate-600 font-black uppercase tracking-widest">• {t('artisan_detail.reviews_count', { count: displayCount })}</span>
             </div>
           </div>
           <button
             onClick={() => setView('reviews')}
             className="text-purple-500 text-[9px] font-black hover:text-white transition-colors uppercase tracking-[0.2em] bg-purple-500/10 px-3 py-1.5 rounded-full"
           >
-            Voir Tout
+            {t('artisan_detail.view_all')}
           </button>
         </div>
 
@@ -406,11 +408,11 @@ export const ArtisanDetailView: React.FC<Props> = ({ art, setView, onBack, onOpe
               <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-3">
                   <div className="size-10 rounded-xl overflow-hidden border border-white/5">
-                    <SmartAvatar src={(rev as any).userImage} name={rev.userName || 'Client'} initialsClassName="text-[10px] font-black text-white" />
+                    <SmartAvatar src={(rev as any).userImage} name={rev.userName || t('profile.user')} initialsClassName="text-[10px] font-black text-white" />
                   </div>
                   <div>
                     <h4 className="text-xs font-black text-white uppercase tracking-tight">
-                      {rev.userName || 'Client'}
+                      {rev.userName || t('profile.user')}
                     </h4>
                     <p className="text-[8px] text-slate-600 font-bold uppercase tracking-widest mt-0.5">{rev.date}</p>
                   </div>
@@ -429,7 +431,7 @@ export const ArtisanDetailView: React.FC<Props> = ({ art, setView, onBack, onOpe
           ))}
           {displayReviews.length === 0 && (
             <div className="py-10 text-center opacity-40">
-              <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Aucun avis pour le moment</p>
+              <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">{t('artisan_detail.no_reviews')}</p>
             </div>
           )}
         </div>

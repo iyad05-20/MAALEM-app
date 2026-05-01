@@ -6,12 +6,14 @@ import { db, auth } from '../../services/firebase.config';
 import { collection, query, where, onSnapshot, updateDoc, doc, addDoc, getDoc, getDocs, arrayUnion } from "firebase/firestore";
 import { SmartAvatar } from '../../components/Shared/SmartAvatar';
 import { sanitizeFirestoreData } from '../../utils';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 interface Props {
   artisan: Artisan;
 }
 
 export const MarketplaceView: React.FC<Props> = ({ artisan }) => {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'targeted' | 'public'>('public'); // Default to public to show market immediately
   const [orders, setOrders] = useState<Order[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -126,8 +128,8 @@ export const MarketplaceView: React.FC<Props> = ({ artisan }) => {
       if (selectedOrder.userId) {
         await addDoc(collection(db, "notifications"), {
           userId: selectedOrder.userId,
-          title: "Nouveau Devis !",
-          message: `${artisan.name} a proposé ${bidPrice} dh pour votre demande de ${selectedOrder.category}.`,
+          title: t('marketplace.messages.notif_title'),
+          message: t('marketplace.messages.notif_body', { name: artisan.name, price: bidPrice, category: t(`categories.${selectedOrder.category.toLowerCase().replace(/\s+/g, '_')}`) || selectedOrder.category }),
           type: 'system',
           read: false,
           createdAt: new Date().toISOString(),
@@ -138,10 +140,10 @@ export const MarketplaceView: React.FC<Props> = ({ artisan }) => {
       setSelectedOrder(null);
       setBidPrice('');
       setBidDescription('');
-      alert("Votre devis a été envoyé au client !");
+      alert(t('marketplace.messages.success_send'));
     } catch (err) {
       console.error("Error sending quote:", err);
-      alert("Erreur lors de l'envoi du devis. Veuillez réessayer.");
+      alert(t('marketplace.messages.error_send'));
     } finally {
       setIsSubmitting(false);
     }
@@ -154,9 +156,9 @@ export const MarketplaceView: React.FC<Props> = ({ artisan }) => {
           <div className="size-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
             <Zap className="size-5 text-white animate-pulse" />
           </div>
-          <div>
-            <h1 className="text-xl font-black text-white tracking-tight uppercase">Le Marché Vork</h1>
-            <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest">Opportunités</p>
+          <div className="text-left">
+            <h1 className="text-xl font-black text-white tracking-tight uppercase">{t('marketplace.title')}</h1>
+            <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest">{t('marketplace.subtitle')}</p>
           </div>
         </div>
 
@@ -166,13 +168,13 @@ export const MarketplaceView: React.FC<Props> = ({ artisan }) => {
             onClick={() => setActiveTab('targeted')}
             className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${activeTab === 'targeted' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
           >
-            <Target size={14} /> Pour Moi
+            <Target size={14} /> {t('marketplace.tabs.targeted')}
           </button>
           <button
             onClick={() => setActiveTab('public')}
             className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${activeTab === 'public' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
           >
-            <Globe size={14} /> Public
+            <Globe size={14} /> {t('marketplace.tabs.public')}
           </button>
         </div>
       </header>
@@ -181,7 +183,7 @@ export const MarketplaceView: React.FC<Props> = ({ artisan }) => {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <Loader2 className="size-8 text-indigo-500 animate-spin mb-4" />
-            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Chargement...</p>
+            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('common.loading')}</p>
           </div>
         ) : orders.length > 0 ? (
           orders.map((order) => {
@@ -194,13 +196,13 @@ export const MarketplaceView: React.FC<Props> = ({ artisan }) => {
               >
                 {order.isUrgent && (
                   <div className="absolute top-4 right-4 px-2 py-1 bg-red-600/20 text-red-500 rounded-lg text-[8px] font-black uppercase tracking-widest border border-red-500/20 animate-pulse">
-                    Urgent
+                    {t('marketplace.status.urgent')}
                   </div>
                 )}
 
                 {hasReplied && (
                   <div className="absolute top-4 left-4 px-2 py-1 bg-emerald-500/20 text-emerald-500 rounded-lg text-[8px] font-black uppercase tracking-widest border border-emerald-500/20 flex items-center gap-1">
-                    <Sparkles size={8} /> Offre envoyée
+                    <Sparkles size={8} /> {t('marketplace.status.sent')}
                   </div>
                 )}
 
@@ -213,10 +215,10 @@ export const MarketplaceView: React.FC<Props> = ({ artisan }) => {
                     <div className={`size-12 rounded-2xl flex items-center justify-center border ${activeTab === 'targeted' ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/20' : 'bg-white/5 text-slate-400 border-white/5'}`}>
                       {activeTab === 'targeted' ? <Sparkles size={24} /> : <LayoutGrid size={24} />}
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 text-left">
                       <div className="flex items-center justify-between gap-2">
                         <h3 className="text-white font-black text-lg leading-tight uppercase tracking-tight line-clamp-1">
-                          {order.title || order.category}
+                          {order.title || t(`categories.${order.category.toLowerCase().replace(/\s+/g, '_')}`) || order.category}
                         </h3>
                       </div>
                       <div className="flex items-center gap-2 mt-1.5">
@@ -234,11 +236,11 @@ export const MarketplaceView: React.FC<Props> = ({ artisan }) => {
                     <div className="flex items-center gap-2 text-slate-500">
                       <Clock size={14} />
                       <span className="text-[10px] font-black uppercase tracking-widest">
-                        {activeTab === 'targeted' ? 'Réservation Directe' : 'Offre Publique'}
+                        {activeTab === 'targeted' ? t('marketplace.status.direct') : t('marketplace.status.public')}
                       </span>
                     </div>
                     <div className="flex items-center text-indigo-400 font-black text-[10px] uppercase tracking-widest group-hover:translate-x-1 transition-transform">
-                      {hasReplied ? 'Voir mon offre' : 'Proposer un devis'} <ChevronRight size={14} />
+                      {hasReplied ? t('marketplace.actions.view_mine') : t('marketplace.actions.make_quote')} <ChevronRight size={14} />
                     </div>
                   </div>
                 </div>
@@ -249,12 +251,12 @@ export const MarketplaceView: React.FC<Props> = ({ artisan }) => {
           <div className="flex flex-col items-center justify-center py-40 opacity-20 text-center">
             {activeTab === 'targeted' ? <Target size={64} className="mb-6 text-slate-500" /> : <Globe size={64} className="mb-6 text-slate-500" />}
             <p className="text-xs font-black uppercase tracking-[0.4em] text-slate-500">
-              {activeTab === 'targeted' ? 'Aucune réservation' : 'Aucune offre publique'}
+              {activeTab === 'targeted' ? t('marketplace.empty.no_targeted') : t('marketplace.empty.no_public')}
             </p>
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-600 mt-2">
               {activeTab === 'targeted'
-                ? "Les clients peuvent vous réserver depuis votre profil"
-                : `Aucune mission ${artisan.category} disponible à ${artisan.city || 'Marrakech'}`}
+                ? t('marketplace.empty.targeted_desc')
+                : t('marketplace.empty.public_desc', { category: t(`categories.${artisan.category.toLowerCase().replace(/\s+/g, '_')}`) || artisan.category, city: artisan.city || 'Marrakech' })}
             </p>
           </div>
         )}
@@ -266,18 +268,18 @@ export const MarketplaceView: React.FC<Props> = ({ artisan }) => {
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setSelectedOrder(null)} />
           <div className="relative w-full max-w-md bg-[#0a0a0c] rounded-t-[3rem] p-8 pb-safe-bottom animate-in slide-in-from-bottom duration-500 border-t border-white/10 max-h-[90vh] overflow-y-auto no-scrollbar">
             <header className="flex justify-between items-start mb-8">
-              <div>
-                <h2 className="text-2xl font-black text-white uppercase tracking-tight">Faire une offre</h2>
-                <p className="text-[10px] text-indigo-400 font-black uppercase tracking-widest mt-1">Missions : {selectedOrder.category}</p>
+              <div className="text-left">
+                <h2 className="text-2xl font-black text-white uppercase tracking-tight">{t('marketplace.modal.title')}</h2>
+                <p className="text-[10px] text-indigo-400 font-black uppercase tracking-widest mt-1">{t('marketplace.modal.mission_label', { category: t(`categories.${selectedOrder.category.toLowerCase().replace(/\s+/g, '_')}`) || selectedOrder.category })}</p>
               </div>
               <button onClick={() => setSelectedOrder(null)} className="size-10 bg-white/5 rounded-xl flex items-center justify-center text-slate-500 hover:text-white transition-colors"><X size={20} /></button>
             </header>
 
             <div className="space-y-6">
               {/* AI Title & Full Description */}
-              <div className="space-y-3 bg-white/5 p-5 rounded-3xl border border-white/5">
+              <div className="space-y-3 bg-white/5 p-5 rounded-3xl border border-white/5 text-left">
                 <h4 className="text-indigo-400 font-black text-base uppercase tracking-tight">
-                  {selectedOrder.title || selectedOrder.category}
+                  {selectedOrder.title || t(`categories.${selectedOrder.category.toLowerCase().replace(/\s+/g, '_')}`) || selectedOrder.category}
                 </h4>
                 <p className="text-slate-300 text-xs leading-relaxed italic">
                   "{selectedOrder.description}"
@@ -285,51 +287,53 @@ export const MarketplaceView: React.FC<Props> = ({ artisan }) => {
               </div>
 
               {/* Images Section */}
-              {selectedOrder.images && selectedOrder.images.length > 0 ? (
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Photos du problème</label>
-                  <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
-                    {selectedOrder.images.map((img, idx) => (
-                      <div
-                        key={idx}
-                        onClick={() => setFullScreenImage(img)}
-                        className="relative size-20 shrink-0 rounded-2xl overflow-hidden border border-white/10 group cursor-pointer bg-[#121214]"
-                      >
-                        <img src={img} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-500" alt="Preview" />
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/30 transition-all duration-300">
-                          <Maximize2 size={16} className="text-white drop-shadow-md" />
+              <div className="text-left">
+                {selectedOrder.images && selectedOrder.images.length > 0 ? (
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('marketplace.modal.photos_label')}</label>
+                    <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
+                      {selectedOrder.images.map((img, idx) => (
+                        <div
+                          key={idx}
+                          onClick={() => setFullScreenImage(img)}
+                          className="relative size-20 shrink-0 rounded-2xl overflow-hidden border border-white/10 group cursor-pointer bg-[#121214]"
+                        >
+                          <img src={img} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-500" alt="Preview" />
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/30 transition-all duration-300">
+                            <Maximize2 size={16} className="text-white drop-shadow-md" />
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 p-4 rounded-2xl bg-white/5 border border-white/5 text-slate-500">
-                  <ImageIcon size={16} />
-                  <span className="text-[10px] font-bold uppercase tracking-wide">Aucune photo fournie</span>
-                </div>
-              )}
+                ) : (
+                  <div className="flex items-center gap-2 p-4 rounded-2xl bg-white/5 border border-white/5 text-slate-500">
+                    <ImageIcon size={16} />
+                    <span className="text-[10px] font-bold uppercase tracking-wide">{t('marketplace.modal.no_photos')}</span>
+                  </div>
+                )}
+              </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Prix proposé (dh)</label>
+              <div className="space-y-2 text-left">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('marketplace.modal.price_label')}</label>
                 <div className="relative">
                   <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-slate-600" />
                   <input
                     type="number"
                     value={bidPrice}
                     onChange={(e) => setBidPrice(e.target.value)}
-                    placeholder="Ex: 15000"
+                    placeholder={t('marketplace.modal.price_placeholder')}
                     className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white font-bold focus:outline-none focus:border-indigo-500"
                   />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Message pour le client</label>
+              <div className="space-y-2 text-left">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('marketplace.modal.message_label')}</label>
                 <textarea
                   value={bidDescription}
                   onChange={(e) => setBidDescription(e.target.value)}
-                  placeholder="Expliquez brièvement votre approche..."
+                  placeholder={t('marketplace.modal.message_placeholder')}
                   className="w-full h-32 bg-white/5 border border-white/10 rounded-2xl p-4 text-white text-sm focus:outline-none focus:border-indigo-500 resize-none"
                 />
               </div>
@@ -339,7 +343,7 @@ export const MarketplaceView: React.FC<Props> = ({ artisan }) => {
                 disabled={isSubmitting || !bidPrice}
                 className="w-full py-5 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-black text-sm uppercase tracking-[0.2em] shadow-xl active:scale-[0.98] transition-all flex items-center justify-center gap-3"
               >
-                {isSubmitting ? <Loader2 className="size-5 animate-spin" /> : <>Envoyer le devis <Send size={18} /></>}
+                {isSubmitting ? <Loader2 className="size-5 animate-spin" /> : <>{t('marketplace.actions.send_quote')} <Send size={18} /></>}
               </button>
             </div>
           </div>

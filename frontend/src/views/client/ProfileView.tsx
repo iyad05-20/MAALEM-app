@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { User, Mail, MapPin, Phone, LogOut, Edit2, Check, Camera, ShieldCheck, Heart, Clock, X, Settings, Trash2, Loader2, CheckCircle2, ChevronRight, Lock, AlertCircle, Send } from 'lucide-react';
 import { getInitials, isImageUrl } from '../../utils';
@@ -7,6 +6,7 @@ import { uploadToSupabase, deleteFromSupabase, extractPathFromUrl } from '../../
 import { db } from '../../services/firebase.config';
 import { collection, query, where, onSnapshot, updateDoc, doc, addDoc, getDoc, getDocs, arrayUnion } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { useLanguage } from '../../i18n/LanguageContext';
 
 interface UserProfile {
   id: string;
@@ -31,6 +31,7 @@ interface Props {
 }
 
 export const ProfileView: React.FC<Props> = ({ user, setUser, onLogout, favoritesCount = 0, onOpenFavorites, onOpenSettings, isDarkMode, setIsDarkMode, onUpdateEmail }) => {
+  const { t } = useLanguage();
   const [isEditing, setIsEditing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [formData, setFormData] = useState(user);
@@ -55,7 +56,7 @@ export const ProfileView: React.FC<Props> = ({ user, setUser, onLogout, favorite
   const handleSave = async () => {
     // Basic validation for phone
     if (activeField === 'phone' && formData.phone.length !== 13) {
-      alert("Le numéro de téléphone doit contenir 9 chiffres après +212.");
+      alert(t('profile.phone_error'));
       return;
     }
 
@@ -108,7 +109,7 @@ export const ProfileView: React.FC<Props> = ({ user, setUser, onLogout, favorite
     } catch (err) {
       console.error('Erreur lors de la sauvegarde:', err);
       // Revert local change if needed, though simple alert might suffice
-      alert("Erreur lors de la mise à jour du profil.");
+      alert(t('profile.save_error'));
     } finally {
       setIsUploading(false);
     }
@@ -207,7 +208,7 @@ export const ProfileView: React.FC<Props> = ({ user, setUser, onLogout, favorite
             {isEditing && isArtisan && !isUploading && (
               <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20 gap-2">
                 <Camera className="text-white drop-shadow-lg" size={28} />
-                <span className="text-[8px] font-black text-white uppercase tracking-widest">Changer</span>
+                <span className="text-[8px] font-black text-white uppercase tracking-widest">{t('profile.change')}</span>
               </div>
             )}
 
@@ -224,7 +225,7 @@ export const ProfileView: React.FC<Props> = ({ user, setUser, onLogout, favorite
             <button
               onClick={handleRemoveAvatar}
               className="absolute -top-2 -right-2 size-10 bg-red-600 rounded-2xl border-4 border-[#0a0a0c] flex items-center justify-center shadow-lg text-white animate-in zoom-in duration-300 z-40 active:scale-90"
-              title="Supprimer la photo"
+              title={t('profile.delete')}
             >
               <Trash2 size={16} />
             </button>
@@ -243,26 +244,26 @@ export const ProfileView: React.FC<Props> = ({ user, setUser, onLogout, favorite
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="text-3xl font-black text-white text-center bg-white/5 border border-white/10 rounded-2xl px-4 py-2 focus:outline-none focus:border-indigo-500 w-full max-w-[260px]"
               autoFocus
-              placeholder="Votre nom"
+              placeholder={t('profile.name_placeholder')}
             />
             <div className="flex gap-2">
-              <button onClick={handleSave} className="px-6 py-2 bg-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest text-white shadow-lg">Valider</button>
-              <button onClick={handleCancel} className="px-6 py-2 bg-white/5 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500">Annuler</button>
+              <button onClick={handleSave} className="px-6 py-2 bg-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest text-white shadow-lg">{t('profile.validate')}</button>
+              <button onClick={handleCancel} className="px-6 py-2 bg-white/5 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500">{t('profile.cancel')}</button>
             </div>
           </div>
         ) : (
           <div className="flex items-center justify-center gap-3 relative w-full">
-            <h2 className="text-3xl font-black text-white tracking-tight uppercase text-center">{user.name || 'Utilisateur'}</h2>
+            <h2 className="text-3xl font-black text-white tracking-tight uppercase text-center">{user.name || t('profile.user')}</h2>
             <button
               onClick={() => setIsEditing(true)}
               className="p-2 bg-white/5 rounded-full text-slate-500 hover:text-white transition-colors absolute -right-8 sm:static"
-              title="Modifier le nom"
+              title={t('profile.edit')}
             >
               <Edit2 size={14} />
             </button>
           </div>
         )}
-        <p className="text-[10px] text-indigo-400 font-black uppercase tracking-[0.25em] mt-2">Expertise & Qualité</p>
+        <p className="text-[10px] text-indigo-400 font-black uppercase tracking-[0.25em] mt-2">{t('profile.expertise_quality')}</p>
 
         <div className="flex gap-2 mt-6">
           {!isEditing && (
@@ -271,7 +272,7 @@ export const ProfileView: React.FC<Props> = ({ user, setUser, onLogout, favorite
               className="px-10 py-3 rounded-[1.5rem] bg-[#1a1a20] border border-white/5 text-slate-300 font-black text-[10px] uppercase tracking-[0.3em] flex items-center gap-3 shadow-2xl hover:bg-indigo-600/10 hover:border-indigo-500/20 transition-all active:scale-95"
             >
               <Settings size={14} className="text-indigo-400" />
-              Paramètres
+              {t('settings.title')}
             </button>
           )}
         </div>
@@ -285,23 +286,23 @@ export const ProfileView: React.FC<Props> = ({ user, setUser, onLogout, favorite
           <div className="absolute top-0 right-0 w-20 h-20 bg-purple-500/5 blur-2xl group-hover:bg-purple-500/10 transition-all"></div>
           <Heart size={16} className="text-purple-500 mb-2 group-hover:scale-110 transition-transform" />
           <h3 className="text-2xl font-black text-white tracking-tighter">{favoritesCount}</h3>
-          <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Favoris</p>
+          <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">{t('profile.favorites')}</p>
         </button>
         <div className="bg-[#121214] border border-white/5 p-6 rounded-[2.5rem] shadow-xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-20 h-20 bg-blue-500/5 blur-2xl"></div>
           <Clock size={16} className="text-blue-500 mb-2" />
           <h3 className="text-2xl font-black text-white tracking-tighter">VORK</h3>
-          <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Pro</p>
+          <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">{t('profile.pro')}</p>
         </div>
       </div>
 
       {/* Main Info Fields */}
       <div className="space-y-4 mb-8">
-        <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] px-2 mb-4">Informations</h3>
+        <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] px-2 mb-4">{t('profile.information')}</h3>
 
         <ProfileField
           icon={<Mail size={18} />}
-          label="Email"
+          label={t('profile.email')}
           value={isEditing && activeField === 'email' ? formData.email : user.email}
           isEditing={isEditing && activeField === 'email'}
           onClick={() => onUpdateEmail?.()} // Delegate to UpdateEmailView if needed
@@ -311,10 +312,11 @@ export const ProfileView: React.FC<Props> = ({ user, setUser, onLogout, favorite
           isSaving={isUploading && activeField === 'email'}
           placeholder="votre@email.com"
           finishEdit={() => { setIsEditing(false); setActiveField(null); }}
+          t={t}
         />
         <ProfileField
           icon={<Phone size={18} />}
-          label="Téléphone"
+          label={t('profile.phone')}
           value={isEditing && activeField === 'phone' ? formData.phone : (user.phone ? (user.phone.startsWith('+212') ? user.phone : '+212' + (user.phone.startsWith('0') ? user.phone.slice(1) : user.phone)) : '+212')}
           isEditing={isEditing && activeField === 'phone'}
           onClick={() => handleStartEdit('phone')}
@@ -326,6 +328,7 @@ export const ProfileView: React.FC<Props> = ({ user, setUser, onLogout, favorite
           type="tel"
           isPhoneField={true}
           finishEdit={() => { setIsEditing(false); setActiveField(null); }}
+          t={t}
         />
       </div>
 
@@ -336,14 +339,14 @@ export const ProfileView: React.FC<Props> = ({ user, setUser, onLogout, favorite
           className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-red-600/5 border border-red-600/20 text-red-500 font-black text-xs uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all active:scale-[0.98]"
         >
           <LogOut size={16} />
-          Se déconnecter
+          {t('profile.logout')}
         </button>
       )}
     </div>
   );
 };
 
-const ProfileField = ({ icon, label, value, isEditing, onChange, onClick, onSave, onCancel, placeholder, type = "text", isSaving, isPhoneField, finishEdit }: {
+const ProfileField = ({ icon, label, value, isEditing, onChange, onClick, onSave, onCancel, placeholder, type = "text", isSaving, isPhoneField, finishEdit, t }: {
   icon: React.ReactNode,
   label: string,
   value: string,
@@ -356,7 +359,8 @@ const ProfileField = ({ icon, label, value, isEditing, onChange, onClick, onSave
   type?: string,
   isSaving?: boolean,
   isPhoneField?: boolean,
-  finishEdit?: () => void
+  finishEdit?: () => void,
+  t: (key: string) => string
 }) => {
   const isEmpty = !value || value.trim() === '' || (isPhoneField && value.trim() === '+212');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -399,7 +403,7 @@ const ProfileField = ({ icon, label, value, isEditing, onChange, onClick, onSave
               </div>
             ) : (
               <p className={`font-bold text-sm truncate tracking-tight transition-all ${isEmpty ? 'text-indigo-400 italic' : 'text-white'}`}>
-                {isEmpty ? 'Cliquer pour ajouter' : value}
+                {isEmpty ? t('profile.click_to_add') : value}
               </p>
             )}
           </div>
@@ -410,7 +414,7 @@ const ProfileField = ({ icon, label, value, isEditing, onChange, onClick, onSave
             onClick={onClick}
             className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[8px] font-black uppercase tracking-[0.2em] text-indigo-400 hover:bg-indigo-600 hover:text-white transition-all active:scale-95 flex items-center gap-2"
           >
-            Modifier <ChevronRight size={10} />
+            {t('profile.edit')} <ChevronRight size={10} />
           </button>
         )}
       </div>
@@ -422,7 +426,7 @@ const ProfileField = ({ icon, label, value, isEditing, onChange, onClick, onSave
             disabled={isSaving}
             className={`flex-1 py-4 rounded-2xl bg-indigo-600 text-white font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-xl active:scale-95 transition-all`}
           >
-            {isSaving ? <Loader2 size={14} className="animate-spin" /> : <><Check size={14} /> Enregistrer</>}
+            {isSaving ? <Loader2 size={14} className="animate-spin" /> : <><Check size={14} /> {t('profile.save_btn')}</>}
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); onCancel(); }}

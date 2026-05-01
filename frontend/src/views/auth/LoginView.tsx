@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, Loader2, ArrowRight, Diamond, AlertCircle, User, Briefcase } from 'lucide-react';
 import { loginUser } from '../../services/auth.service';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 interface Props {
     onLoginSuccess: (userData: any, role: 'user' | 'artisan') => void;
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export const LoginView: React.FC<Props> = ({ onLoginSuccess, onSwitchToSignup }) => {
+    const { t } = useLanguage();
     const [role, setRole] = useState<'user' | 'artisan'>('user');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -19,7 +21,7 @@ export const LoginView: React.FC<Props> = ({ onLoginSuccess, onSwitchToSignup })
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!email || !password) {
-            setError("Veuillez remplir tous les champs.");
+            setError(t('auth.fill_fields'));
             return;
         }
 
@@ -30,7 +32,7 @@ export const LoginView: React.FC<Props> = ({ onLoginSuccess, onSwitchToSignup })
             const result = await loginUser(email, password, role);
             onLoginSuccess(result.data, role);
         } catch (err: any) {
-            setError(err.message || "Erreur de connexion.");
+            setError(err.message || t('auth.login_error'));
         } finally {
             setIsLoading(false);
         }
@@ -45,22 +47,22 @@ export const LoginView: React.FC<Props> = ({ onLoginSuccess, onSwitchToSignup })
                     <img src="/icons/icon-512x512.png" alt="Vork Logo" className="w-10 h-10 object-contain" />
                 </div>
                 <h1 className="text-4xl font-black text-white tracking-tighter mb-1 uppercase">VORK</h1>
-                <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em]">Connexion</p>
+                <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em]">{t('auth.login')}</p>
             </div>
 
             <div className="w-full max-w-sm glass-card bg-[#121214]/60 rounded-[2.5rem] p-8 border border-white/10 shadow-2xl relative z-20">
                 <div className="flex gap-2 mb-6">
                     <button onClick={() => setRole('user')} className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 border transition-all ${role === 'user' ? 'bg-purple-600 border-purple-500 text-white shadow-lg' : 'bg-white/5 border-white/5 text-slate-600'}`}>
-                        <User size={12} /> Client
+                        <User size={12} /> {t('auth.client')}
                     </button>
                     <button onClick={() => setRole('artisan')} className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 border transition-all ${role === 'artisan' ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg' : 'bg-white/5 border-white/5 text-slate-600'}`}>
-                        <Briefcase size={12} /> Artisan
+                        <Briefcase size={12} /> {t('auth.artisan')}
                     </button>
                 </div>
 
                 <form onSubmit={handleLogin} className="space-y-4">
                     <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Email</label>
+                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('auth.email')}</label>
                         <div className="relative">
                             <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={16} />
                             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@vork.sn" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white text-xs focus:outline-none focus:border-purple-500/50 transition-all placeholder:text-slate-700" />
@@ -68,7 +70,7 @@ export const LoginView: React.FC<Props> = ({ onLoginSuccess, onSwitchToSignup })
                     </div>
 
                     <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Mot de passe</label>
+                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('auth.password')}</label>
                         <div className="relative">
                             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={16} />
                             <input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-12 text-white text-xs focus:outline-none focus:border-purple-500/50 transition-all placeholder:text-slate-700" />
@@ -86,12 +88,12 @@ export const LoginView: React.FC<Props> = ({ onLoginSuccess, onSwitchToSignup })
                     )}
 
                     <button type="submit" disabled={isLoading} className="w-full bg-gradient-to-r from-[#a855f7] to-[#ec4899] py-5 rounded-2xl text-white font-black text-sm uppercase tracking-[0.2em] shadow-xl active:scale-[0.98] transition-all flex items-center justify-center gap-3 mt-4 group">
-                        {isLoading ? <Loader2 className="size-4 animate-spin" /> : <>Se connecter <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" /></>}
+                        {isLoading ? <Loader2 className="size-4 animate-spin" /> : <>{t('auth.login')} <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" /></>}
                     </button>
                 </form>
 
                 <button onClick={onSwitchToSignup} className="w-full mt-6 py-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-colors">
-                    Pas de compte ? S'inscrire
+                    {t('auth.no_account')}
                 </button>
             </div>
         </div>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ChevronLeft, Search as SearchIcon, SlidersHorizontal, MapPin, ShieldCheck, Star, Hammer, Users, X, Loader2 } from 'lucide-react';
 import { Artisan, View, Category, Coordinates } from '../../types';
@@ -9,6 +8,8 @@ import { collection, query, where, getDocs, onSnapshot, limit, orderBy, startAft
 import { SmartAvatar } from '../../components/Shared/SmartAvatar';
 import { sanitizeFirestoreData, migrateUrl } from '../../utils';
 import { SearchSkeleton } from './SearchSkeleton';
+import { useLanguage } from '../../i18n/LanguageContext';
+
 interface Props {
   setView: (v: View) => void;
   artisans: Artisan[];
@@ -37,68 +38,74 @@ const ArtisanSkeleton = () => (
   </div>
 );
 
-const CategoryFilterButton = React.memo(({ cat, searchFilterCategory, onSelect }: { cat: string, searchFilterCategory: string, onSelect: (c: string) => void }) => (
-  <button
-    onClick={() => onSelect(cat)}
-    className={`px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all shrink-0 ${searchFilterCategory === cat
-      ? 'bg-emerald-600/10 border-emerald-500/50 text-emerald-400 shadow-lg'
-      : 'bg-white/5 border-white/5 text-slate-600 hover:bg-white/10 hover:text-slate-400'
-      }`}
-  >
-    {cat}
-  </button>
-));
+const CategoryFilterButton = React.memo(({ cat, searchFilterCategory, onSelect }: { cat: string, searchFilterCategory: string, onSelect: (c: string) => void }) => {
+  const { t } = useLanguage();
+  return (
+    <button
+      onClick={() => onSelect(cat)}
+      className={`px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all shrink-0 ${searchFilterCategory === cat
+        ? 'bg-emerald-600/10 border-emerald-500/50 text-emerald-400 shadow-lg'
+        : 'bg-white/5 border-white/5 text-slate-600 hover:bg-white/10 hover:text-slate-400'
+        }`}
+    >
+      {cat === 'Tous' ? t('common.all') : t(`categories.${cat.toLowerCase()}`)}
+    </button>
+  );
+});
 
-const ArtisanSearchCard = React.memo(({ art, userLocation, onSelect }: { art: Artisan, userLocation: Coordinates | null, onSelect: () => void }) => (
-  <div
-    onClick={onSelect}
-    className="bg-[#121214] border border-white/5 rounded-[2.5rem] p-5 relative transition-all hover:border-purple-500/20 group cursor-pointer active:scale-[0.98] shadow-2xl"
-  >
-    <div className="flex items-start gap-4">
-      <div className="relative shrink-0">
-        <div className="size-20 rounded-[1.8rem] overflow-hidden border border-white/10 group-hover:scale-105 transition-transform duration-500 shadow-xl">
-          <SmartAvatar src={art.image} name={art.name} initialsClassName="text-2xl font-black text-white" />
+const ArtisanSearchCard = React.memo(({ art, userLocation, onSelect }: { art: Artisan, userLocation: Coordinates | null, onSelect: () => void }) => {
+  const { t } = useLanguage();
+  return (
+    <div
+      onClick={onSelect}
+      className="bg-[#121214] border border-white/5 rounded-[2.5rem] p-5 relative transition-all hover:border-purple-500/20 group cursor-pointer active:scale-[0.98] shadow-2xl"
+    >
+      <div className="flex items-start gap-4">
+        <div className="relative shrink-0">
+          <div className="size-20 rounded-[1.8rem] overflow-hidden border border-white/10 group-hover:scale-105 transition-transform duration-500 shadow-xl">
+            <SmartAvatar src={art.image} name={art.name} initialsClassName="text-2xl font-black text-white" />
+          </div>
+          {art.isExplicitlyOnline && (
+            <div className="absolute -bottom-1 -right-1 size-5 bg-[#0a0a0c] rounded-full p-0.5 z-20">
+              <div className="w-full h-full bg-emerald-500 rounded-full border-[3px] border-[#0a0a0c] shadow-[0_0_10px_rgba(16,185,129,0.3)] relative">
+                <div className="absolute inset-0 bg-emerald-400 rounded-full animate-ping opacity-40"></div>
+              </div>
+            </div>
+          )}
         </div>
-        {art.isExplicitlyOnline && (
-          <div className="absolute -bottom-1 -right-1 size-5 bg-[#0a0a0c] rounded-full p-0.5 z-20">
-            <div className="w-full h-full bg-emerald-500 rounded-full border-[3px] border-[#0a0a0c] shadow-[0_0_10px_rgba(16,185,129,0.3)] relative">
-              <div className="absolute inset-0 bg-emerald-400 rounded-full animate-ping opacity-40"></div>
+
+        <div className="flex-1 py-1">
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="text-white font-black text-lg uppercase tracking-tight group-hover:text-purple-400 transition-colors leading-none mb-1">{art.name}</h3>
+              <p className="text-purple-400 text-[10px] font-black uppercase tracking-[0.1em]">{t(`categories.${art.category.toLowerCase()}`)} {t('common.expert')}</p>
+            </div>
+            <div className="flex items-center gap-1 bg-white/5 px-2 py-1 rounded-lg border border-white/5">
+              <Star className="size-3 text-yellow-400 fill-yellow-400" />
+              <span className="text-white text-[10px] font-black">{art.rating}</span>
             </div>
           </div>
-        )}
-      </div>
 
-      <div className="flex-1 py-1">
-        <div className="flex justify-between items-start">
-          <div>
-            <h3 className="text-white font-black text-lg uppercase tracking-tight group-hover:text-purple-400 transition-colors leading-none mb-1">{art.name}</h3>
-            <p className="text-purple-400 text-[10px] font-black uppercase tracking-[0.1em]">{art.category} Expert</p>
+          <div className="flex items-center gap-2 mt-3">
+            <ShieldCheck className="size-4 text-emerald-500" />
+            <span className="text-emerald-500 text-[9px] font-bold uppercase tracking-widest">{t('common.verified')}</span>
           </div>
-          <div className="flex items-center gap-1 bg-white/5 px-2 py-1 rounded-lg border border-white/5">
-            <Star className="size-3 text-yellow-400 fill-yellow-400" />
-            <span className="text-white text-[10px] font-black">{art.rating}</span>
-          </div>
-        </div>
 
-        <div className="flex items-center gap-2 mt-3">
-          <ShieldCheck className="size-4 text-emerald-500" />
-          <span className="text-emerald-500 text-[9px] font-bold uppercase tracking-widest">Vérifié par VORK</span>
-        </div>
-
-        <div className="flex items-center gap-3 mt-3">
-          <div className="flex items-center gap-1 text-slate-500">
-            <MapPin className="size-3" />
-            <span className="text-[10px] font-bold">{art.location}</span>
+          <div className="flex items-center gap-3 mt-3">
+            <div className="flex items-center gap-1 text-slate-500">
+              <MapPin className="size-3" />
+              <span className="text-[10px] font-bold">{art.location}</span>
+            </div>
+            <div className="h-1 w-1 bg-slate-800 rounded-full"></div>
+            <span className="text-[10px] text-slate-500 font-bold uppercase">
+              {getFormattedDistance(userLocation, art.locationCoords) || art.distance}
+            </span>
           </div>
-          <div className="h-1 w-1 bg-slate-800 rounded-full"></div>
-          <span className="text-[10px] text-slate-500 font-bold uppercase">
-            {getFormattedDistance(userLocation, art.locationCoords) || art.distance}
-          </span>
         </div>
       </div>
     </div>
-  </div>
-));
+  );
+});
 
 export const SearchView: React.FC<Props> = ({
   setView,
@@ -111,8 +118,9 @@ export const SearchView: React.FC<Props> = ({
   setSearchFilterRating,
   loading
 }) => {
+  const { t } = useLanguage();
   if (loading) return <SearchSkeleton />;
-  const [activeSort, setActiveSort] = useState('Tous');
+  const [activeSort, setActiveSort] = useState('all'); // all, top_rated, nearest
   const [searchQuery, setSearchQuery] = useState('');
   const [dbArtisans, setDbArtisans] = useState<Artisan[]>(initialArtisans);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -133,8 +141,8 @@ export const SearchView: React.FC<Props> = ({
     if (isCategorized) {
       constraints.push(where("category", "==", searchFilterCategory));
     } else {
-      if (activeSort === 'Mieux notés') constraints.push(orderBy("rating", "desc"));
-      else if (activeSort === 'Plus proche') constraints.push(orderBy("distance", "asc"));
+      if (activeSort === 'top_rated') constraints.push(orderBy("rating", "desc"));
+      else if (activeSort === 'nearest') constraints.push(orderBy("distance", "asc"));
       else constraints.push(orderBy("createdAt", "desc"));
     }
 
@@ -157,8 +165,8 @@ export const SearchView: React.FC<Props> = ({
 
       // Apply Client-Side Sorting if Firestore couldn't do it due to index constraints
       if (isCategorized) {
-        if (activeSort === 'Mieux notés') results.sort((a, b) => b.rating - a.rating);
-        else if (activeSort === 'Plus proche' && userLocation) {
+        if (activeSort === 'top_rated') results.sort((a, b) => b.rating - a.rating);
+        else if (activeSort === 'nearest' && userLocation) {
           results.sort((a, b) => {
             const distA = a.locationCoords ? calculateDistanceMeters(userLocation, a.locationCoords) : Infinity;
             const distB = b.locationCoords ? calculateDistanceMeters(userLocation, b.locationCoords) : Infinity;
@@ -191,8 +199,8 @@ export const SearchView: React.FC<Props> = ({
       if (lastDoc) {
         const data = lastDoc.data();
         if (!isCategorized) {
-          if (activeSort === 'Mieux notés') lastVisibleValueRef.current = data.rating;
-          else if (activeSort === 'Plus proche') lastVisibleValueRef.current = data.distance;
+          if (activeSort === 'top_rated') lastVisibleValueRef.current = data.rating;
+          else if (activeSort === 'nearest') lastVisibleValueRef.current = data.distance;
           else lastVisibleValueRef.current = data.createdAt;
         } else {
           lastVisibleValueRef.current = lastDoc;
@@ -237,7 +245,7 @@ export const SearchView: React.FC<Props> = ({
         <button onClick={() => setView('home')} className="p-2 bg-white/5 rounded-xl border border-white/10">
           <ChevronLeft className="w-6 h-6 text-white" />
         </button>
-        <h1 className="text-xl font-black text-white tracking-tight uppercase">Découvrir</h1>
+        <h1 className="text-xl font-black text-white tracking-tight uppercase">{t('search.title')}</h1>
       </header>
 
       <div className="px-6 mt-6 mb-4 relative z-50">
@@ -248,7 +256,7 @@ export const SearchView: React.FC<Props> = ({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Chercher un expert ou un service..."
+              placeholder={t('search.placeholder')}
               className="w-full bg-[#121214] border border-white/5 rounded-2xl py-4 pl-12 pr-10 text-sm text-white font-medium placeholder:text-slate-600 focus:outline-none focus:border-purple-500/50 transition-all shadow-xl"
             />
           </div>
@@ -259,22 +267,26 @@ export const SearchView: React.FC<Props> = ({
       </div>
 
       <div className="px-6 flex gap-3 overflow-x-auto no-scrollbar mb-6 scroll-smooth">
-        {['Tous', 'Mieux notés', 'Plus proche'].map((tab) => (
+        {[
+          { id: 'all', label: t('common.all') },
+          { id: 'top_rated', label: t('search.top_rated') },
+          { id: 'nearest', label: t('search.nearest') }
+        ].map((tab) => (
           <button
-            key={tab}
-            onClick={() => setActiveSort(tab)}
-            className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all whitespace-nowrap shadow-xl ${activeSort === tab
+            key={tab.id}
+            onClick={() => setActiveSort(tab.id)}
+            className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all whitespace-nowrap shadow-xl ${activeSort === tab.id
               ? 'bg-gradient-to-r from-purple-600 to-pink-500 border-transparent text-white shadow-purple-600/20'
               : 'bg-[#121214] border-white/5 text-slate-500 hover:border-white/10'
               }`}
           >
-            {tab}
+            {tab.label}
           </button>
         ))}
       </div>
 
       <div className="px-6 mb-8">
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-700 mb-4 px-1">Filtrer par expertise</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-700 mb-4 px-1">{t('search.filter_expertise')}</p>
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
           {['Tous', ...CATEGORIES.map(c => c.name)].map(cat => (
             <CategoryFilterButton key={cat} cat={cat} searchFilterCategory={searchFilterCategory} onSelect={setSearchFilterCategory} />
@@ -290,7 +302,7 @@ export const SearchView: React.FC<Props> = ({
         )) : !isLoadingMore && (
           <div className="text-center py-20 opacity-20 flex flex-col items-center gap-4">
             <SearchIcon className="size-12 text-slate-500" />
-            <p className="font-black uppercase tracking-[0.3em] text-[10px]">Aucun expert trouvé</p>
+            <p className="font-black uppercase tracking-[0.3em] text-[10px]">{t('search.no_expert_found')}</p>
           </div>
         )}
 
@@ -305,7 +317,7 @@ export const SearchView: React.FC<Props> = ({
           {!hasMore && dbArtisans.length > 0 && !isLoadingMore && (
             <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-white/5">
               <div className="size-2 bg-purple-500 rounded-full"></div>
-              <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Fin des résultats</p>
+              <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{t('search.end_of_results')}</p>
             </div>
           )}
         </div>

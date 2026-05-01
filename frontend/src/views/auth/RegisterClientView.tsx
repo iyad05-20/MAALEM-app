@@ -2,6 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { Mail, Lock, Eye, EyeOff, Loader2, ArrowRight, Diamond, AlertCircle, User, Phone } from 'lucide-react';
 import { registerUser } from '../../services/auth.service';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 interface Props {
     onRegisterSuccess: (userData: any, role: 'user') => void;
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export const RegisterClientView: React.FC<Props> = ({ onRegisterSuccess, onSwitchToLogin }) => {
+    const { t } = useLanguage();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [name, setName] = useState('');
@@ -32,7 +34,7 @@ export const RegisterClientView: React.FC<Props> = ({ onRegisterSuccess, onSwitc
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!email || !password || !name || phone.length !== 13) {
-            setError(phone.length !== 13 ? "Le numéro de téléphone doit contenir 9 chiffres après +212." : "Veuillez remplir tous les champs obligatoires.");
+            setError(phone.length !== 13 ? t('auth.phone_error') : t('auth.fill_fields'));
             return;
         }
 
@@ -52,7 +54,7 @@ export const RegisterClientView: React.FC<Props> = ({ onRegisterSuccess, onSwitc
             const result = await registerUser(email, password, 'user', additionalData);
             onRegisterSuccess(result.data, 'user');
         } catch (err: any) {
-            setError(err.message || "Erreur d'inscription.");
+            setError(err.message || t('auth.signup_error'));
         } finally {
             setIsLoading(false);
         }
@@ -67,29 +69,29 @@ export const RegisterClientView: React.FC<Props> = ({ onRegisterSuccess, onSwitc
                     <img src="/icons/icon-512x512.png" alt="Vork Logo" className="w-10 h-10 object-contain" />
                 </div>
                 <h1 className="text-4xl font-black text-white tracking-tighter mb-1 uppercase">VORK</h1>
-                <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em]">Inscription Client</p>
+                <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em]">{t('auth.signup_client')}</p>
             </div>
 
             <div className="w-full max-w-sm glass-card bg-[#121214]/60 rounded-[2.5rem] p-8 border border-white/10 shadow-2xl relative z-20">
                 <form onSubmit={handleRegister} className="space-y-4">
 
                     <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Nom Complet</label>
-                        <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Prénom Nom" className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 px-4 text-white text-xs focus:outline-none focus:border-purple-500/50 transition-all placeholder:text-slate-700" />
+                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('auth.fullname')}</label>
+                        <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('auth.fullname_placeholder')} className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 px-4 text-white text-xs focus:outline-none focus:border-purple-500/50 transition-all placeholder:text-slate-700" />
                     </div>
 
                     <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Téléphone</label>
+                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('auth.phone')}</label>
                         <input type="tel" value={phone} onChange={handlePhoneChange} placeholder="+212 ..." className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 px-4 text-white text-xs focus:outline-none focus:border-purple-500/50 transition-all placeholder:text-slate-700" />
                     </div>
 
                     <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Email</label>
+                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('auth.email')}</label>
                         <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@vork.app" className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 px-4 text-white text-xs focus:outline-none focus:border-purple-500/50 transition-all placeholder:text-slate-700" />
                     </div>
 
                     <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Mot de passe</label>
+                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('auth.password')}</label>
                         <div className="relative">
                             <input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 px-4 text-white text-xs focus:outline-none focus:border-purple-500/50 transition-all placeholder:text-slate-700" />
                             <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 hover:text-white transition-colors">
@@ -106,12 +108,12 @@ export const RegisterClientView: React.FC<Props> = ({ onRegisterSuccess, onSwitc
                     )}
 
                     <button type="submit" disabled={isLoading} className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 py-4 rounded-2xl text-white font-black text-sm uppercase tracking-[0.2em] shadow-xl active:scale-[0.98] transition-all flex items-center justify-center gap-3 group">
-                        {isLoading ? <Loader2 className="size-4 animate-spin" /> : <>S'inscrire <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" /></>}
+                        {isLoading ? <Loader2 className="size-4 animate-spin" /> : <>{t('auth.signup')} <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" /></>}
                     </button>
                 </form>
 
                 <button onClick={onSwitchToLogin} className="w-full mt-6 py-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-colors">
-                    Déjà un compte ? Se connecter
+                    {t('auth.already_account')}
                 </button>
             </div>
         </div>

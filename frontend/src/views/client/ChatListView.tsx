@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Search, ChevronLeft, Edit, Camera, Home, User, X, MessageSquare } from 'lucide-react';
 import { Chat, Artisan } from '../../types';
 import { SmartAvatar } from '../../components/Shared/SmartAvatar';
 import { auth } from '../../services/firebase.config';
 import { sanitizeFirestoreData } from '../../utils';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 interface Props {
   chats: Chat[];
@@ -16,6 +16,7 @@ interface Props {
 }
 
 export const ChatListView: React.FC<Props> = ({ chats, artisans, onSelectChat, onBack, backLabel = "Précédent", onHome }) => {
+  const { t } = useLanguage();
   const [showQuickNav, setShowQuickNav] = useState(false);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -75,7 +76,7 @@ export const ChatListView: React.FC<Props> = ({ chats, artisans, onSelectChat, o
                 <div className="absolute inset-0 bg-purple-500/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity rounded-full"></div>
               </div>
               <div className="flex flex-col items-start leading-none mt-0.5">
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 group-hover:text-purple-500 transition-colors">Retour à</span>
+                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 group-hover:text-purple-500 transition-colors">{t('chat_list.back_to')}</span>
                 <span className="text-xs font-black uppercase tracking-tight">{backLabel}</span>
               </div>
             </button>
@@ -83,16 +84,16 @@ export const ChatListView: React.FC<Props> = ({ chats, artisans, onSelectChat, o
             {showQuickNav && (
               <div className="absolute top-12 left-0 w-48 bg-[#121214] border border-white/10 rounded-[1.8rem] shadow-2xl p-2 animate-in zoom-in-95 duration-200 z-[60]">
                 <div className="flex items-center justify-between px-4 py-2 border-b border-white/5 mb-1">
-                  <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Navigation Rapide</span>
+                  <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">{t('chat_list.quick_nav')}</span>
                   <button onClick={() => setShowQuickNav(false)}><X size={12} className="text-slate-600" /></button>
                 </div>
                 <button onClick={() => { setShowQuickNav(false); onHome?.(); }} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 rounded-2xl transition-colors">
                   <Home size={16} className="text-purple-400" />
-                  <span className="text-xs font-bold text-white">Aller à l'Accueil</span>
+                  <span className="text-xs font-bold text-white">{t('chat_list.go_home')}</span>
                 </button>
                 <button onClick={() => { setShowQuickNav(false); }} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 rounded-2xl transition-colors">
                   <User size={16} className="text-slate-400" />
-                  <span className="text-xs font-bold text-white">Voir mon Profil</span>
+                  <span className="text-xs font-bold text-white">{t('chat_list.view_profile')}</span>
                 </button>
               </div>
             )}
@@ -108,7 +109,7 @@ export const ChatListView: React.FC<Props> = ({ chats, artisans, onSelectChat, o
           </div>
         </div>
 
-        <h1 className="text-3xl font-black text-white tracking-tighter uppercase mt-4">Messages</h1>
+        <h1 className="text-3xl font-black text-white tracking-tighter uppercase mt-4">{t('chat_list.title')}</h1>
       </header>
 
       <div className="px-6 mt-6">
@@ -118,7 +119,7 @@ export const ChatListView: React.FC<Props> = ({ chats, artisans, onSelectChat, o
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Rechercher..."
+            placeholder={t('chat_list.search_placeholder')}
             className="w-full bg-white/5 border border-white/5 rounded-2xl py-3.5 pl-12 pr-10 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-purple-500/30 focus:bg-white/[0.08] transition-all"
           />
           {searchQuery && (
@@ -134,12 +135,12 @@ export const ChatListView: React.FC<Props> = ({ chats, artisans, onSelectChat, o
 
       <div className="px-6 mt-8 space-y-2">
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-4 ml-1">
-          {searchQuery ? `Résultats pour "${searchQuery}"` : 'Récent'}
+          {searchQuery ? t('chat_list.search_results', { query: searchQuery }) : t('chat_list.recent')}
         </p>
         {filteredChats.map((chat) => {
           // Dynamic display logic
           const isArtisan = currentUserId === chat.artisanId;
-          const counterpartName = isArtisan ? (chat.userName || 'Client') : chat.artisanName;
+          const counterpartName = isArtisan ? (chat.userName || (t('profile.user'))) : chat.artisanName;
           const displayImage = isArtisan ? (chat.userImage || '') : chat.artisanImage;
           const myUnreadCount = isArtisan ? (chat.unreadCountArtisan || 0) : (chat.unreadCountClient || 0);
 
@@ -181,7 +182,7 @@ export const ChatListView: React.FC<Props> = ({ chats, artisans, onSelectChat, o
                 </div>
                 <div className="flex items-center justify-between">
                   <p className={`text-xs truncate max-w-[85%] leading-relaxed ${myUnreadCount > 0 ? 'text-white font-bold' : 'text-slate-500 font-medium'}`}>
-                    {myUnreadCount > 0 ? 'A envoyé un message' : chat.lastMessage}
+                    {myUnreadCount > 0 ? t('chat_list.sent_message') : chat.lastMessage}
                   </p>
                   {myUnreadCount > 0 && (
                     <div className="size-2.5 bg-purple-500 rounded-full shadow-[0_0_8px_rgba(168,85,247,0.5)]"></div>
@@ -197,7 +198,7 @@ export const ChatListView: React.FC<Props> = ({ chats, artisans, onSelectChat, o
         <div className="flex flex-col items-center justify-center py-40 opacity-10">
           <MessageSquare size={48} className="mb-4" />
           <p className="font-black uppercase tracking-[0.2em] text-xs">
-            {searchQuery ? 'Aucun résultat trouvé' : 'Aucune conversation'}
+            {searchQuery ? t('chat_list.no_results') : t('chat_list.no_chats')}
           </p>
         </div>
       )}
