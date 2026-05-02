@@ -57,7 +57,7 @@ export async function generateImage({ prompt, model, steps, userPhoto }: Generat
   let base64 = '';
   if (contentType.includes('application/json')) {
     // Cloudflare returned a JSON wrapper
-    const json = await response.json();
+    const json = await response.json() as any;
     if (json.result && json.result.image) {
       base64 = json.result.image;
     } else {
