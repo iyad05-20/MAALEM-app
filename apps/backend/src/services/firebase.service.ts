@@ -45,12 +45,12 @@ export const getFirestore = () => {
   return admin.firestore();
 };
 
-export const getAuth = () => {
+export const getAuth = (): admin.auth.Auth | null => {
   if (!firebaseApp) return null;
   return admin.auth();
 };
 
-export const getRealtimeDb = () => {
+export const getRealtimeDb = (): admin.database.Database | null => {
   if (!firebaseApp) return null;
   return admin.database();
 };

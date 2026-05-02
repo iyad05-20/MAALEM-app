@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "ES2022",
+    "module": "NodeNext",
     "lib": ["ES2022"],
     "outDir": "./dist",
     "rootDir": "./src",
@@ -13,7 +13,7 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "moduleResolution": "node",
+    "moduleResolution": "NodeNext",
     "allowSyntheticDefaultImports": true,
     "paths": {
       "@/*": ["./*"],
@@ -24,7 +24,7 @@
   "exclude": ["node_modules", "dist"],
   "ts-node": {
     "esm": true,
-    "experimentalEsm": true,
+    "experimentalSpecifierResolution": "node",
     "transpileOnly": true,
     "resolveJsonModule": true
   }

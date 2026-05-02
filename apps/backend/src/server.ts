@@ -8,6 +8,7 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth.routes.js';
 import orderRoutes from './routes/order.routes.js';
 import artisanRoutes from './routes/artisan.routes.js';
+import chatRoutes from './routes/chat.routes.js';
 
 // Import services
 import { initializeFirebase } from './services/firebase.service.js';
@@ -41,6 +42,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/artisans', artisanRoutes);
+app.use('/api/chat', chatRoutes); // AI Chat + Image Generation
 
 // WebSocket setup
 io.on('connection', (socket) => {

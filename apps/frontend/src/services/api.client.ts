@@ -103,8 +103,8 @@ class ApiClient {
   }
 
   private formatError(error: any): ApiError {
-    if (error instanceof ApiError) {
-      return error;
+    if (error && typeof error === 'object' && 'code' in error) {
+      return error as ApiError;
     }
 
     if (error instanceof TypeError) {

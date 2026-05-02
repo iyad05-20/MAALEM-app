@@ -1,0 +1,80 @@
+{
+  "name": "plomberie",
+  "type": "repair",
+  "clarity_threshold": 5,
+
+  "urgency_signals": [
+    "inondation",
+    "fuite importante",
+    "eau partout",
+    "coupure d'eau totale",
+    "tuyau éclaté",
+    "chauffe-eau en feu",
+    "fuite derrière le mur",
+    "court-circuit eau",
+    "urgent"
+  ],
+
+  "urgency_instructions": [
+    "1. Fermez immédiatement le robinet d'arrêt général (généralement sous l'évier ou à l'entrée de l'appartement).",
+    "2. Coupez l'alimentation électrique de la pièce concernée si de l'eau est présente près des prises.",
+    "3. Éponger l'eau visible pour limiter les dégâts et éviter les glissades.",
+    "4. Ne touchez pas au chauffe-eau ni aux installations électriques avec les mains mouillées.",
+    "5. Prenez des photos des dégâts visibles avant l'intervention de l'artisan.",
+    "6. Un artisan va vous contacter dans les plus brefs délais."
+  ],
+
+  "typical_damage_types": [
+    "robinet qui fuit",
+    "WC bouché ou qui coule",
+    "chauffe-eau en panne ou qui fuit",
+    "tuyau percé ou éclaté",
+    "siphon d'évier bouché",
+    "baignoire ou douche bouchée",
+    "pression d'eau faible"
+  ],
+
+  "suggestion_chips": [
+    "Robinet qui fuit",
+    "WC bouché",
+    "Chauffe-eau",
+    "Tuyau percé"
+  ],
+
+  "image_prompt_context": {
+    "scene_context": "moroccan apartment bathroom or kitchen, zellige tile walls, tadelakt surfaces, chrome fixtures",
+    "typical_materials": [
+      "zellige tiles",
+      "chrome fixtures",
+      "tadelakt walls",
+      "ceramic sink",
+      "copper pipes"
+    ],
+    "typical_colors": [
+      "white",
+      "terracotta",
+      "cobalt blue",
+      "chrome silver"
+    ],
+    "damage_subjects": [
+      {
+        "type": "leaking faucet",
+        "description": "chrome kitchen faucet, water dripping from base joint, water stain on zellige tile behind",
+        "pose": "mounted on sink, slightly angled",
+        "position": "foreground"
+      },
+      {
+        "type": "water damage on wall",
+        "description": "damp patch on tadelakt wall, paint bubbling, water trail running downward",
+        "pose": "flat wall surface, visible moisture",
+        "position": "midground"
+      },
+      {
+        "type": "blocked drain",
+        "description": "ceramic sink with standing water, chrome drain cover partially visible",
+        "pose": "top-down view of basin",
+        "position": "foreground"
+      }
+    ]
+  }
+}

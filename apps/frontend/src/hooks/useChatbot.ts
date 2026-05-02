@@ -1,7 +1,6 @@
-import { useState, useCallback, useRef } from 'react';
-import { ChatMessage, GeminiResponse, Order } from '../types';
-import { sendMessage, sendMessageWithPhoto, resetSession, ORDER_CHANGE_KEYWORDS } from '../services/ai/geminiService';
-import { generateImage, resizeForFlux2dev, fileToBase64 } from '../services/ai/imageGenService';
+import { useState, useCallback } from 'react';
+import { ChatMessage, Order } from '../types';
+import { aiService, ChatResponse } from '../services/ai/aiService';
 import { uploadToSupabase } from '../services/supabase.config';
 import { getInitialArtisans } from '../services/recommendation.service';
 import { reverseGeocode, MARRAKECH_CENTER } from '../services/location.service';
@@ -23,6 +22,20 @@ function botTextMessage(text: string): ChatMessage {
     return { id: newId(), role: 'bot', type: 'text', text };
 }
 
+const ORDER_CHANGE_KEYWORDS = ['finalement', 'plutôt', 'non', 'changeons', 'annule', 'autre chose', 'je me suis trompé'];
+
+const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+            const base64String = reader.result as string;
+            resolve(base64String.split(',')[1]);
+        };
+        reader.onerror = error => reject(error);
+    });
+};
+
 export function useChatbot({
     category,
     preSelectedArtisan,
@@ -39,100 +52,52 @@ export function useChatbot({
     const [orderTitle, setOrderTitle] = useState('');
     const [orderDescription, setOrderDescription] = useState('');
     const [userPhoto, setUserPhoto] = useState<string | null>(null);
-    const [userPhoto511, setUserPhoto511] = useState<string | null>(null);
     const [isPublishing, setIsPublishing] = useState(false);
-    const [isGeneratingImage, setIsGeneratingImage] = useState(false);
-    // Multi-order tracking
-    const [pendingOrders, setPendingOrders] = useState<string[] | null>(null);
-    const [orderSequence, setOrderSequence] = useState<'first' | 'second' | null>(null);
-
-    const imageGenTriggeredRef = useRef(false);
 
     const addMessage = (msg: ChatMessage) =>
         setMessages((prev) => [...prev, msg]);
 
-    // ─── Handle Gemini Response ─────────────────────────────────────────────
+    // ─── Handle Unified Backend Response ────────────────────────────────────
 
-    const handleGeminiResponse = useCallback(
-        async (json: GeminiResponse) => {
-            // 1. Parse suggestions (pipe-separated)
-            const suggestions = json.suggestion
-                ? json.suggestion.split('|').map((s) => s.trim()).filter(Boolean)
-                : undefined;
+    const handleBackendResponse = useCallback((response: ChatResponse) => {
+        if (!response.success) {
+            addMessage(botTextMessage(response.reply || "Une erreur est survenue, veuillez réessayer."));
+            return;
+        }
 
-            // 2. Add message with suggestions (Fixes two-bubble bug)
+        // 1. Add Text Message
+        addMessage({
+            id: newId(),
+            role: 'bot',
+            type: 'text',
+            text: response.reply,
+            suggestions: response.suggestions,
+            isPhotoError: response.askForPhoto, // Re-enable retry button
+        });
+
+        // 2. Handle Image Generation
+        if (response.imageUrl) {
+            setGeneratedImage(response.imageUrl);
             addMessage({
                 id: newId(),
                 role: 'bot',
-                type: 'text',
-                text: json.message_to_user,
-                suggestions,
-                isPhotoError: json.photo_quality === 'bad',
-                safetyWarning: json.safety_warning,
-                riskLevel: json.risk_level
+                type: 'image',
+                imageUrl: response.imageUrl,
             });
+        }
 
-            // Photo quality bad — retake needed
-            if (json.photo_quality === 'bad') {
-                setAskForPhoto(true); // Re-enable photo button for retake
-                return;
-            }
+        // 3. Handle Ask For Photo
+        if (response.askForPhoto) {
+            setAskForPhoto(true);
+        }
 
-            // Request photo upload button
-            if (json.ask_for_photo) {
-                setAskForPhoto(true);
-            }
-
-            // Trigger image generation
-            if (json.needs_image_gen && json.image_prompt && json.model && !imageGenTriggeredRef.current) {
-                imageGenTriggeredRef.current = true;
-                setIsGeneratingImage(true);
-                const loadingId = newId();
-                addMessage({ id: loadingId, role: 'bot', type: 'text', text: '🎨 Génération de l\'image en cours…' });
-
-                try {
-                    const steps = json.image_steps ?? 8;
-                    const photo = json.model === 'flux-2-dev' ? userPhoto511 ?? undefined : undefined;
-                    const imageUrl = await generateImage(json.image_prompt, steps, json.model, photo);
-                    setGeneratedImage(imageUrl);
-                    setMessages((prev) =>
-                        prev.map((m) =>
-                            m.id === loadingId
-                                ? { id: loadingId, role: 'bot', type: 'image', imageUrl }
-                                : m,
-                        ),
-                    );
-                } catch (err) {
-                    console.error('[useChatbot] Image gen failed:', err);
-                    imageGenTriggeredRef.current = false; // Allow retrying if AI triggers it again
-                    setMessages((prev) => prev.filter((m) => m.id !== loadingId));
-                    addMessage(botTextMessage("La génération d'image a échoué. Vous pouvez publier maintenant sans image ou essayer de me donner plus de détails."));
-                } finally {
-                    setIsGeneratingImage(false);
-                }
-            }
-
-            // Order ready
-            if (json.order_ready) {
-                setOrderReady(true);
-                setOrderTitle(json.order_title ?? '');
-                setOrderDescription(json.order_description ?? '');
-            }
-
-            // Track multi-order state
-            if (json.multi_order_detected) {
-                setPendingOrders(json.pending_orders);
-                setOrderSequence(json.order_sequence);
-            }
-
-            // If invalid category and user hasn't forced it, stop here
-            if (!json.category_valid && json.suggested_category) {
-                // The bot message already explains this and suggests changing category.
-                // We'll intercept the user's specific chip choice if they pick "Changer de catégorie".
-            }
-        },
-        [userPhoto511],
-    );
+        // 4. Handle Order Ready
+        if (response.orderReady && response.order) {
+            setOrderReady(true);
+            setOrderTitle(response.order.title || '');
+            setOrderDescription(response.order.description || '');
+        }
+    }, []);
 
     // ─── Send Text ──────────────────────────────────────────────────────────
 
@@ -140,29 +105,20 @@ export function useChatbot({
         async (text: string) => {
             if (!text.trim() || isLoading) return;
 
-            // Intercept category rejection if user taps "Changer de catégorie"
-            // Let the UI handle closing, we don't send this to Gemini
-            if (text === "Changer de catégorie") {
-                onClose();
-                return;
-            }
-
             addMessage({ id: newId(), role: 'user', type: 'text', text });
             setIsLoading(true);
-            imageGenTriggeredRef.current = false;
 
             try {
-                // Check if the user is changing their mind (e.g. "finalement, ...")
+                // Check if the user is changing their mind
                 const lowerText = text.toLowerCase();
                 const isChangingOrder = ORDER_CHANGE_KEYWORDS.some(kw => lowerText.includes(kw));
 
-                // If changing order, send the reset instruction to Gemini before the real message
                 const payloadText = isChangingOrder
                     ? `Nouvelle commande. Oublie la conversation précédente.\n\n${text}`
                     : text;
 
-                const json = await sendMessage(payloadText);
-                await handleGeminiResponse(json);
+                const response = await aiService.sendMessage(payloadText);
+                handleBackendResponse(response);
             } catch (err) {
                 console.error('[useChatbot] sendMessage error:', err);
                 addMessage(botTextMessage('Une erreur est survenue, veuillez réessayer.'));
@@ -170,7 +126,7 @@ export function useChatbot({
                 setIsLoading(false);
             }
         },
-        [isLoading, handleGeminiResponse, onClose],
+        [isLoading, handleBackendResponse]
     );
 
     // ─── Send Photo ─────────────────────────────────────────────────────────
@@ -185,19 +141,13 @@ export function useChatbot({
             addMessage({ id: newId(), role: 'user', type: 'image', imageUrl: previewUrl });
 
             setIsLoading(true);
-            imageGenTriggeredRef.current = false;
 
             try {
-                // Read original photo for Gemini (no resize)
-                const originalBase64 = await fileToBase64(file);
-                setUserPhoto(originalBase64);
+                const base64 = await fileToBase64(file);
+                setUserPhoto(base64);
 
-                // Resize to 511px for flux-2-dev
-                const resized = await resizeForFlux2dev(file);
-                setUserPhoto511(resized);
-
-                const json = await sendMessageWithPhoto('Voici ma photo.', originalBase64);
-                await handleGeminiResponse(json);
+                const response = await aiService.sendMessage('Voici ma photo.', base64);
+                handleBackendResponse(response);
             } catch (err) {
                 console.error('[useChatbot] sendPhoto error:', err);
                 addMessage(botTextMessage('Une erreur est survenue avec la photo. Veuillez réessayer.'));
@@ -205,21 +155,20 @@ export function useChatbot({
                 setIsLoading(false);
             }
         },
-        [isLoading, handleGeminiResponse],
+        [isLoading, handleBackendResponse]
     );
 
     // ─── Start (called with initial description) ────────────────────────────
 
     const startChatbot = useCallback(
         async (description: string) => {
-            imageGenTriggeredRef.current = false;
             const firstMessage = `[Catégorie choisie par l'utilisateur dans l'app: ${category.name}]\nDescription: ${description}`;
             addMessage({ id: newId(), role: 'user', type: 'text', text: description });
             setIsLoading(true);
 
             try {
-                const json = await sendMessage(firstMessage);
-                await handleGeminiResponse(json);
+                const response = await aiService.sendMessage(firstMessage);
+                handleBackendResponse(response);
             } catch (err) {
                 console.error('[useChatbot] startChatbot error:', err);
                 addMessage(botTextMessage('Une erreur est survenue, veuillez réessayer.'));
@@ -227,7 +176,7 @@ export function useChatbot({
                 setIsLoading(false);
             }
         },
-        [category.name, handleGeminiResponse],
+        [category.name, handleBackendResponse]
     );
 
     // ─── Publish Order ──────────────────────────────────────────────────────
@@ -300,45 +249,11 @@ export function useChatbot({
 
             await onSubmit(newOrder);
 
-            // Reset order-specific state but NOT messages (for continuity)
-            setGeneratedImage(null);
-            setOrderReady(false);
-            setOrderTitle('');
-            setOrderDescription('');
-            setUserPhoto(null);
-            setUserPhoto511(null);
-            setAskForPhoto(false);
-            imageGenTriggeredRef.current = false;
-
+            await aiService.resetSession();
+            setMessages([]);
+            onClose();
             showToast('Demande publiée avec succès !', 'success');
 
-            // Multi-order transition: if this was the first order, auto-kick off the second
-            if (orderSequence === 'first' && pendingOrders && pendingOrders.length >= 2) {
-                const secondOrderName = pendingOrders[1];
-                setOrderSequence('second');
-                setPendingOrders(null);
-                setMessages([]);
-                setIsLoading(true);
-                try {
-                    // Tell Gemini to start the second order
-                    const transitionMsg = `[Transition automatique vers la deuxième demande: ${secondOrderName}]`;
-                    const json = await sendMessage(transitionMsg);
-                    await handleGeminiResponse(json);
-                } catch (err) {
-                    console.error('[useChatbot] multi-order transition error:', err);
-                    addMessage(botTextMessage('Une erreur est survenue lors du passage à la deuxième demande.'));
-                } finally {
-                    setIsLoading(false);
-                }
-                return; // Don't close the chatbot
-            }
-
-            // Single order or second order done — reset session and close
-            await resetSession();
-            setMessages([]);
-            setPendingOrders(null);
-            setOrderSequence(null);
-            onClose();
         } catch (err) {
             console.error('[useChatbot] publishOrder error:', err);
             showToast('Erreur lors de la publication.', 'error');
@@ -347,15 +262,14 @@ export function useChatbot({
         }
     }, [
         userLocation, userPhoto, generatedImage, preSelectedArtisan,
-        category.name, orderDescription, orderTitle, onSubmit, showToast, onClose,
-        orderSequence, pendingOrders, handleGeminiResponse,
+        category.name, orderDescription, orderTitle, onSubmit, showToast, onClose
     ]);
 
     return {
         messages,
         isLoading,
         isPublishing,
-        isGeneratingImage,
+        isGeneratingImage: false, // Image generation is internal now
         askForPhoto,
         userPhoto,
         generatedImage,
