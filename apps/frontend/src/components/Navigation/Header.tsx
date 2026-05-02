@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { MessageSquare, Bell } from 'lucide-react';
+import { MessageSquare, Bell, HelpCircle } from 'lucide-react';
 import { View } from '../../types';
 
 interface HeaderProps {
@@ -12,6 +12,7 @@ interface HeaderProps {
     onToggleRole: () => void;
     onOpenChats: () => void;
     onOpenNotifications: () => void;
+    onOpenHelp?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -22,7 +23,8 @@ export const Header: React.FC<HeaderProps> = ({
     notifications,
     onToggleRole,
     onOpenChats,
-    onOpenNotifications
+    onOpenNotifications,
+    onOpenHelp,
 }) => {
     // Hide header on certain views
     const hiddenViews = [
@@ -30,7 +32,7 @@ export const Header: React.FC<HeaderProps> = ({
         'all-categories', 'category-detail', 'search', 'portfolio',
         'work-detail', 'reviews', 'chat-detail', 'chats',
         'favorites-list', 'settings', 'marketplace', 'update-email',
-        'artisan-history'
+        'artisan-history', 'help'
     ];
 
     if (hiddenViews.includes(view)) return null;
@@ -82,6 +84,14 @@ export const Header: React.FC<HeaderProps> = ({
                         <div className="absolute top-2 right-2 size-2 bg-red-500 rounded-full border border-[#0a0a0c]"></div>
                     )}
                 </button>
+                {onOpenHelp && (
+                    <button
+                        onClick={onOpenHelp}
+                        className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center relative active:scale-90 transition-all border border-white/5 hover:bg-gradient-to-br hover:from-cyan-500/20 hover:to-blue-500/20 hover:border-cyan-400/50 group"
+                    >
+                        <HelpCircle className="w-5 h-5 text-slate-400 group-hover:text-cyan-400 transition-colors" />
+                    </button>
+                )}
             </div>
         </header>
     );

@@ -1,192 +1,568 @@
 # Copilot Instructions for Maalem-app
 
-This document provides guidance for GitHub Copilot and other AI assistants working in this repository.
+This document guides GitHub Copilot and AI assistants working in this repository.
 
 ## Project Overview
 
-**Maalem-app** is a Progressive Web App (PWA) marketplace platform that connects clients with artisans for home services. The project uses an npm monorepo workspace structure with two main applications:
+**Maalem-app** is a Progressive Web App (PWA) marketplace platform connecting clients with artisans for home services. It uses an npm monorepo with three applications:
 
-- **Frontend**: React/Vite PWA (React 19, TypeScript, Tailwind CSS)
-- **Backend**: Firestore rules and configuration
-- **Vork**: A separate Next.js 15 TypeScript application (appears to be experimental/legacy - separate from main frontend)
+- **Frontend** (`apps/frontend/`): React 19 + Vite PWA, directly accesses Firestore
+- **Backend** (`apps/backend/`): Node.js/Express, WebSocket support, emerging API layer (currently scaffolded)
+- **Shared** (`shared/`): Shared TypeScript types between frontend and backend
+- **Archived** (`archived/vork/`): Legacy Next.js project (not active)
 
 ### Key Technologies
-- **Frontend**: React 19 + Vite, Tailwind CSS, TypeScript, Lucide React icons
-- **Backend**: Firebase (Firestore, Auth), Supabase
-- **APIs**: Google Gemini AI, Geofire for geolocation
-- **PWA**: Vite PWA plugin with automatic updates, offline support, caching strategies
+- **Frontend**: React 19 + Vite, TypeScript, Tailwind CSS, Lucide React icons, Socket.io client
+- **Backend**: Express, Socket.io, Firebase Admin SDK, TypeScript
+- **Database**: Firebase (Firestore auth + database), Supabase (PostgreSQL alternative)
+- **Real-time**: WebSocket (Socket.io) for chat and order updates
+- **AI**: Google Gemini (chatbot), Cloudflare Workers AI (image generation)
+- **PWA**: Vite PWA plugin with multi-level caching strategies
 
 ## Build, Test, and Lint Commands
 
-### Frontend (main app)
+### Root Workspace
 ```bash
-# Development server (http://localhost:3000)
+# Start both frontend and backend simultaneously
 npm run dev
 
-# Production build
+# Build everything (frontend + backend)
 npm run build
 
-# Preview production build locally
-npm run preview
-```
-
-### Root workspace commands
-```bash
-# Frontend dev
-npm run frontend:dev
-
-# Frontend build
-npm run frontend:build
-```
-
-### Vork (Next.js app)
-```bash
-# Development (port 4028)
-cd vork && npm run dev
-
-# Production build
-npm run build
-
-# Type checking
+# Type checking across all workspaces
 npm run type-check
 
-# Linting
+# Lint all workspaces
 npm run lint
-npm run lint:fix
 
-# Code formatting
-npm run format
-
-# Serve production build
-npm run serve
+# Test all workspaces (placeholder - no tests implemented)
+npm run test
 ```
 
-**No test commands currently exist** — the project lacks unit/integration tests in package.json scripts.
+### Frontend Only
+```bash
+# Development server (http://localhost:3000)
+npm run dev:frontend
+
+# Production build
+npm run build:frontend
+
+# Preview production build locally
+npm run preview --workspace=apps/frontend
+
+# Type checking
+npm run type-check --workspace=apps/frontend
+```
+
+### Backend Only
+```bash
+# Development server with hot-reload (http://localhost:3001)
+npm run dev:backend
+
+# Production build
+npm run build:backend
+
+# Start production server
+npm start --workspace=apps/backend
+
+# Type checking
+npm run type-check --workspace=apps/backend
+
+# Linting
+npm run lint --workspace=apps/backend
+```
+
+### Important Notes
+- **No test suite exists** — no Jest, Vitest, or similar test runners configured
+- Both apps use **TypeScript strict mode** with path aliases (`@/*` for local, `@shared/*` for shared types)
+- Frontend runs on port **3000**, backend on **3001** (configured in vite.config.ts and server.ts)
 
 ## High-Level Architecture
 
-### Frontend (Vite/React)
+### Current State: Hybrid Architecture (Transitional)
+
+The project is migrating from direct Firestore access to a backend API layer. **Currently, both patterns coexist:**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ FRONTEND (React 19 + Vite)                                      │
+│                                                                 │
+│  Views & Components (React.lazy for code splitting)             │
+│    ↓                                                             │
+│  Hooks: useAppLogic, useAuthLogic, useOrdersLogic, useChatsLogic│
+│    ↓                                                             │
+│  Services:                                                       │
+│    • auth.service.ts → Firebase Auth + Firestore (users/artisans)
+│    • order.service.ts → Firestore direct queries                │
+│    • websocket.client.ts → Socket.io client (real-time events) │
+│    • api.client.ts → Backend HTTP API (not widely used yet)     │
+│    • firebase.config.ts → Firebase initialization               │
+│    ↓                                                             │
+│  ┌─────────────────────────────────────────────┐                │
+│  │ FIRESTORE (reads & writes)                  │                │
+│  │ Collections: users, artisans, orders,       │                │
+│  │             chats, notifications, reviews   │                │
+│  └─────────────────────────────────────────────┘                │
+│    ↑                                             ↑                │
+│    │ WebSocket Events                           │                │
+│    │ (join-order, send-message, typing)         │                │
+│    └─────────────────────────┬───────────────────┘                │
+└─────────────────────────────┼──────────────────────────────────┘
+                              │
+┌─────────────────────────────┼──────────────────────────────────┐
+│ BACKEND (Express + Socket.io)                                  │
+│                                                                │
+│  Routes (mostly scaffolded with TODO placeholders):            │
+│    • /api/auth/* → JWT login/register/refresh (TODO)           │
+│    • /api/orders/* → Order CRUD (TODO)                         │
+│    • /api/artisans/* → Artisan profile/search (TODO)           │
+│    • /api/chat → LLM chatbot + image generation (ACTIVE)       │
+│                                                                │
+│  WebSocket Setup (Socket.io):                                  │
+│    • Listens for: join-order, send-message, typing             │
+│    • Broadcasts to: order chat rooms                           │
+│                                                                │
+│  Services:                                                     │
+│    • firebase.service.ts → Firebase Admin SDK                  │
+│    • llm/llm-caller.ts → Google Gemini API                     │
+│    • llm/image-generator.ts → Cloudflare Workers AI            │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Frontend Architecture
 
 **Structure:**
-- `src/components/` - Reusable UI components (organized by feature/type)
-- `src/views/` - Page-level components and screen views
-- `src/services/` - API clients (Firebase, Supabase, external APIs)
-- `src/context/` - React Context for state management (AuthContext, etc.)
-- `src/hooks/` - Custom React hooks (useAppLogic, etc.)
-- `src/types/` - TypeScript type definitions
-- `src/utils/` - Utility functions
-- `src/data/` - Mock data and constants (CATEGORIES, etc.)
-- `src/styles/` - Global styles
-- `src/scripts/` - Build/utility scripts
+- `src/views/` - Page-level screens (auth, client UI, artisan UI, shared)
+- `src/components/` - Reusable UI components (organized by type/feature)
+- `src/hooks/` - Business logic hooks:
+  - `useAppLogic` - Main orchestrator, state management
+  - `useAuthLogic` - Authentication flow and user profile
+  - `useOrdersLogic` - Active and archived orders + notifications
+  - `useChatsLogic` - Real-time chat conversations
+  - `useLocationTracker` - Geolocation tracking for artisans
+- `src/services/` - API clients and external integrations
+- `src/context/` - React Context (currently only `AuthContext` for user state)
+- `src/types/` - TypeScript definitions
+- `src/data/` - Mock data and constants (CATEGORIES)
+- `src/utils/` - Helper functions
 
 **State Management:**
-- Uses React Context (AuthContext is the primary context)
-- Auth state drives the view/role-based rendering (useAuth hook provides authUser, userProfile, userRole)
+- **React Context** (`AuthContext`) - User authentication and profile
+- **Component State** (`useState`) - Local UI state
+- **Firestore Real-time Listeners** (`onSnapshot`) - Live data updates for orders, chats, notifications
+- **Custom Hooks** - Encapsulate complex state logic (`useAppLogic`, `useOrdersLogic`, etc.)
 
-**View System:**
-- Role-based rendering: Client vs Artisan interfaces
-- Lazy-loaded view components using React.lazy for code splitting
-- Error boundaries and offline detection included
-- Toast notifications for user feedback
-- Smart avatar components
+**Data Flow:**
+```
+User Action → Hook (useAppLogic) → Firestore Query/Update
+                                  ↓
+                            Real-time Listener (onSnapshot)
+                                  ↓
+                            Component Re-render
+```
 
-**PWA Features:**
-- Vite PWA plugin with automatic service worker updates
-- Multi-level caching strategy (Firebase, Supabase storage, Google Fonts, etc.)
-- Manifest includes maskable icons for mobile
-- Support for offline mode (OfflineView component)
-- PWA install prompt component (InstallPWA)
+**Important**: Frontend components **directly access Firestore** using the SDK. This is intentional for now—the backend API layer exists but is not yet wired into the frontend. The backend is primarily used for:
+- LLM chat endpoint (`/api/chat`)
+- WebSocket real-time events
+- Future: API-first migration (in progress)
 
-### Backend
-- Firestore rules in `backend/firestore.rules` (currently permissive: `allow read, write: if true`)
-- No server-side logic; primarily configuration
+### Backend Architecture
 
-### Vork (Next.js)
-- Separate Next.js 15 application (independent from main Vite frontend)
-- Uses same styling (Tailwind) and linting standards
-- May be for admin/dashboard purposes
-- Has components and styles directories
+**Scaffolded Routes** (mostly TODO):
+- `routes/auth.routes.ts` - Register, login, logout, token refresh
+- `routes/order.routes.ts` - CRUD operations, accept, complete
+- `routes/artisan.routes.ts` - Profile, filtering, reviews
+- `routes/chat.routes.ts` - LLM chatbot (ACTIVE, uses Gemini API)
+
+**Middleware:**
+- `auth.middleware.ts` - JWT token validation (`verifyToken`, `verifyArtisan`, `verifyClient`)
+
+**Services:**
+- `firebase.service.ts` - Firebase Admin SDK initialization
+- `llm/llm-caller.ts` - Gemini API integration with session management
+- `llm/image-generator.ts` - Cloudflare Workers AI for image generation
+- `llm/prompt-builder.ts` - Dynamic prompt construction for context-aware responses
+
+**WebSocket (Socket.io):**
+- Handles: chat messages, typing indicators, order events
+- Real-time broadcasts to connected clients
+- Configured with CORS to accept frontend URL
+
+### Shared Types (`shared/`)
+
+Located in `shared/types/`:
+- `User.ts` - User and artisan profiles
+- `Order.ts` - Order details and status
+- `API.ts` - API response format, error codes, WebSocket message types
+
+Imported in both frontend and backend using `@shared/types/*` path alias.
+
+### PWA Features
+
+- **Service Worker**: Vite PWA plugin manages auto-update and offline support
+- **Caching Strategies**:
+  - `CacheFirst`: Static assets, Google Fonts, Firebase libraries (cached up to 30 days)
+  - `StaleWhileRevalidate`: Google Fonts stylesheets
+  - All assets in `public/icons/` included for offline use
+- **Manifest**: Configured in `vite.config.ts` with maskable icons (72x72 to 512x512)
+- **Install Prompt**: `InstallPWA` component shows browser install banner
 
 ## Key Conventions
 
 ### Code Style
-- **Single quotes** for strings (enforced via ESLint in vork)
-- **Semicolons** required (Prettier rule)
+- **Quotes**: Single quotes for strings (TypeScript and JSX)
+- **Semicolons**: Required (enforced via Prettier)
 - **Print width**: 100 characters
 - **Tab width**: 2 spaces
-- **Trailing commas**: ES5 style (objects/arrays only, not function args)
-- **TypeScript strict mode**: Enabled in vork
+- **Trailing commas**: ES5 style (only in objects/arrays, not function parameters)
+- **Type safety**: TypeScript strict mode enabled in both frontend and backend
+
+### TypeScript Configuration
+
+**Frontend** (`apps/frontend/tsconfig.json`):
+- Target: ES2022
+- JSX: react-jsx (automatic JSX transform)
+- Paths: `@/*` → `./src/*`, `@shared/*` → `../../shared/*`
+- Strict mode enabled
+
+**Backend** (`apps/backend/tsconfig.json`):
+- Target: ES2022
+- Module: NodeNext (ESM)
+- Paths: `@/*` → `./*`, `@shared/*` → `../../shared/*`
+- Strict mode enabled
 
 ### Import Paths
-- Path alias `@/*` maps to project root in frontend (tsconfig: `@/*: .//*`)
-- Path alias `@/*` maps to `./src/*` in vork (tsconfig)
-- Prefer absolute imports over relative paths
+- Use path aliases instead of relative imports: `import { X } from '@shared/types'`
+- Prefer absolute imports for clarity and refactoring
+- **Never use**: `../../../shared` (always use `@shared/types/`)
 
-### Component Organization
-- Components use `.tsx` extension for React components
-- React.lazy() used for code splitting main views
-- Components destructure props for clarity
-- Lazy imports pattern: `React.lazy(() => import('./path').then(m => ({ default: m.ExportName })))`
+### React Component Patterns
+- Components use `.tsx` extension
+- Destructure props at function parameters
+- Use `React.lazy()` for code splitting main views with lazy imports: 
+  ```tsx
+  const LoginView = React.lazy(() => 
+    import('./views/auth/LoginView').then(m => ({ default: m.LoginView }))
+  );
+  ```
+- Use custom hooks to extract business logic from components
+- Favor functional components with hooks over class components
 
-### TypeScript
-- Target: ES2022 (frontend), ES2017 (vork)
-- JSX: `react-jsx` (frontend), `preserve` (vork - uses Next.js compiler)
-- Module resolution: `bundler` (frontend), `bundler` (vork)
-- `allowJs: true` in both
-- Unused variables prefixed with `_` are ignored (ESLint rule)
-- `no-explicit-any` triggers warnings, not errors
+### Firestore Patterns (Frontend)
+
+**Real-time Listeners:**
+```typescript
+// Use onSnapshot for reactive updates
+const unsubscribe = onSnapshot(query, (snapshot) => {
+  const data = snapshot.docs.map(doc => ({
+    ...doc.data(),
+    id: doc.id
+  }));
+});
+```
+
+**Collections Used:**
+- `users` - Client profiles (email, name, avatar, favorites)
+- `artisans` - Artisan profiles (services, rating, reviews count, online status)
+- `orders` - Active orders (status: "EN ATTENTE D'EXPERT", "ACCEPTÉE", "TERMINÉE")
+- `archivedOrders` - Completed orders (archive collection for history)
+- `chats` - Conversations between clients and artisans (messages stored as sub-collection)
+- `notifications` - User notifications (marked read/unread)
+- `reviews` - Ratings and feedback for artisans
+
+**Firestore Rules** (currently permissive for development):
+```
+allow read, write: if true
+```
+⚠️ **TODO**: Implement proper security rules before production.
+
+### Backend API Patterns
+
+**Route Handlers:**
+- Routes are Express routers in `src/routes/`
+- All protected routes must use `verifyToken` middleware
+- Response format (standard across all endpoints):
+  ```typescript
+  {
+    success: boolean,
+    data?: T,
+    error?: string,
+    message?: string
+  }
+  ```
+
+**Error Handling:**
+- Use error middleware (defined in server.ts)
+- Return appropriate HTTP status codes (401, 403, 404, 500)
+- Include error code from `@shared/types/API.ErrorCode`
+
+**Active Implementation:**
+- `/api/chat` (POST) - LLM chatbot integration with session management
+- All other routes contain TODO comments and need implementation
 
 ### Environment Variables
-**Frontend** (.env):
+
+**Frontend** (`apps/frontend/.env`):
 ```
+# Firebase (required for all Firestore features)
 VITE_FIREBASE_API_KEY
 VITE_FIREBASE_AUTH_DOMAIN
 VITE_FIREBASE_PROJECT_ID
 VITE_FIREBASE_STORAGE_BUCKET
 VITE_FIREBASE_MESSAGING_SENDER_ID
 VITE_FIREBASE_APP_ID
+
+# Backend API endpoints
+VITE_API_URL=http://localhost:3001/api
+VITE_WS_URL=http://localhost:3001
+
+# Optional: Supabase (alternative to Firebase)
 VITE_SUPABASE_URL
 VITE_SUPABASE_ANON_KEY
+
+# AI Services
 VITE_GEMINI_API_KEY
 ```
-All frontend env vars must be prefixed with `VITE_` to be exposed to the browser.
+
+**Backend** (`apps/backend/.env`):
+```
+# Server
+PORT=3001
+NODE_ENV=development
+
+# Frontend CORS
+FRONTEND_URL=http://localhost:3000
+
+# JWT
+JWT_SECRET=your-super-secret-key
+JWT_EXPIRY=7d
+
+# Firebase (Admin SDK)
+FIREBASE_SERVICE_ACCOUNT={"type":"service_account",...}
+FIREBASE_DATABASE_URL=https://your-project.firebaseio.com
+
+# Optional: Supabase
+SUPABASE_URL
+SUPABASE_SERVICE_ROLE_KEY
+
+# Logging
+LOG_LEVEL=info
+```
+
+**Important**: All frontend environment variables must be prefixed with `VITE_` to be exposed to the browser. Backend variables are server-only.
 
 ### Dependencies to Know
-- **firebase**: For authentication and Firestore database
-- **@supabase/supabase-js**: For additional backend services
-- **lucide-react**: Icon library (used extensively)
-- **geofire-common**: Geolocation/distance calculations
-- **@google/generative-ai**: Gemini AI API client
-- **vite-plugin-pwa**: PWA service worker and manifest generation
-- **clsx / tailwind-merge**: For conditional CSS classes
 
-### Linting & Formatting Rules (Vork - Next.js)
-- ESLint extends `next/core-web-vitals`, `eslint:recommended`, `@typescript-eslint/recommended`
-- Prettier is integrated via `eslint-plugin-prettier`
-- Console methods: `console.warn`, `console.error`, `console.info` allowed; `console.log` triggers warning
-- No explicit any: Warnings only
-- Critical dependencies in vork/package.json marked in `rocketCritical` section—do not remove
+**Frontend:**
+- `firebase` - Authentication and Firestore database
+- `@supabase/supabase-js` - Supabase backend (alternative)
+- `socket.io-client` - Real-time WebSocket client
+- `lucide-react` - Icon library (used extensively for UI)
+- `geofire-common` - Geolocation calculations
+- `@google/generative-ai` - Google Gemini API client
+- `vite-plugin-pwa` - PWA service worker and manifest
+- `tailwind-merge` & `clsx` - CSS utility merging
+- `react` v19, `react-dom` v19
 
-### File Organization Notes
-- `vork_img/` directory contains PNG icons (72x72 to 512x512 for PWA) and test output images
-- Should be referenced in frontend `public/icons/` for PWA manifest
-- `supabase_rls_fix.sql` at root indicates RLS policies were modified (not currently in use)
+**Backend:**
+- `express` - HTTP server framework
+- `socket.io` - WebSocket server for real-time events
+- `firebase-admin` - Firebase Admin SDK
+- `jsonwebtoken` - JWT token generation/verification
+- `bcryptjs` - Password hashing (when implemented)
+- `cors` - Cross-origin resource sharing
+- `dotenv` - Environment variable management
 
-## Important Notes
+**Shared:**
+- TypeScript type definitions only (no runtime dependencies)
 
-1. **PWA Manifest**: Icons in `vork_img/` should be properly placed in `frontend/public/icons/` for PWA to work correctly
-2. **Firestore Rules**: Currently permissive in development; RLS needs proper setup before production
-3. **Vork separation**: The `vork/` Next.js app appears to be a separate experimental project—clarify its role with the team
-4. **No tests**: Consider adding test scripts (Jest/Vitest) for the frontend
-5. **API keys sensitive**: All Firebase and Gemini keys must be in `.env` and never committed
+## Important Notes & Migration Status
+
+### Current Development State
+1. **Frontend-Firestore Coupling**: The frontend still directly accesses Firestore for all data operations. This is intentional during transition period.
+2. **Backend API Scaffolding**: Routes exist but are mostly `TODO` comments. The backend is actively used for:
+   - `/api/chat` endpoint (Gemini chatbot + image generation)
+   - WebSocket event broadcasting
+3. **API Client Ready**: `api.client.ts` exists and is wired up, but not yet used by frontend components. Frontend components still use Firestore directly.
+4. **No Tests**: The project currently lacks a test suite. Consider adding Jest/Vitest if expanding.
+
+### Security Considerations
+- ⚠️ **Firestore Rules**: Currently permissive (`allow read, write: if true`). Implement proper security rules before production.
+- ✅ **Backend Routes**: Protected routes use JWT token validation via `verifyToken` middleware.
+- ✅ **Environment Variables**: Firebase credentials stored in `.env`, never committed.
+- ✅ **WebSocket Auth**: Socket.io connections validate JWT tokens on auth middleware (not yet implemented in routes).
+
+### Known Issues & TODO Items
+1. Backend authentication routes need implementation (currently placeholders)
+2. Backend order/artisan routes need implementation (currently placeholders)
+3. Firestore security rules need to be tightened
+4. Frontend should gradually migrate to backend API instead of direct Firestore access
+5. Frontend components should include error boundaries and loading states (partially done)
 
 ## Monorepo Workspace Structure
 
-```
-root package.json defines workspaces: ["frontend", "backend"]
-├── frontend/ (React/Vite PWA)
-├── backend/ (Firestore config)
-└── vork/ (Next.js - separate, not in workspaces array)
+Root `package.json` defines three workspaces:
+```json
+"workspaces": ["apps/frontend", "apps/backend", "shared"]
 ```
 
-Commands run from root apply to workspaced packages. The `vork/` directory is independent and must be run separately.
+### Directory Layout
+```
+maalem-app/
+├── apps/
+│   ├── frontend/              # React/Vite PWA (port 3000)
+│   │   ├── src/
+│   │   │   ├── components/   # UI components
+│   │   │   ├── views/        # Page screens
+│   │   │   ├── hooks/        # Business logic hooks
+│   │   │   ├── services/     # Firebase, WebSocket, API clients
+│   │   │   ├── context/      # React Context (AuthContext)
+│   │   │   ├── types/        # Local type definitions
+│   │   │   ├── utils/        # Helper functions
+│   │   │   ├── data/         # Mock data (CATEGORIES)
+│   │   │   ├── styles/       # Global CSS
+│   │   │   ├── App.tsx       # Root component
+│   │   │   └── main.tsx      # Entry point
+│   │   ├── public/           # Static assets (icons for PWA)
+│   │   ├── package.json
+│   │   ├── tsconfig.json
+│   │   ├── vite.config.ts    # PWA plugin config
+│   │   ├── .env.example
+│   │   └── README.md
+│   │
+│   └── backend/              # Express server (port 3001)
+│       ├── src/
+│       │   ├── server.ts     # Express + Socket.io setup
+│       │   ├── routes/       # API endpoint handlers
+│       │   ├── controllers/  # Business logic (mostly empty)
+│       │   ├── services/     # Firebase Admin, LLM services
+│       │   ├── middleware/   # Auth validation, error handling
+│       │   ├── types/        # Backend-specific types
+│       │   ├── utils/        # Helper functions
+│       │   ├── config/       # Configuration files
+│       │   └── websocket/    # Socket.io events (in server.ts)
+│       ├── dist/             # Compiled JavaScript
+│       ├── package.json
+│       ├── tsconfig.json
+│       ├── .env.example
+│       ├── Procfile          # Heroku deployment
+│       └── README.md
+│
+├── shared/                   # Shared types (npm workspace)
+│   ├── types/
+│   │   ├── User.ts          # User & artisan profiles
+│   │   ├── Order.ts         # Order details
+│   │   ├── API.ts           # API response & error types
+│   │   └── index.ts         # Exports
+│   ├── utils/               # Shared utilities (if any)
+│   ├── package.json
+│   └── README.md
+│
+├── archived/                 # Deprecated/legacy projects
+│   └── vork/                # Old Next.js 15 app (not active)
+│
+├── docs/                     # Project documentation
+│   ├── SETUP.md             # Environment setup
+│   ├── ARCHITECTURE.md      # System design
+│   ├── API.md               # Backend API reference
+│   ├── MONOREPO_STRUCTURE.md # Monorepo guide
+│   ├── DEPLOYMENT.md        # Deployment procedures
+│   └── database/            # Database schemas
+│
+├── .github/
+│   ├── copilot-instructions.md  # This file
+│   └── STRUCTURE_DECISIONS.md   # Open architecture questions
+│
+├── package.json             # Root monorepo config
+├── package-lock.json
+├── README.md               # Project overview
+└── .gitignore
+```
+
+### Running Commands from Root vs. Workspace
+
+**From root directory** (affects all workspaces):
+```bash
+npm run dev              # Runs dev in both frontend & backend
+npm run build            # Builds both
+npm run type-check       # Type checks both
+npm run lint             # Lints both
+```
+
+**For specific workspace** (using --workspace flag):
+```bash
+npm run dev --workspace=apps/frontend
+npm run build --workspace=apps/backend
+npm run type-check --workspace=apps/frontend
+```
+
+**For independent operations** (cd into directory):
+```bash
+cd apps/frontend && npm run dev
+cd apps/backend && npm run dev:backend
+```
+
+## Common Tasks & Patterns
+
+### Adding a New Frontend Component
+1. Create in `apps/frontend/src/components/` or `views/`
+2. Import from `@shared/types/` if using shared types
+3. Use TypeScript for type safety
+4. Export from component file, import with relative or absolute path
+
+### Calling Firestore from Frontend
+```typescript
+import { db } from '../services/firebase.config';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+
+// Real-time listener
+const q = query(collection(db, 'artisans'), where('category', '==', 'plumbing'));
+const unsubscribe = onSnapshot(q, (snapshot) => {
+  const data = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+});
+```
+
+### Using WebSocket from Frontend
+```typescript
+import { wsClient } from '../services/websocket.client';
+
+// Connect
+await wsClient.connect(token);
+
+// Send message
+wsClient.sendMessage(orderId, userId, messageText);
+
+// Listen to events
+wsClient.on('chat:message', (data) => {
+  console.log(data);
+});
+```
+
+### Adding a Backend Route
+1. Create route file in `apps/backend/src/routes/`
+2. Use Express Router with `verifyToken` middleware for protected routes
+3. Import any services needed (Firebase, LLM, etc.)
+4. Return standard API response format
+5. Register route in `server.ts` using `app.use()`
+
+### Adding Shared Types
+1. Create/edit file in `shared/types/`
+2. Export from `shared/types/index.ts`
+3. Import in both frontend and backend using `@shared/types/`
+
+## Deployment
+
+### Frontend → Vercel
+- Automatic deployment on `git push` to main
+- Requires `VITE_API_URL` and `VITE_WS_URL` environment variables in Vercel settings
+- Build command: `npm run build` (defined in vite.config.ts)
+- Output: `dist/` folder
+
+### Backend → Heroku
+- Deploy with `git push heroku main`
+- Requires Firebase service account in `FIREBASE_SERVICE_ACCOUNT` env var
+- Build command: `npm run build`
+- Start command: `npm start`
+- Procfile specifies: `web: npm start`
+
+See `docs/DEPLOYMENT.md` for detailed deployment instructions.

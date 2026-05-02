@@ -23,6 +23,7 @@ const LoginView = React.lazy(() => import('./views/auth/LoginView').then(m => ({
 const RegisterClientView = React.lazy(() => import('./views/auth/RegisterClientView').then(m => ({ default: m.RegisterClientView })));
 const RegisterArtisanView = React.lazy(() => import('./views/auth/RegisterArtisanView').then(m => ({ default: m.RegisterArtisanView })));
 const VerifyEmailView = React.lazy(() => import('./views/auth/VerifyEmailView').then(m => ({ default: m.VerifyEmailView })));
+const HelpView = React.lazy(() => import('./views/common/HelpView').then(m => ({ default: m.HelpView })));
 
 
 export const App = () => {
@@ -166,6 +167,7 @@ const AppContent = () => {
                 onToggleRole={toggleRole}
                 onOpenChats={() => { setChatSource(view); setView('chats'); }}
                 onOpenNotifications={() => setView('notifications')}
+                onOpenHelp={() => setView('help')}
             />
 
             <main className="max-w-md mx-auto relative min-h-screen">

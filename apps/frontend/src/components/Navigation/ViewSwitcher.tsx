@@ -29,6 +29,7 @@ const MarketplaceView = React.lazy(() => import('../../views/artisan/Marketplace
 const UpdateEmailView = React.lazy(() => import('../../views/auth/UpdateEmailView').then(m => ({ default: m.UpdateEmailView })));
 const ArtisanHistoryView = React.lazy(() => import('../../views/artisan/ArtisanHistoryView').then(m => ({ default: m.ArtisanHistoryView })));
 const NotificationCenter = React.lazy(() => import('../../views/common/NotificationCenter').then(m => ({ default: m.NotificationCenter })));
+const HelpView = React.lazy(() => import('../../views/common/HelpView').then(m => ({ default: m.HelpView })));
 
 interface ViewSwitcherProps {
     view: View;
@@ -164,6 +165,7 @@ export const ViewSwitcher: React.FC<ViewSwitcherProps> = (props) => {
             {view === 'settings' && <SettingsView onBack={() => setView('profile')} isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />}
             {view === 'update-email' && <UpdateEmailView onBack={() => setView('profile')} onSuccess={(newEmail) => { setUserProfile({ ...userProfile, email: newEmail }); setView('profile'); }} userRole={userRole} />}
             {view === 'artisan-history' && <ArtisanHistoryView orders={archivedOrders.filter(o => o.artisanId === userProfile.id)} onBack={() => setView('home')} onViewOrder={(o) => { setSelectedOrder(o); setView('order-detail'); }} />}
+            {view === 'help' && <HelpView userRole={userRole} onBack={() => setView(chatSource)} />}
         </React.Suspense>
     );
 };
