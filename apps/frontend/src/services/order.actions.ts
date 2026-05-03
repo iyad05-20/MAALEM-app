@@ -87,7 +87,7 @@ export const archiveOrder = async (order: Order, review?: { rating: number, comm
                     id: reviewId,
                     artisanId: order.artisanId,
                     orderId: order.id,
-                    userId: order.userId,
+                    userId: order.userId || order.clientId || 'unknown',
                     rating: review.rating,
                     comment: review.comment,
                     images: review.images || [],

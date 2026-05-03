@@ -12,7 +12,9 @@ import {
   verifyBeforeUpdateEmail,
   reauthenticateWithCredential,
   sendPasswordResetEmail,
-  confirmPasswordReset
+  confirmPasswordReset,
+  GoogleAuthProvider,
+  signInWithPopup
 } from "firebase/auth";
 import {
   doc,
@@ -35,6 +37,41 @@ const isValidUrl = (url: string) => {
     return false;
   }
 };
+
+// ─── Google OAuth ───────────────────────────────────────────────
+
+const googleProvider = new GoogleAuthProvider();
+
+/**
+ * Sign in with Google OAuth popup.
+ * onAuthStateChanged in useAuthLogic will handle profile loading/creation.
+ */
+export const signInWithGoogle = async () => {
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    return result.user;
+  } catch (error: any) {
+    if (error.code === 'auth/popup-closed-by-user') {
+      throw new Error("Connexion annulée.");
+    }
+    if (error.code === 'auth/unauthorized-domain') {
+      throw new Error("UNAUTHORIZED_DOMAIN");
+    }
+    console.error("Google sign-in error:", error);
+    throw error;
+  }
+};
+
+/**
+ * Get the current user's Firebase ID token for API calls.
+ */
+export const getFirebaseToken = async (): Promise<string | null> => {
+  const user = auth.currentUser;
+  if (!user) return null;
+  return user.getIdToken();
+};
+
+// ─── Email/Password (kept for backward compatibility) ────────────
 
 /**
  * ISOLATED REGISTRATION

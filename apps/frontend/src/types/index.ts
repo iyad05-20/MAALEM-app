@@ -151,6 +151,7 @@ export interface Chat {
 export interface Order {
   id: string;
   userId?: string;
+  clientId?: string;
   artisanId?: string;
   artisanName?: string;
   artisanImage?: string;

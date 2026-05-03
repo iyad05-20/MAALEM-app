@@ -7,6 +7,7 @@ import { sanitizeFirestoreData } from '../../utils';
 import { findBestArtisans } from '../../services/recommendation.service';
 import { db, auth } from '../../services/firebase.config';
 import { doc, getDoc, onSnapshot, updateDoc, arrayUnion, addDoc, collection, serverTimestamp, query, orderBy, setDoc } from "firebase/firestore";
+import { ordersAPI } from '../../services/api.client';
 import { rejectQuote, archiveOrder } from '../../services/order.actions';
 import { uploadToSupabase } from '../../services/supabase.config';
 
@@ -183,23 +184,21 @@ export const ClientOrderDetailView: React.FC<Props> = ({ order, onBack, onOpenCh
         setIsAccepting(quote.id);
         // Compute a display price with fallback
         const displayPrice = quote.price || (quote.amount ? `${quote.amount} dh` : 'Prix convenu');
-        // Ensure we have the clientId - fallback to auth UID if order.userId is missing
-        const clientId = order.userId || auth.currentUser?.uid;
+        // Support both legacy orders (userId) and new backend orders (clientId)
+        const clientId = order.userId || order.clientId || auth.currentUser?.uid;
         if (!clientId) {
             showToast("Erreur: impossible d'identifier le client.", "error");
             setIsAccepting(null);
             return;
         }
         try {
-            await updateDoc(doc(db, "orders", order.id), {
+            // ✅ Secure: status change goes through backend API (validates ownership server-side)
+            await ordersAPI.updateStatus(order.id, 'En cours', {
                 artisanId: quote.artisanId,
                 artisanName: quote.artisanName,
                 artisanImage: quote.artisanImage,
                 artisanRating: quote.artisanRating,
                 assignedPrice: displayPrice,
-                userId: clientId, // Ensure userId is always saved back
-                status: 'En cours',
-                updatedAt: new Date().toISOString()
             });
 
             let myName = 'Client', myImage = '';
@@ -249,29 +248,31 @@ export const ClientOrderDetailView: React.FC<Props> = ({ order, onBack, onOpenCh
 
     const handleConfirmCompletion = async (rating: number, comment: string, images: string[]) => {
         try {
-            await archiveOrder(order, { rating, comment, images });
+            await ordersAPI.updateStatus(order.id, 'En attente de clôture', {
+                pendingReview: { rating, comment, images }
+            });
             if (order.artisanId) {
-                const chatDocId = `${order.userId || auth.currentUser?.uid}_${order.artisanId}`;
+                const chatDocId = `${order.userId || order.clientId || auth.currentUser?.uid}_${order.artisanId}`;
                 await addDoc(collection(db, "chats", chatDocId, "messages"), {
-                    text: `✅ Mission terminée et validée ! Note: ${rating}/5. Photos ajoutées au portfolio.`,
+                    text: `J'ai validé la mission et laissé un avis (${rating}/5). Merci de confirmer la clôture pour terminer.`,
                     sender: 'user', timestamp: new Date().toISOString(), status: 'sent'
                 });
-                // Notify the artisan that the mission is complete
                 await addDoc(collection(db, "notifications"), {
                     userId: order.artisanId,
-                    title: "Mission Terminée ! ✅",
-                    message: `Le client a validé votre travail sur "${order.category}" et vous a attribué une note de ${rating}/5.`,
+                    title: "Demande de Clôture",
+                    message: `Le client a validé votre travail sur "${order.category}". Veuillez confirmer la clôture de la commande.`,
                     type: 'order_accepted',
                     read: false,
                     createdAt: new Date().toISOString(),
                     relatedId: order.id
                 });
             }
+            showToast("Demande de clôture envoyée à l'artisan.", "success");
             await new Promise(resolve => setTimeout(resolve, 1500));
-            onBack();
+            setShowCompletionModal(false);
         } catch (err) {
             console.error(err);
-            showToast("Erreur lors de l'archivage.", "error");
+            showToast("Erreur lors de la clôture de la commande.", "error");
             setShowCompletionModal(false);
         }
     };

@@ -33,6 +33,9 @@ COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
 # Copy category JSON data files (not compiled by tsc)
 COPY apps/backend/src/data ./apps/backend/src/data
 
+# Copy service account for Firebase Auth/Firestore
+COPY apps/backend/serviceAccount.json ./apps/backend/serviceAccount.json
+
 EXPOSE 3000
 
 CMD ["node", "apps/backend/dist/server.js"]

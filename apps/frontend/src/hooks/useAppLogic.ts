@@ -9,6 +9,7 @@ import { useLocationTracker } from './useLocationTracker';
 import { useAuthLogic } from './useAuthLogic';
 import { useOrdersLogic } from './useOrdersLogic';
 import { useChatsLogic } from './useChatsLogic';
+import { ordersAPI } from '../services/api.client';
 import {
     collection,
     onSnapshot,
@@ -247,25 +248,27 @@ export const useAppLogic = () => {
     const handleCreateOrder = async (newOrder: Order): Promise<void> => {
         if (!userProfile) return;
 
-        let targetedIds = newOrder.targetedArtisans || [];
+        try {
+            // L'upload des images est déjà fait dans useChatbot (via uploadToSupabase).
+            // Le backend s'occupe de la complétion des cibles (findBestArtisans) et de la sécurisation de l'UID.
+            const payload = {
+                category: newOrder.category,
+                title: newOrder.title,
+                description: newOrder.description,
+                imageUrl: newOrder.images?.[0] || '', // Envoi de la première image (générée ou uploadée)
+                city: newOrder.city,
+                urgency: 'Normale', // Peut être dynamique plus tard
+                targetedArtisans: newOrder.targetedArtisans || [],
+                isDirect: newOrder.isDirect || false
+            };
 
-        if (targetedIds.length === 0) {
-            targetedIds = await findBestArtisans(newOrder.category, 1);
+            await ordersAPI.create(payload);
+            showToast("Commande publiée avec succès !", "success");
+            setView('bookings');
+        } catch (e: any) {
+            console.error("Error creating order:", e);
+            showToast("Erreur lors de la création de la commande.", "error");
         }
-
-        const orderData: any = {
-            ...newOrder,
-            userId: userProfile.id,
-            userName: userProfile.name,
-            userAvatar: userProfile.avatar || userProfile.image || '',
-            locationCoords: userLocation || newOrder.locationCoords,
-            targetedArtisans: Array.isArray(targetedIds) ? targetedIds : [],
-            searchRadius: 1,
-            createdAt: new Date().toISOString()
-        };
-
-        await setDoc(doc(db, "orders", newOrder.id), orderData);
-        setView('bookings');
     };
 
     const handleDeleteOrder = async (order: Order) => {

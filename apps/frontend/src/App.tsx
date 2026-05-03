@@ -23,6 +23,7 @@ const LoginView = React.lazy(() => import('./views/auth/LoginView').then(m => ({
 const RegisterClientView = React.lazy(() => import('./views/auth/RegisterClientView').then(m => ({ default: m.RegisterClientView })));
 const RegisterArtisanView = React.lazy(() => import('./views/auth/RegisterArtisanView').then(m => ({ default: m.RegisterArtisanView })));
 const VerifyEmailView = React.lazy(() => import('./views/auth/VerifyEmailView').then(m => ({ default: m.VerifyEmailView })));
+const OnboardingView = React.lazy(() => import('./views/auth/OnboardingView').then(m => ({ default: m.OnboardingView })));
 
 
 export const App = () => {
@@ -153,6 +154,18 @@ const AppContent = () => {
 
     if (showVerifyEmail) {
         return <VerifyEmailView email={authUser?.email || ''} onBack={() => setShowVerifyEmail(false)} onLogout={handleLogout} />;
+    }
+
+    if (userProfile && userProfile.profileComplete === false) {
+        return (
+            <OnboardingView 
+                userProfile={userProfile} 
+                onComplete={(data, role) => {
+                    setUserProfile(data);
+                    setUserRole(role);
+                }} 
+            />
+        );
     }
 
     return (

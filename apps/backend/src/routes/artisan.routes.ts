@@ -1,5 +1,5 @@
 import express, { Router, Request, Response, NextFunction } from 'express';
-import { verifyToken } from '../middleware/auth.middleware.js';
+import { verifyFirebaseToken } from '../middleware/auth.middleware.js';
 
 const router = Router();
 
@@ -25,7 +25,7 @@ router.get('/:artisanId', async (req: Request, res: Response, next: NextFunction
 });
 
 // Update artisan profile
-router.put('/:artisanId', verifyToken, async (req: Request, res: Response, next: NextFunction) => {
+router.put('/:artisanId', verifyFirebaseToken, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { artisanId } = req.params;
     const updateData = req.body;
@@ -37,7 +37,7 @@ router.put('/:artisanId', verifyToken, async (req: Request, res: Response, next:
 });
 
 // Get artisan's work orders
-router.get('/:artisanId/orders', verifyToken, async (req: Request, res: Response, next: NextFunction) => {
+router.get('/:artisanId/orders', verifyFirebaseToken, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { artisanId } = req.params;
     // TODO: Implement get artisan's orders

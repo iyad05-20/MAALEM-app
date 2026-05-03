@@ -113,7 +113,7 @@ export const ViewSwitcher: React.FC<ViewSwitcherProps> = (props) => {
                 userRole === 'artisan' ? (
                     <ArtisanDashboardView
                         artisan={userProfile}
-                        activeOrders={orders.filter(o => o.status === 'En cours' || o.status === 'Accepté')}
+                        activeOrders={orders.filter(o => o.status === 'En cours' || o.status === 'Accepté' || o.status === 'En attente de clôture')}
                         archivedOrders={archivedOrders.filter(o => o.artisanId === userProfile.id)}
                         onViewOrder={(o) => { setSelectedOrder(o); setView('order-detail'); }}
                         setView={setView}
