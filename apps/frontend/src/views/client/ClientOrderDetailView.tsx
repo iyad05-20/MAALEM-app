@@ -1,17 +1,19 @@
-
-import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ImageIcon, CheckCircle2, MoreVertical, Star, UserCheck, Search, Zap, XCircle, Loader2, MessageCircle, X, Maximize2, Clock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ChevronLeft, MoreVertical, Search, Zap, Loader2, X, Maximize2, CheckCircle2 } from 'lucide-react';
 import { Order, Artisan, Quote } from '../../types';
-import { SmartAvatar } from '../../components/Shared/SmartAvatar';
 import { sanitizeFirestoreData } from '../../utils';
 import { findBestArtisans } from '../../services/recommendation.service';
 import { db, auth } from '../../services/firebase.config';
-import { doc, getDoc, onSnapshot, updateDoc, arrayUnion, addDoc, collection, serverTimestamp, query, orderBy, setDoc } from "firebase/firestore";
+import { doc, getDoc, onSnapshot, updateDoc, arrayUnion, addDoc, collection, setDoc, query, orderBy } from "firebase/firestore";
 import { ordersAPI } from '../../services/api.client';
-import { rejectQuote, archiveOrder } from '../../services/order.actions';
-import { uploadToSupabase } from '../../services/supabase.config';
+import { rejectQuote } from '../../services/order.actions';
 
-import { useFilePreviews } from '../../hooks/useFilePreview';
+// New Extracted Components
+import { CompletionModal } from '../../components/Client/OrderDetails/CompletionModal';
+import { QuoteCard } from '../../components/Client/OrderDetails/QuoteCard';
+import { AssignedArtisanCard } from '../../components/Client/OrderDetails/AssignedArtisanCard';
+import { OrderHeader } from '../../components/Client/OrderDetails/OrderHeader';
+import { PhotoGallery } from '../../components/Client/OrderDetails/PhotoGallery';
 
 interface Props {
     order: Order;
@@ -22,137 +24,6 @@ interface Props {
     onViewImage?: (url: string) => void;
     showToast: (msg: string, type?: 'success' | 'error' | 'info') => void;
 }
-
-// --- COMPLETION MODAL COMPONENT ---
-const CompletionModal = ({ isOpen, onClose, onConfirm, artisanName, artisanImage, orderId, showToast }: {
-    isOpen: boolean;
-    onClose: () => void;
-    onConfirm: (rating: number, comment: string, images: string[]) => Promise<void>;
-    artisanName: string;
-    artisanImage?: string;
-    orderId: string;
-    showToast: (msg: string, type?: 'success' | 'error' | 'info') => void;
-}) => {
-    const [rating, setRating] = useState(0);
-    const [comment, setComment] = useState('');
-    const [step, setStep] = useState<'rate' | 'uploading' | 'processing' | 'success'>('rate');
-    const [images, setImages] = useState<File[]>([]);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    const previews = useFilePreviews(images);
-
-    if (!isOpen) return null;
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files) {
-            setImages(prev => [...prev, ...Array.from(e.target.files!)].slice(0, 4));
-        }
-    };
-
-    const removeImage = (index: number) => {
-        setImages(prev => prev.filter((_, i) => i !== index));
-    };
-
-    const handleSubmit = async () => {
-        setStep('uploading');
-        const imageUrls: string[] = [];
-
-        try {
-            if (images.length > 0) {
-                for (const [index, file] of images.entries()) {
-                    const fileExt = file.name.split('.').pop() || 'jpg';
-                    const path = `reviews/${orderId}/result_${index}_${Date.now()}.${fileExt}`;
-                    const url = await uploadToSupabase('vork-profilepic-bucket', path, file);
-                    imageUrls.push(url);
-                }
-            }
-
-            setStep('processing');
-            await onConfirm(rating, comment, imageUrls);
-            setStep('success');
-        } catch (error) {
-            console.error("Error submitting review:", error);
-            setStep('rate');
-            showToast("Erreur lors de l'envoi. Veuillez réessayer.", "error");
-        }
-    };
-
-    return (
-        <div className="fixed inset-0 z-[150] flex items-end justify-center animate-in fade-in duration-300">
-            <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={step === 'rate' ? onClose : undefined} />
-            <div className="relative w-full max-w-md bg-[#0a0a0c] border-t border-white/10 rounded-t-[3rem] p-8 pb-safe-bottom shadow-2xl animate-in slide-in-from-bottom duration-500 max-h-[90vh] overflow-y-auto no-scrollbar text-center">
-                {step === 'rate' && (
-                    <div className="space-y-6">
-                        <div className="size-16 mx-auto rounded-full overflow-hidden border-4 border-white/10 shadow-2xl">
-                            <SmartAvatar src={artisanImage} name={artisanName} initialsClassName="text-xl font-black text-white" />
-                        </div>
-                        <div>
-                            <h2 className="text-xl font-black text-white uppercase tracking-tight">Mission Terminée !</h2>
-                            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">Notez le travail de {artisanName}</p>
-                        </div>
-
-                        <div className="flex justify-center gap-2">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                                <button key={star} onClick={() => setRating(star)} className="p-1 transition-transform hover:scale-110 focus:outline-none">
-                                    <Star size={32} className={`${rating >= star ? 'fill-yellow-400 text-yellow-400' : 'text-white/10 fill-white/5'} transition-colors`} />
-                                </button>
-                            ))}
-                        </div>
-
-                        <div className="w-full space-y-3 text-left">
-                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Photos du résultat <span className="text-indigo-400">(Requis)</span></label>
-                            <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
-                                {images.length < 4 && (
-                                    <button onClick={() => fileInputRef.current?.click()} className="size-20 shrink-0 rounded-2xl border-2 border-dashed border-white/10 bg-white/5 flex flex-col items-center justify-center gap-1 group hover:border-indigo-500/50 transition-all">
-                                        <ImageIcon size={18} className="text-slate-500 group-hover:text-indigo-400" />
-                                        <span className="text-[8px] font-black text-slate-500 group-hover:text-indigo-400 uppercase tracking-widest">Ajouter</span>
-                                    </button>
-                                )}
-                                <input type="file" ref={fileInputRef} className="hidden" accept="image/*" multiple onChange={handleFileChange} />
-                                {images.map((file, idx) => (
-                                    <div key={idx} className="size-20 shrink-0 rounded-2xl relative overflow-hidden border border-white/10 group">
-                                        <img src={previews[idx]} className="w-full h-full object-cover" alt="Preview" />
-                                        <button onClick={() => removeImage(idx)} className="absolute top-1 right-1 size-5 bg-red-600 rounded-full flex items-center justify-center text-white shadow-lg"><X size={10} /></button>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <textarea
-                            value={comment}
-                            onChange={(e) => setComment(e.target.value)}
-                            placeholder="Un commentaire sur la prestation ? (Optionnel)"
-                            className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm text-white focus:outline-none focus:border-indigo-500 resize-none h-20 placeholder:text-slate-600"
-                        />
-
-                        <div className="flex w-full gap-3 pt-2">
-                            <button onClick={onClose} className="flex-1 py-4 bg-white/5 rounded-2xl text-slate-500 font-black text-[10px] uppercase tracking-widest hover:bg-white/10">Annuler</button>
-                            <button onClick={handleSubmit} disabled={rating === 0} className="flex-[2] py-4 bg-emerald-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 transition-all">Clôturer la mission</button>
-                        </div>
-                    </div>
-                )}
-
-                {(step === 'uploading' || step === 'processing') && (
-                    <div className="flex flex-col items-center justify-center py-10 space-y-6">
-                        <div className="size-24 relative">
-                            <div className="absolute inset-0 border-4 border-emerald-500/20 rounded-full"></div>
-                            <div className="absolute inset-0 border-t-4 border-emerald-500 rounded-full animate-spin"></div>
-                        </div>
-                        <h3 className="text-white font-black uppercase tracking-widest animate-pulse">{step === 'uploading' ? 'Envoi des photos...' : 'Archivage en cours...'}</h3>
-                    </div>
-                )}
-
-                {step === 'success' && (
-                    <div className="flex flex-col items-center justify-center py-10 space-y-6 animate-in zoom-in duration-300">
-                        <div className="size-24 bg-emerald-500 rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(16,185,129,0.5)]">
-                            <CheckCircle2 size={48} className="text-white animate-bounce" />
-                        </div>
-                        <h3 className="text-2xl font-black text-white uppercase tracking-tight">Succès !</h3>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-};
 
 export const ClientOrderDetailView: React.FC<Props> = ({ order, onBack, onOpenChat, onOpenArtisanProfile, showToast }) => {
     const [quotes, setQuotes] = useState<Quote[]>([]);
@@ -182,9 +53,7 @@ export const ClientOrderDetailView: React.FC<Props> = ({ order, onBack, onOpenCh
 
     const handleAcceptQuote = async (quote: Quote) => {
         setIsAccepting(quote.id);
-        // Compute a display price with fallback
         const displayPrice = quote.price || (quote.amount ? `${quote.amount} dh` : 'Prix convenu');
-        // Support both legacy orders (userId) and new backend orders (clientId)
         const clientId = order.userId || order.clientId || auth.currentUser?.uid;
         if (!clientId) {
             showToast("Erreur: impossible d'identifier le client.", "error");
@@ -192,7 +61,6 @@ export const ClientOrderDetailView: React.FC<Props> = ({ order, onBack, onOpenCh
             return;
         }
         try {
-            // ✅ Secure: status change goes through backend API (validates ownership server-side)
             await ordersAPI.updateStatus(order.id, 'En cours', {
                 artisanId: quote.artisanId,
                 artisanName: quote.artisanName,
@@ -295,6 +163,7 @@ export const ClientOrderDetailView: React.FC<Props> = ({ order, onBack, onOpenCh
 
     return (
         <div className="min-h-screen bg-[#0a0a0c] flex flex-col animate-in slide-in-from-right duration-500 pb-32">
+            {/* Nav Header */}
             <header className="px-6 pt-12 pb-6 flex items-center justify-between sticky top-0 bg-[#0a0a0c]/90 backdrop-blur-xl z-50 border-b border-white/5">
                 <button onClick={onBack} className="size-10 bg-white/5 rounded-xl flex items-center justify-center text-white border border-white/10 active:scale-90"><ChevronLeft className="w-5 h-5" /></button>
                 <h1 className="text-[11px] font-black text-white tracking-[0.2em] uppercase">COMMANDE #{order.id.slice(-5).toUpperCase()}</h1>
@@ -302,29 +171,10 @@ export const ClientOrderDetailView: React.FC<Props> = ({ order, onBack, onOpenCh
             </header>
 
             <div className="flex-1 overflow-y-auto no-scrollbar space-y-8 p-6 bg-[#0a0a0c]">
-                {/* Header Card */}
-                <div className="glass-card p-6 rounded-[2.5rem] bg-[#1a1a20]/60 border border-white/5">
-                    <div className="flex items-center gap-5">
-                        <div className="size-16 bg-indigo-600/20 rounded-2xl flex items-center justify-center text-indigo-500 border border-indigo-500/10"><ImageIcon size={28} /></div>
-                        <div className="flex-1">
-                            <h2 className="text-2xl font-black text-white uppercase tracking-tight mb-1">{order.title || order.category}</h2>
-                            <div className="flex items-center gap-2 text-slate-400">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400">{order.category}</span>
-                                <span className="text-slate-700">•</span>
-                                <Clock size={12} /><span className="text-[10px] font-black uppercase tracking-widest">{order.date}</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="flex items-center justify-between mt-6 pt-6 border-t border-white/5">
-                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">STATUT</span>
-                        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${isAssigned ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-orange-500/10 border-orange-500/20 text-orange-400'}`}>
-                            <div className={`size-2 rounded-full ${order.status === 'Terminé' ? 'bg-emerald-500' : 'bg-orange-500 animate-pulse'}`}></div>
-                            <span className="text-[9px] font-black uppercase tracking-widest">{isPendingClosure ? 'VALIDATION...' : order.status}</span>
-                        </div>
-                    </div>
-                </div>
+                {/* Main Order Info */}
+                <OrderHeader order={order} isAssigned={isAssigned} isPendingClosure={isPendingClosure} />
 
-                {/* Description Section */}
+                {/* Description */}
                 <div className="space-y-4">
                     <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">DESCRIPTION DÉTAILLÉE</h3>
                     <div className="glass-card p-6 rounded-[2rem] bg-[#121214] border border-white/5 shadow-inner">
@@ -332,7 +182,7 @@ export const ClientOrderDetailView: React.FC<Props> = ({ order, onBack, onOpenCh
                     </div>
                 </div>
 
-                {/* Validation Action */}
+                {/* Quick Completion Action */}
                 {(order.status === 'En cours' || order.status === 'Accepté') && (
                     <div className="glass-card p-6 rounded-[2rem] bg-indigo-900/10 border border-indigo-500/20 flex items-center justify-between shadow-xl">
                         <div className="relative z-10">
@@ -345,38 +195,22 @@ export const ClientOrderDetailView: React.FC<Props> = ({ order, onBack, onOpenCh
                     </div>
                 )}
 
-                {/* Quotes List */}
-                {!isAssigned && (
+                {/* Section Devis ou Artisan Assigné */}
+                {!isAssigned ? (
                     <div className="space-y-6">
                         <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">DEVIS REÇUS</h3>
                         {quotes.length > 0 ? (
                             <div className="space-y-4">
                                 {quotes.map((quote) => (
-                                    <div key={quote.id} className="glass-card p-6 rounded-[2.5rem] bg-[#121214] border border-white/10 shadow-2xl">
-                                        <div className="flex items-start gap-4 mb-6">
-                                            <div className="size-14 rounded-2xl overflow-hidden border border-white/10 shadow-lg">
-                                                <SmartAvatar src={quote.artisanImage} name={quote.artisanName} initialsClassName="text-xl font-black text-white" />
-                                            </div>
-                                            <div className="flex-1">
-                                                <div className="flex justify-between items-start">
-                                                    <div>
-                                                        <h4 className="text-white font-black text-base uppercase tracking-tight">{quote.artisanName}</h4>
-                                                        <div className="flex items-center gap-1 mt-1"><Star className="size-3 text-yellow-400 fill-current" /><span className="text-[10px] font-black text-white">{quote.artisanRating}</span></div>
-                                                    </div>
-                                                    <span className="text-lg font-black text-emerald-400 tracking-tighter">{quote.price}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <p className="text-slate-400 text-xs italic mb-6 bg-white/5 p-4 rounded-2xl border border-white/5">"{quote.description}"</p>
-                                        <div className="flex gap-3">
-                                            <button onClick={() => handleRejectQuote(quote)} disabled={isRejecting === quote.id || isAccepting !== null} className="flex-1 py-4 rounded-2xl bg-white/5 text-red-400 border border-white/5 font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2">
-                                                {isRejecting === quote.id ? <Loader2 className="size-4 animate-spin" /> : <><XCircle size={16} /> Refuser</>}
-                                            </button>
-                                            <button onClick={() => handleAcceptQuote(quote)} disabled={isAccepting !== null || isRejecting === quote.id} className="flex-[2] py-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2">
-                                                {isAccepting === quote.id ? <Loader2 className="size-4 animate-spin" /> : <><UserCheck size={16} /> Accepter</>}
-                                            </button>
-                                        </div>
-                                    </div>
+                                    <QuoteCard 
+                                        key={quote.id}
+                                        quote={quote}
+                                        isAccepting={isAccepting === quote.id}
+                                        isRejecting={isRejecting === quote.id}
+                                        onAccept={handleAcceptQuote}
+                                        onReject={handleRejectQuote}
+                                        disabled={isAccepting !== null || isRejecting !== null}
+                                    />
                                 ))}
                             </div>
                         ) : (
@@ -391,59 +225,43 @@ export const ClientOrderDetailView: React.FC<Props> = ({ order, onBack, onOpenCh
                             </div>
                         )}
                     </div>
+                ) : (
+                    <AssignedArtisanCard 
+                        artisanId={order.artisanId}
+                        artisanName={order.artisanName}
+                        artisanImage={order.artisanImage}
+                        artisanRating={order.artisanRating}
+                        onOpenProfile={onOpenArtisanProfile}
+                        onOpenChat={onOpenChat}
+                    />
                 )}
 
-                {/* Assigned Artisan */}
-                {isAssigned && (
-                    <div className="space-y-6">
-                        <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">EXPERT ASSIGNÉ</h3>
-                        <div onClick={() => onOpenArtisanProfile(order.artisanId)} className="glass-card p-6 rounded-[2.5rem] bg-[#121214] border border-white/10 shadow-2xl group cursor-pointer active:scale-[0.99] transition-all">
-                            <div className="flex items-center gap-5">
-                                <div className="size-16 rounded-full border-2 border-indigo-500/30 overflow-hidden shadow-xl">
-                                    <SmartAvatar src={order.artisanImage} name={order.artisanName || 'Expert'} initialsClassName="text-xl font-black text-white" />
-                                </div>
-                                <div className="flex-1">
-                                    <h4 className="text-xl font-black text-white tracking-tighter mb-2">{order.artisanName}</h4>
-                                    <div className="flex items-center gap-1"><Star className="size-3 text-yellow-400 fill-current" /><span className="text-xs font-black text-white">{order.artisanRating}</span></div>
-                                </div>
-                            </div>
-                            <button onClick={(e) => { e.stopPropagation(); onOpenChat({ id: order.artisanId, name: order.artisanName, image: order.artisanImage }); }} className="w-full mt-8 py-4 bg-indigo-600 rounded-2xl flex items-center justify-center gap-3 text-white font-black text-[11px] uppercase tracking-widest active:scale-95 transition-all shadow-xl shadow-indigo-600/20">
-                                <MessageCircle size={16} /> Discuter avec l'expert
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {/* Photos Initiales */}
-                <div className="space-y-4">
-                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">PHOTOS INITIALES</h3>
-                    <div className="grid grid-cols-4 gap-2.5">
-                        {order.images?.map((url, idx) => (
-                            <div key={idx} onClick={() => setFullScreenImage(url)} className="relative aspect-square rounded-2xl overflow-hidden border border-white/10 group cursor-pointer">
-                                <img src={url} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="Detail" />
-                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/30 transition-all"><Maximize2 size={16} className="text-white" /></div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Result Photos */}
-                {order.resultImages && order.resultImages.length > 0 && (
-                    <div className="space-y-4 pt-4 border-t border-white/5">
-                        <h3 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest px-1">RÉSULTAT FINAL</h3>
-                        <div className="grid grid-cols-4 gap-2.5">
-                            {order.resultImages.map((url, idx) => (
-                                <div key={idx} onClick={() => setFullScreenImage(url)} className="relative aspect-square rounded-2xl overflow-hidden border border-emerald-500/20 group cursor-pointer">
-                                    <img src={url} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="Result" />
-                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/30 transition-all"><Maximize2 size={16} className="text-white" /></div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
+                {/* Photo Galleries */}
+                <PhotoGallery 
+                    title="PHOTOS INITIALES" 
+                    images={order.images} 
+                    onImageClick={setFullScreenImage} 
+                />
+                
+                <PhotoGallery 
+                    title="RÉSULTAT FINAL" 
+                    images={order.resultImages} 
+                    onImageClick={setFullScreenImage}
+                    titleColorClass="text-emerald-500"
+                    borderColorClass="border-emerald-500/20"
+                />
             </div>
 
-            <CompletionModal isOpen={showCompletionModal} onClose={() => setShowCompletionModal(false)} onConfirm={handleConfirmCompletion} artisanName={order.artisanName || 'Expert'} artisanImage={order.artisanImage} orderId={order.id} showToast={showToast} />
+            {/* Modals */}
+            <CompletionModal 
+                isOpen={showCompletionModal} 
+                onClose={() => setShowCompletionModal(false)} 
+                onConfirm={handleConfirmCompletion} 
+                artisanName={order.artisanName || 'Expert'} 
+                artisanImage={order.artisanImage} 
+                orderId={order.id} 
+                showToast={showToast} 
+            />
 
             {fullScreenImage && (
                 <div className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center p-4 animate-in fade-in" onClick={() => setFullScreenImage(null)}>

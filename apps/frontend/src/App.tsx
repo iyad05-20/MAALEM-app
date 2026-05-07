@@ -1,36 +1,31 @@
 
-import React, { useEffect, useMemo } from 'react';
-import { Hammer, MessageSquare, Loader2, Bell } from 'lucide-react';
+import React, { useEffect } from 'react';
 
-import { CATEGORIES } from './data/mockData';
-import { SmartAvatar } from './components/Shared/SmartAvatar';
 import { Navbar } from './components/Navigation/Navbar';
 import { useAppLogic } from './hooks/useAppLogic';
-import { db } from './services/firebase.config';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import { updateDoc, doc } from "firebase/firestore";
-import InstallPWA from './components/common/InstallPWA';
+import { AuthProvider } from './context/AuthContext';
 import { OfflineView } from './views/common/OfflineView';
 import { Toast } from './components/common/Toast';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { Header } from './components/Navigation/Header';
-
-
 import { ViewSwitcher } from './components/Navigation/ViewSwitcher';
+import { PWAProvider } from './context/PWAContext';
 
-// Authentication Views (needed for main auth flow)
+// Views
+import LandingView from './views/LandingView';
 const LoginView = React.lazy(() => import('./views/auth/LoginView').then(m => ({ default: m.LoginView })));
 const RegisterClientView = React.lazy(() => import('./views/auth/RegisterClientView').then(m => ({ default: m.RegisterClientView })));
 const RegisterArtisanView = React.lazy(() => import('./views/auth/RegisterArtisanView').then(m => ({ default: m.RegisterArtisanView })));
 const VerifyEmailView = React.lazy(() => import('./views/auth/VerifyEmailView').then(m => ({ default: m.VerifyEmailView })));
 const OnboardingView = React.lazy(() => import('./views/auth/OnboardingView').then(m => ({ default: m.OnboardingView })));
 
-
 export const App = () => {
     return (
         <ErrorBoundary>
             <AuthProvider>
-                <AppContent />
+                <PWAProvider>
+                    <AppContent />
+                </PWAProvider>
             </AuthProvider>
         </ErrorBoundary>
     );
@@ -44,47 +39,17 @@ const AppContent = () => {
         userRole, setUserRole,
         authUser,
         userProfile, setUserProfile,
-        loading,
-        artisans,
-        userLocation,
-        orders,
-        archivedOrders,
         chats,
         notifications,
         authMode, setAuthMode,
         showVerifyEmail, setShowVerifyEmail,
         handleLogout,
-        handleToggleOnline,
-        handleDeleteOrder,
-        handleCreateOrder,
-        handleOpenArtisanProfile,
-        openChatWithArtisan,
-        clearNotifications,
-        markAllNotificationsAsRead,
-        markNotificationAsRead,
-        showToast,
-        favorites,
-        toggleFavorite,
         toggleRole,
-        isDarkMode, setIsDarkMode,
-        selectedArtisan, setSelectedArtisan,
-        selectedCategory, setSelectedCategory,
-        selectedChat, setSelectedChat,
-        selectedOrder, setSelectedOrder,
-        selectedPortfolioItem, setSelectedPortfolioItem,
-        categorySource, setCategorySource,
-        artisanSource, setArtisanSource,
-        allCategoriesSource, setAllCategoriesSource,
         chatSource, setChatSource,
-        workSource, setWorkSource,
-        searchFilterCategory, setSearchFilterCategory,
-        searchFilterRating, setSearchFilterRating,
-        reviewRatingFilter, setReviewRatingFilter,
-        liveSelectedOrder,
-        toast, setToast
+        allCategoriesSource, setAllCategoriesSource,
+        toast, setToast,
+        authLoading
     } = appLogic;
-
-
 
     const [isOnline, setIsOnline] = React.useState(navigator.onLine);
 
@@ -107,11 +72,8 @@ const AppContent = () => {
         return <OfflineView onRetry={() => setIsOnline(navigator.onLine)} />;
     }
 
-
-
-    const isDarkModeValue = isDarkMode; // Guard for naming
-
-    if (appLogic.authLoading) {
+    // 1. Loading State
+    if (authLoading) {
         return (
             <div className="min-h-screen bg-[#0a0a0c] flex flex-col items-center justify-center">
                 <div className="size-20 bg-indigo-600 rounded-[2rem] flex items-center justify-center animate-pulse mb-6 shadow-2xl overflow-hidden">
@@ -122,6 +84,12 @@ const AppContent = () => {
         );
     }
 
+    // 2. Landing Page (Public)
+    if (view === 'landing-page') {
+        return <LandingView />;
+    }
+
+    // 3. Auth Required Area
     if (!authUser || !userProfile) {
         if (authMode === 'login') {
             return <LoginView
@@ -152,6 +120,7 @@ const AppContent = () => {
         }
     }
 
+    // 4. Verification & Onboarding
     if (showVerifyEmail) {
         return <VerifyEmailView email={authUser?.email || ''} onBack={() => setShowVerifyEmail(false)} onLogout={handleLogout} />;
     }
@@ -168,8 +137,9 @@ const AppContent = () => {
         );
     }
 
+    // 5. Authenticated App Layout
     return (
-        <div className={`min-h-screen bg-[#0a0a0c] text-slate-200 transition-colors duration-500`}>
+        <div className="min-h-screen bg-[#0a0a0c] text-slate-200 transition-colors duration-500">
             <Header
                 view={view}
                 userRole={userRole || 'user'}
@@ -192,7 +162,7 @@ const AppContent = () => {
                 userRole={userRole || undefined}
                 hasUnread={chats.some(c => userRole === 'artisan' ? (c.unreadCountArtisan || 0) > 0 : (c.unreadCountClient || 0) > 0)}
             />
-            <InstallPWA />
+            
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );

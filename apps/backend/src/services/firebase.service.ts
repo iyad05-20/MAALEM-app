@@ -15,7 +15,20 @@ export function initializeFirebase() {
   if (firebaseApp) return firebaseApp;
 
   try {
-    // Load service account from JSON file (best practice — never store in .env)
+    // 1. Try loading from environment variable (Best for Production/Cloud)
+    const serviceAccountStr = process.env.FIREBASE_SERVICE_ACCOUNT;
+    
+    if (serviceAccountStr) {
+      const serviceAccount = JSON.parse(serviceAccountStr);
+      firebaseApp = admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+        databaseURL: process.env.FIREBASE_DATABASE_URL,
+      });
+      console.log('✅ Firebase Admin SDK initialized (from env var)');
+      return firebaseApp;
+    }
+
+    // 2. Fallback to local file (for local development)
     const serviceAccountPath = join(__dirname, '..', '..', 'serviceAccount.json');
     const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf-8'));
 
@@ -24,32 +37,12 @@ export function initializeFirebase() {
       databaseURL: process.env.FIREBASE_DATABASE_URL,
     });
 
-    console.log('✅ Firebase Admin SDK initialized (from serviceAccount.json)');
+    console.log('✅ Firebase Admin SDK initialized (from local serviceAccount.json)');
     return firebaseApp;
   } catch (error: any) {
-    // Fallback: try FIREBASE_SERVICE_ACCOUNT env var (for Docker/CI)
-    try {
-      const serviceAccountStr = process.env.FIREBASE_SERVICE_ACCOUNT || '{}';
-      const serviceAccount = JSON.parse(serviceAccountStr);
-
-      if (!serviceAccount.project_id) {
-        console.log('⚠️  Firebase credentials not configured. Skipping initialization.');
-        console.log('   Place serviceAccount.json in apps/backend/ or set FIREBASE_SERVICE_ACCOUNT env var.');
-        return null as any;
-      }
-
-      firebaseApp = admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-        databaseURL: process.env.FIREBASE_DATABASE_URL,
-      });
-
-      console.log('✅ Firebase Admin SDK initialized (from env var)');
-      return firebaseApp;
-    } catch (envError: any) {
-      console.log('⚠️  Firebase initialization skipped:', error.message);
-      console.log('   Backend will work without Firebase until credentials are configured.');
-      return null as any;
-    }
+    console.log('⚠️  Firebase initialization skipped or failed:', error.message);
+    console.log('   Ensure FIREBASE_SERVICE_ACCOUNT env var is set or serviceAccount.json exists.');
+    return null as any;
   }
 }
 

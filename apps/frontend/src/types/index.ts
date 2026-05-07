@@ -1,7 +1,7 @@
 
 import React from 'react';
 
-export type View = 'onboarding' | 'home' | 'search' | 'chats' | 'chat-detail' | 'bookings' | 'orders' | 'order-detail' | 'create-order' | 'profile' | 'urgent' | 'generic-form' | 'artisan-detail' | 'category-detail' | 'all-categories' | 'portfolio' | 'work-detail' | 'reviews' | 'favorites-list' | 'settings' | 'verify-email' | 'update-email' | 'marketplace' | 'notifications' | 'artisan-history';
+export type View = 'landing-page' | 'onboarding' | 'home' | 'search' | 'chats' | 'chat-detail' | 'bookings' | 'orders' | 'order-detail' | 'create-order' | 'profile' | 'urgent' | 'generic-form' | 'artisan-detail' | 'category-detail' | 'all-categories' | 'portfolio' | 'work-detail' | 'reviews' | 'favorites-list' | 'settings' | 'verify-email' | 'update-email' | 'marketplace' | 'notifications' | 'artisan-history';
 
 // ─── AI Chatbot Types ────────────────────────────────────────────────────────
 export interface ChatMessage {

@@ -2,6 +2,12 @@
 <html lang="fr">
 
 <head>
+  <script>
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      window.deferredPrompt = e;
+    });
+  </script>
   <meta charset="UTF-8">
   <meta name="viewport"
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -57,14 +63,7 @@
       },
     }
   </script>
-  <script>
-    // Capture the PWA install prompt as early as possible
-    window.addEventListener('beforeinstallprompt', (e) => {
-      console.log('PWA: Event captured in root index.html!');
-      e.preventDefault();
-      window.deferredPrompt = e;
-    });
-  </script>
+
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 

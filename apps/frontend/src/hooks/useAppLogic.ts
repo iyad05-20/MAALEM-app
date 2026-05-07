@@ -1,10 +1,8 @@
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { View, Category, Artisan, PortfolioItem, Chat, Order, Notification } from '../types';
-import { CATEGORIES } from '../data/mockData';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { View, Category, Artisan, PortfolioItem, Chat, Order } from '../types';
 import { sanitizeFirestoreData, migrateUrl } from '../utils';
-import { db, auth } from '../services/firebase.config';
-import { findBestArtisans } from '../services/recommendation.service';
+import { db } from '../services/firebase.config';
 import { useLocationTracker } from './useLocationTracker';
 import { useAuthLogic } from './useAuthLogic';
 import { useOrdersLogic } from './useOrdersLogic';
@@ -21,13 +19,25 @@ import {
     setDoc,
     deleteDoc,
     getDocs,
-    limit,
-    where,
-    or
+    limit
 } from "firebase/firestore";
 
 export const useAppLogic = () => {
-    const [view, setView] = useState<View>('home');
+    // Hidden App Strategy: Default to landing-page unless ?vork, ?app OR launched as PWA
+    const [view, setView] = useState<View>(() => {
+        const params = new URLSearchParams(window.location.search);
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches 
+            || (window.navigator as any).standalone === true
+            || params.has('app')
+            || params.has('vork')
+            || params.get('mode') === 'pwa'
+            || document.referrer.includes('android-app://');
+        
+        if (isStandalone) {
+            return 'home';
+        }
+        return 'landing-page';
+    });
     const [artisans, setArtisans] = useState<Artisan[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -37,8 +47,8 @@ export const useAppLogic = () => {
         isDarkMode, setIsDarkMode, handleLogout: _handleLogout
     } = useAuthLogic();
 
-    const { orders, archivedOrders, notifications, ordersLoading } = useOrdersLogic(userProfile?.id, userRole);
-    const { chats, chatsLoading } = useChatsLogic(userProfile?.id);
+    const { orders, archivedOrders, notifications } = useOrdersLogic(userProfile?.id, userRole);
+    const { chats } = useChatsLogic(userProfile?.id);
 
     // Initialize Location Tracker
     const { location: userLocation, refreshLocation } = useLocationTracker(userProfile?.id, userRole);

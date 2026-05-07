@@ -30,6 +30,7 @@ const UpdateEmailView = React.lazy(() => import('../../views/auth/UpdateEmailVie
 const ArtisanHistoryView = React.lazy(() => import('../../views/artisan/ArtisanHistoryView').then(m => ({ default: m.ArtisanHistoryView })));
 const NotificationCenter = React.lazy(() => import('../../views/common/NotificationCenter').then(m => ({ default: m.NotificationCenter })));
 
+
 interface ViewSwitcherProps {
     view: View;
     userRole: 'user' | 'artisan';
@@ -54,8 +55,8 @@ interface ViewSwitcherProps {
     handleToggleOnline: (online: boolean) => void;
     handleDeleteOrder: (order: Order) => Promise<void> | void;
     handleCreateOrder: (order: any) => Promise<void>;
-    handleOpenArtisanProfile: (id: string) => void;
-    openChatWithArtisan: (artisan: Artisan) => void;
+    handleOpenArtisanProfile: (id: string | undefined) => void;
+    openChatWithArtisan: (artisan: Partial<Artisan>) => void;
     clearNotifications: () => void;
     markAllNotificationsAsRead: () => void;
     markNotificationAsRead: (id: string) => void;
@@ -109,6 +110,7 @@ export const ViewSwitcher: React.FC<ViewSwitcherProps> = (props) => {
 
     return (
         <React.Suspense fallback={<ViewLoader />}>
+
             {view === 'home' && (
                 userRole === 'artisan' ? (
                     <ArtisanDashboardView
