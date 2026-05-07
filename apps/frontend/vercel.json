@@ -1,3 +1,9 @@
 {
-    "devCommand": "npx vite --port $PORT"
+    "devCommand": "npx vite --port $PORT",
+    "rewrites": [
+        {
+            "source": "/(.*)",
+            "destination": "/index.html"
+        }
+    ]
 }
