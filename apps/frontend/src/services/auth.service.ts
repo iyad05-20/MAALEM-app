@@ -2,34 +2,25 @@
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signOut,
   setPersistence,
   browserLocalPersistence,
-  onAuthStateChanged,
-  sendEmailVerification,
-  updateProfile,
-  updateEmail,
-  verifyBeforeUpdateEmail,
-  reauthenticateWithCredential,
-  sendPasswordResetEmail,
-  confirmPasswordReset,
   GoogleAuthProvider,
-  signInWithPopup
+  signInWithPopup,
+  User as FirebaseUser
 } from "firebase/auth";
 import {
   doc,
   setDoc,
-  getDoc,
-  updateDoc
+  getDoc
 } from "firebase/firestore";
-import app, { db, auth } from "./firebase.config";
+import { db, auth } from "./firebase.config";
 import { sanitizeFirestoreData } from "../utils";
 
 // Ensure persistence is set
 setPersistence(auth, browserLocalPersistence).catch(console.error);
 
 const isValidUrl = (url: string) => {
-  if (!url) return true; // Empty is valid if optional
+  if (!url) return true;
   try {
     new URL(url);
     return true;
@@ -41,12 +32,16 @@ const isValidUrl = (url: string) => {
 // ─── Google OAuth ───────────────────────────────────────────────
 
 const googleProvider = new GoogleAuthProvider();
+// Force account selection to avoid "automatic" silent login issues
+googleProvider.setCustomParameters({
+  prompt: 'select_account'
+});
 
 /**
  * Sign in with Google OAuth popup.
  * onAuthStateChanged in useAuthLogic will handle profile loading/creation.
  */
-export const signInWithGoogle = async () => {
+export const signInWithGoogle = async (): Promise<FirebaseUser> => {
   try {
     const result = await signInWithPopup(auth, googleProvider);
     return result.user;
@@ -76,9 +71,14 @@ export const getFirebaseToken = async (): Promise<string | null> => {
 /**
  * ISOLATED REGISTRATION
  */
-export const registerUser = async (email, password, role, additionalData) => {
+export const registerUser = async (
+  email: string, 
+  password: string, 
+  role: 'user' | 'artisan', 
+  additionalData: any
+) => {
   const collectionName = role === "artisan" ? "artisans" : "users";
-  let user = null;
+  let user: FirebaseUser | null = null;
   let isNewAuthUser = false;
 
   // Data Validation
@@ -121,17 +121,17 @@ export const registerUser = async (email, password, role, additionalData) => {
   try {
     const profileData = {
       ...additionalData,
-      id: user.uid,
-      uid: user.uid,
+      id: user!.uid,
+      uid: user!.uid,
       email: email,
       role: role,
       createdAt: new Date().toISOString()
     };
 
-    await setDoc(doc(db, collectionName, user.uid), profileData, { merge: true });
+    await setDoc(doc(db, collectionName, user!.uid), profileData, { merge: true });
 
     // SANITIZE HERE
-    return { user, role, data: sanitizeFirestoreData(profileData) };
+    return { user, role, data: sanitizeFirestoreData(profileData), isNewAuthUser };
   } catch (dbError) {
     console.error("Firestore Error:", dbError);
     throw new Error("Erreur lors de la création du profil.");
@@ -141,7 +141,11 @@ export const registerUser = async (email, password, role, additionalData) => {
 /**
  * ISOLATED LOGIN
  */
-export const loginUser = async (email, password, role) => {
+export const loginUser = async (
+  email: string, 
+  password: string, 
+  role: 'user' | 'artisan'
+) => {
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const uid = userCredential.user.uid;
