@@ -2,6 +2,7 @@
 import React from 'react';
 import { MessageSquare, Bell, HelpCircle } from 'lucide-react';
 import { View } from '../../types';
+import { LanguageSwitcher } from '../LanguageSwitcher';
 
 interface HeaderProps {
     view: View;
@@ -57,6 +58,7 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
             </div>
             <div className="flex items-center gap-2">
+                <LanguageSwitcher />
                 <button
                     onClick={onToggleRole}
                     className="px-3 py-2 bg-white/5 rounded-xl text-[8px] font-black uppercase tracking-widest text-slate-400 border border-white/5 hover:text-white transition-colors"
