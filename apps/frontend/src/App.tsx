@@ -43,11 +43,13 @@ const AppContent = () => {
         showVerifyEmail, setShowVerifyEmail,
         handleLogout,
         toggleRole,
-        chatSource, setChatSource,
-        allCategoriesSource, setAllCategoriesSource,
         toast, setToast,
         authLoading
     } = appLogic;
+
+    // Get the functions we need
+    const appLogicFull = useAppLogic();
+    const { setChatSource, setAllCategoriesSource } = appLogicFull;
 
     const [isOnline, setIsOnline] = React.useState(navigator.onLine);
 
