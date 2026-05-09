@@ -1,7 +1,6 @@
 
 import React from 'react';
-// Added LayoutGrid to imports
-import { Zap, TrendingUp, CheckCircle, Clock, Star, ArrowRight, Wallet, Activity, Briefcase, LayoutGrid, CheckCircle2 } from 'lucide-react';
+import { Zap, TrendingUp, CheckCircle, Clock, Star, ArrowRight, Wallet, Activity, Briefcase, LayoutGrid, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Artisan, Order, View } from '../../types';
 import { SmartAvatar } from '../../components/Shared/SmartAvatar';
 
@@ -17,13 +16,19 @@ interface Props {
 export const ArtisanDashboardView: React.FC<Props> = ({ artisan, activeOrders, archivedOrders, onViewOrder, setView, onToggleOnline }) => {
     const isOnline = artisan.isExplicitlyOnline || false;
 
-    // Calculate real earnings from archived orders
-    const earnings = archivedOrders.reduce((sum, order) => {
+    // Use live DB fields (kept in sync via onSnapshot in useAuthLogic)
+    // Fallback: compute from archivedOrders if totalEarnings not yet set in DB
+    const earnings: number = (artisan as any).totalEarnings ?? archivedOrders.reduce((sum, order) => {
         if (!order.assignedPrice) return sum;
-        // Extract numbers from string like "150 dh" or "150"
-        const price = parseInt(order.assignedPrice.replace(/[^0-9]/g, ''), 10);
+        const price = parseInt(String(order.assignedPrice).replace(/[^0-9]/g, ''), 10);
         return isNaN(price) ? sum : sum + price;
     }, 0);
+
+    const totalJobs: number = (artisan as any).totalJobs ?? (artisan as any).jobsDone ?? archivedOrders.length;
+    const rating: number = artisan.rating ?? 0;
+
+    const pendingClosureOrders = activeOrders.filter(o => o.status === 'En attente de clôture');
+    const runningOrders = activeOrders.filter(o => o.status !== 'En attente de clôture');
 
     return (
         <div className="pt-6 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-40 px-6">
@@ -42,25 +47,44 @@ export const ArtisanDashboardView: React.FC<Props> = ({ artisan, activeOrders, a
                         <span className="text-[9px] font-black uppercase tracking-widest">
                             {isOnline ? 'EN LIGNE' : 'HORS LIGNE'}
                         </span>
-                        {/* Switch Track */}
                         <div className={`w-8 h-4 rounded-full relative transition-colors ${isOnline ? 'bg-emerald-500/40' : 'bg-slate-700'}`}>
                             <div className={`absolute top-0.5 size-3 bg-white rounded-full transition-all ${isOnline ? 'left-[18px]' : 'left-0.5'}`}></div>
                         </div>
                     </button>
                 </div>
 
+                {/* Stats Grid */}
                 <div className="grid grid-cols-2 gap-4">
+                    {/* Earnings - from DB totalEarnings field */}
                     <div className="bg-[#121214] border border-white/5 p-6 rounded-[2.5rem] shadow-xl relative overflow-hidden group">
                         <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-500/5 blur-2xl group-hover:bg-emerald-500/10 transition-all"></div>
                         <Wallet size={16} className="text-emerald-500 mb-2" />
                         <h3 className="text-2xl font-black text-white tracking-tighter">{earnings.toLocaleString()} dh</h3>
-                        <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Revenus Estimés</p>
+                        <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Revenus Totaux</p>
                     </div>
+
+                    {/* Jobs Done - from DB totalJobs field (live via onSnapshot) */}
                     <div className="bg-[#121214] border border-white/5 p-6 rounded-[2.5rem] shadow-xl relative overflow-hidden group">
                         <div className="absolute top-0 right-0 w-20 h-20 bg-indigo-500/5 blur-2xl group-hover:bg-indigo-500/10 transition-all"></div>
                         <Briefcase size={16} className="text-indigo-500 mb-2" />
-                        <h3 className="text-2xl font-black text-white tracking-tighter">{artisan.jobsDone}</h3>
+                        <h3 className="text-2xl font-black text-white tracking-tighter">{totalJobs}</h3>
                         <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Jobs Effectués</p>
+                    </div>
+
+                    {/* Rating - from DB rating field */}
+                    <div className="bg-[#121214] border border-white/5 p-6 rounded-[2.5rem] shadow-xl relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-20 h-20 bg-yellow-500/5 blur-2xl group-hover:bg-yellow-500/10 transition-all"></div>
+                        <Star size={16} className="text-yellow-400 mb-2" />
+                        <h3 className="text-2xl font-black text-white tracking-tighter">{rating > 0 ? rating.toFixed(1) : '—'}</h3>
+                        <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Note Moyenne</p>
+                    </div>
+
+                    {/* Active missions count */}
+                    <div className="bg-[#121214] border border-white/5 p-6 rounded-[2.5rem] shadow-xl relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-20 h-20 bg-purple-500/5 blur-2xl group-hover:bg-purple-500/10 transition-all"></div>
+                        <Activity size={16} className="text-purple-400 mb-2" />
+                        <h3 className="text-2xl font-black text-white tracking-tighter">{runningOrders.length}</h3>
+                        <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">En Cours</p>
                     </div>
                 </div>
             </div>
@@ -85,15 +109,43 @@ export const ArtisanDashboardView: React.FC<Props> = ({ artisan, activeOrders, a
                 </button>
             </div>
 
+            {/* Pending Closure — Action Required */}
+            {pendingClosureOrders.length > 0 && (
+                <div className="space-y-4 mb-10">
+                    <div className="flex items-center gap-2 px-2">
+                        <AlertCircle size={12} className="text-amber-400 animate-pulse" />
+                        <h3 className="text-[10px] font-black text-amber-400 uppercase tracking-[0.3em]">ACTION REQUISE</h3>
+                    </div>
+                    {pendingClosureOrders.map(order => (
+                        <div
+                            key={order.id}
+                            onClick={() => onViewOrder(order)}
+                            className="bg-amber-900/10 border border-amber-500/30 p-5 rounded-[2.2rem] flex items-center justify-between group cursor-pointer hover:border-amber-500/60 transition-all"
+                        >
+                            <div className="flex items-center gap-4">
+                                <div className="size-12 bg-amber-500/10 rounded-xl flex items-center justify-center text-amber-400 border border-amber-500/20">
+                                    <CheckCircle size={22} />
+                                </div>
+                                <div>
+                                    <h4 className="text-white font-black text-sm uppercase tracking-tight">{order.category}</h4>
+                                    <p className="text-[10px] text-amber-400/70 font-bold uppercase tracking-widest">Client a validé — Confirmez la clôture</p>
+                                </div>
+                            </div>
+                            <ArrowRight size={14} className="text-amber-500 group-hover:translate-x-1 transition-all" />
+                        </div>
+                    ))}
+                </div>
+            )}
+
             {/* Active Missions */}
             <div className="space-y-4 mb-10">
                 <div className="flex justify-between items-end px-2">
                     <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">MISSIONS ACTIVES</h3>
-                    <span className="text-[9px] font-black text-indigo-500 uppercase">{activeOrders.length} EN COURS</span>
+                    <span className="text-[9px] font-black text-indigo-500 uppercase">{runningOrders.length} EN COURS</span>
                 </div>
 
-                {activeOrders.length > 0 ? (
-                    activeOrders.map(order => (
+                {runningOrders.length > 0 ? (
+                    runningOrders.map(order => (
                         <div
                             key={order.id}
                             onClick={() => onViewOrder(order)}
@@ -105,7 +157,7 @@ export const ArtisanDashboardView: React.FC<Props> = ({ artisan, activeOrders, a
                                 </div>
                                 <div>
                                     <h4 className="text-white font-black text-sm uppercase tracking-tight">{order.category}</h4>
-                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{order.location}</p>
+                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{order.location || order.city || '—'}</p>
                                 </div>
                             </div>
                             <div className="flex flex-col items-end gap-1">
@@ -146,7 +198,6 @@ export const ArtisanDashboardView: React.FC<Props> = ({ artisan, activeOrders, a
                             <div className="absolute top-0 left-0 size-20 bg-emerald-500/5 blur-xl pointer-events-none"></div>
                             <div className="flex items-center gap-4 relative z-10">
                                 <div className="size-14 rounded-2xl overflow-hidden bg-slate-800 border border-white/5 shadow-lg">
-                                    {/* Assuming we might want to show client avatar here, or category icon if client info missing */}
                                     <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
                                         <CheckCircle2 size={24} />
                                     </div>
@@ -154,11 +205,11 @@ export const ArtisanDashboardView: React.FC<Props> = ({ artisan, activeOrders, a
                                 <div>
                                     <h4 className="text-white font-black text-sm uppercase tracking-tight">{order.category}</h4>
                                     <div className="flex items-center gap-2 mt-0.5">
-                                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{order.date}</span>
-                                        {(order as any).finalReview && (
+                                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{order.date || (order as any).archivedAt?.split('T')[0] || '—'}</span>
+                                        {(order as any).review?.rating && (
                                             <div className="flex items-center gap-0.5 bg-white/5 px-1.5 py-0.5 rounded-md">
                                                 <Star size={8} className="text-yellow-400 fill-current" />
-                                                <span className="text-[8px] font-bold text-white">{(order as any).finalReview.rating}</span>
+                                                <span className="text-[8px] font-bold text-white">{(order as any).review.rating}</span>
                                             </div>
                                         )}
                                     </div>
@@ -179,3 +230,4 @@ export const ArtisanDashboardView: React.FC<Props> = ({ artisan, activeOrders, a
         </div>
     );
 };
+

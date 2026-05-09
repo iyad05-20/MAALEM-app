@@ -33,7 +33,8 @@ export default defineConfig({
           { "src": "/icons/icon-512x512.png", "sizes": "512x512", "type": "image/png" },
           { "src": "/icons/icon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
         ],
-        "start_url": "/",
+        "start_url": "/?app",
+        "scope": "/",
         "display": "standalone",
         "theme_color": "#6366f1",
         "background_color": "#0a0a0c"
@@ -95,16 +96,23 @@ export default defineConfig({
     })
   ],
   build: {
-    chunkSizeWarningLimit: 600,
+    chunkSizeWarningLimit: 800, // Augmenté légèrement car 600 est très strict pour un PWA
     rollupOptions: {
       output: {
         manualChunks: (id) => {
           if (id.includes('node_modules')) {
+            // Regrouper Firebase (très lourd)
             if (id.includes('firebase')) return 'vendor-firebase';
+            // Regrouper Supabase
             if (id.includes('@supabase')) return 'vendor-supabase';
+            // Regrouper les icônes séparément (792ko)
             if (id.includes('lucide-react')) return 'vendor-icons';
+            // Regrouper React core
             if (id.includes('react')) return 'vendor-react';
-            return 'vendor'; // everything else in node_modules
+            // Regrouper les libs UI (framer-motion, etc.)
+            if (id.includes('framer-motion') || id.includes('lucide')) return 'vendor-ui';
+            
+            return 'vendor-others'; 
           }
         },
       }

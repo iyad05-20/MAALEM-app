@@ -31,6 +31,7 @@ const ArtisanHistoryView = React.lazy(() => import('../../views/artisan/ArtisanH
 const NotificationCenter = React.lazy(() => import('../../views/common/NotificationCenter').then(m => ({ default: m.NotificationCenter })));
 const HelpView = React.lazy(() => import('../../views/common/HelpView').then(m => ({ default: m.HelpView })));
 
+
 interface ViewSwitcherProps {
     view: View;
     userRole: 'user' | 'artisan';
@@ -55,8 +56,8 @@ interface ViewSwitcherProps {
     handleToggleOnline: (online: boolean) => void;
     handleDeleteOrder: (order: Order) => Promise<void> | void;
     handleCreateOrder: (order: any) => Promise<void>;
-    handleOpenArtisanProfile: (id: string) => void;
-    openChatWithArtisan: (artisan: Artisan) => void;
+    handleOpenArtisanProfile: (id: string | undefined) => void;
+    openChatWithArtisan: (artisan: Partial<Artisan>) => void;
     clearNotifications: () => void;
     markAllNotificationsAsRead: () => void;
     markNotificationAsRead: (id: string) => void;
@@ -110,11 +111,12 @@ export const ViewSwitcher: React.FC<ViewSwitcherProps> = (props) => {
 
     return (
         <React.Suspense fallback={<ViewLoader />}>
+
             {view === 'home' && (
                 userRole === 'artisan' ? (
                     <ArtisanDashboardView
                         artisan={userProfile}
-                        activeOrders={orders.filter(o => o.status === 'En cours' || o.status === 'Accepté')}
+                        activeOrders={orders.filter(o => o.status === 'En cours' || o.status === 'Accepté' || o.status === 'En attente de clôture')}
                         archivedOrders={archivedOrders.filter(o => o.artisanId === userProfile.id)}
                         onViewOrder={(o) => { setSelectedOrder(o); setView('order-detail'); }}
                         setView={setView}

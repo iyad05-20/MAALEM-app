@@ -1,22 +1,40 @@
 
 import React, { useState } from 'react';
-import { ChevronLeft, ImageIcon, MoreVertical, MessageCircle, Phone, MapPin, X, Maximize2, Clock } from 'lucide-react';
+import { ChevronLeft, ImageIcon, MoreVertical, MessageCircle, Phone, MapPin, X, Maximize2, Clock, CheckCircle2 } from 'lucide-react';
 import { Order, Artisan } from '../../types';
 import { SmartAvatar } from '../../components/Shared/SmartAvatar';
+import { ordersAPI } from '../../services/api.client';
 
 interface Props {
     order: Order;
     onBack: () => void;
     onOpenChat: (artisan: Partial<Artisan>) => void;
     onViewImage?: (url: string) => void;
+    showToast?: (msg: string, type?: 'success' | 'error' | 'info') => void;
 }
 
-export const ArtisanOrderDetailView: React.FC<Props> = ({ order, onBack, onOpenChat }) => {
+export const ArtisanOrderDetailView: React.FC<Props> = ({ order, onBack, onOpenChat, showToast }) => {
     const [fullScreenImage, setFullScreenImage] = useState<string | null>(null);
+    const [isConfirming, setIsConfirming] = useState(false);
+
+    const handleConfirmClosure = async () => {
+        setIsConfirming(true);
+        try {
+            await ordersAPI.updateStatus(order.id, 'Terminé');
+            if (showToast) showToast('Commande clôturée et archivée avec succès.', 'success');
+            setTimeout(onBack, 1500);
+        } catch (err) {
+            console.error(err);
+            if (showToast) showToast('Erreur lors de la clôture de la commande.', 'error');
+        } finally {
+            setIsConfirming(false);
+        }
+    };
 
     const handleChatWithClient = () => {
+        // Support both legacy orders (userId) and new backend orders (clientId)
         onOpenChat({
-            id: order.userId,
+            id: order.userId || order.clientId,
             name: order.userName || "Client",
             image: order.userImage || ""
         });
@@ -58,14 +76,25 @@ export const ArtisanOrderDetailView: React.FC<Props> = ({ order, onBack, onOpenC
 
                 {/* Mission Progress Indicator */}
                 {(order.status === 'En cours' || order.status === 'Accepté' || isPendingClosure) && (
-                    <div className="glass-card p-6 rounded-[2rem] bg-emerald-900/5 border border-emerald-500/20 flex items-center gap-4 shadow-xl">
-                        <div className="size-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 shrink-0 border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
-                            <Clock size={20} className="animate-pulse" />
+                    <div className="glass-card p-6 rounded-[2rem] bg-emerald-900/5 border border-emerald-500/20 flex flex-col gap-4 shadow-xl">
+                        <div className="flex items-center gap-4">
+                            <div className="size-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 shrink-0 border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+                                <Clock size={20} className="animate-pulse" />
+                            </div>
+                            <div>
+                                <h4 className="text-white font-black text-sm uppercase tracking-tight">{isPendingClosure ? 'Validation finale...' : 'Mission en cours'}</h4>
+                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{isPendingClosure ? 'Le client a validé. Veuillez confirmer pour clôturer et archiver la commande.' : 'Attendez la validation du client pour clôturer.'}</p>
+                            </div>
                         </div>
-                        <div>
-                            <h4 className="text-white font-black text-sm uppercase tracking-tight">{isPendingClosure ? 'Validation finale...' : 'Mission en cours'}</h4>
-                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{isPendingClosure ? 'Validation du paiement et archivage par le client en cours' : 'Attendez la validation du client pour clôturer.'}</p>
-                        </div>
+                        {isPendingClosure && (
+                            <button 
+                                onClick={handleConfirmClosure}
+                                disabled={isConfirming}
+                                className="w-full py-3 mt-2 bg-emerald-600 rounded-2xl flex items-center justify-center gap-3 text-white font-black text-[11px] uppercase tracking-widest active:scale-95 transition-all shadow-xl shadow-emerald-600/20 disabled:opacity-50"
+                            >
+                                {isConfirming ? 'Confirmation...' : <><CheckCircle2 size={16} /> Confirmer la Clôture</>}
+                            </button>
+                        )}
                     </div>
                 )}
 

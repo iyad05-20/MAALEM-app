@@ -32,6 +32,10 @@ pnpm-debug.log*
 *.sw?
 *.txt
 
+# Firebase Service Account (NEVER commit)
+**/serviceAccount.json
+**/serviceAccount*.json
+
 # Project specific
 .gemini/
 metadata.json

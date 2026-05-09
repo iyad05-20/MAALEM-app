@@ -5,35 +5,28 @@
  */
 
 import { ApiResponse, ApiError, ErrorCode } from '@shared/types/API';
+import { auth } from './firebase.config';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 class ApiClient {
-  private token: string | null = null;
-
-  setToken(token: string) {
-    this.token = token;
-    localStorage.setItem('auth_token', token);
-  }
-
-  getToken(): string | null {
-    if (this.token) return this.token;
-    return localStorage.getItem('auth_token');
-  }
-
-  clearToken() {
-    this.token = null;
-    localStorage.removeItem('auth_token');
-  }
-
-  private getHeaders(): Record<string, string> {
+  /**
+   * Dynamically get Firebase ID token for authenticated API calls.
+   * Token is always fresh — no need for manual storage or refresh.
+   */
+  private async getHeaders(): Promise<Record<string, string>> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
 
-    const token = this.getToken();
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+    const user = auth.currentUser;
+    if (user) {
+      try {
+        const token = await user.getIdToken();
+        headers['Authorization'] = `Bearer ${token}`;
+      } catch (e) {
+        console.warn('Failed to get Firebase token:', e);
+      }
     }
 
     return headers;
@@ -54,9 +47,10 @@ class ApiClient {
 
   async get<T = any>(endpoint: string): Promise<ApiResponse<T>> {
     try {
+      const headers = await this.getHeaders();
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'GET',
-        headers: this.getHeaders(),
+        headers,
       });
       return this.handleResponse<T>(response);
     } catch (error) {
@@ -66,9 +60,10 @@ class ApiClient {
 
   async post<T = any>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
     try {
+      const headers = await this.getHeaders();
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'POST',
-        headers: this.getHeaders(),
+        headers,
         body: JSON.stringify(data),
       });
       return this.handleResponse<T>(response);
@@ -79,9 +74,24 @@ class ApiClient {
 
   async put<T = any>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
     try {
+      const headers = await this.getHeaders();
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'PUT',
-        headers: this.getHeaders(),
+        headers,
+        body: JSON.stringify(data),
+      });
+      return this.handleResponse<T>(response);
+    } catch (error) {
+      throw this.formatError(error);
+    }
+  }
+
+  async patch<T = any>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
+    try {
+      const headers = await this.getHeaders();
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        method: 'PATCH',
+        headers,
         body: JSON.stringify(data),
       });
       return this.handleResponse<T>(response);
@@ -92,9 +102,10 @@ class ApiClient {
 
   async delete<T = any>(endpoint: string): Promise<ApiResponse<T>> {
     try {
+      const headers = await this.getHeaders();
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'DELETE',
-        headers: this.getHeaders(),
+        headers,
       });
       return this.handleResponse<T>(response);
     } catch (error) {
@@ -125,10 +136,8 @@ export const apiClient = new ApiClient();
 
 // Auth endpoints
 export const authAPI = {
-  register: (data: any) => apiClient.post('/auth/register', data),
-  login: (data: any) => apiClient.post('/auth/login', data),
+  me: () => apiClient.get('/auth/me'),
   logout: () => apiClient.post('/auth/logout'),
-  refreshToken: () => apiClient.post('/auth/refresh-token'),
 };
 
 // Order endpoints
@@ -139,9 +148,8 @@ export const ordersAPI = {
   },
   getById: (orderId: string) => apiClient.get(`/orders/${orderId}`),
   create: (data: any) => apiClient.post('/orders', data),
-  update: (orderId: string, data: any) => apiClient.put(`/orders/${orderId}`, data),
-  accept: (orderId: string) => apiClient.post(`/orders/${orderId}/accept`),
-  complete: (orderId: string) => apiClient.post(`/orders/${orderId}/complete`),
+  updateStatus: (orderId: string, status: string, extra?: Record<string, any>) =>
+    apiClient.patch(`/orders/${orderId}/status`, { status, ...extra }),
 };
 
 // Artisan endpoints

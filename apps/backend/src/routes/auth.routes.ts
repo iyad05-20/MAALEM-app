@@ -1,44 +1,47 @@
-import express, { Router, Request, Response, NextFunction } from 'express';
-import { verifyToken } from '../middleware/auth.middleware.js';
+import { Router, Response } from 'express';
+import { verifyFirebaseToken, AuthRequest } from '../middleware/auth.middleware.js';
 
 const router = Router();
 
-// All auth routes - to be implemented with actual logic
-router.post('/register', async (req: Request, res: Response, next: NextFunction) => {
+/**
+ * GET /api/auth/me
+ * Returns the authenticated user's full profile + roles.
+ * Protected by Firebase token verification.
+ */
+router.get('/me', verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
   try {
-    const { email, password, fullName, userType } = req.body;
-    // TODO: Implement registration logic
-    res.json({ success: true, message: 'Registration placeholder' });
-  } catch (error) {
-    next(error);
+    if (!req.user) {
+      return res.status(401).json({ success: false, error: 'Not authenticated' });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        uid: req.user.uid,
+        email: req.user.email,
+        isClient: req.user.isClient,
+        isArtisan: req.user.isArtisan,
+        profile: req.user.profile,
+      },
+    });
+  } catch (error: any) {
+    console.error('Error in /auth/me:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
 
-router.post('/login', async (req: Request, res: Response, next: NextFunction) => {
+/**
+ * POST /api/auth/logout
+ * Optional server-side cleanup on logout.
+ */
+router.post('/logout', verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
   try {
-    const { email, password } = req.body;
-    // TODO: Implement login logic
-    res.json({ success: true, message: 'Login placeholder' });
-  } catch (error) {
-    next(error);
-  }
-});
-
-router.post('/logout', verifyToken, async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    // TODO: Implement logout logic
-    res.json({ success: true, message: 'Logged out' });
-  } catch (error) {
-    next(error);
-  }
-});
-
-router.post('/refresh-token', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    // TODO: Implement token refresh logic
-    res.json({ success: true, message: 'Token refresh placeholder' });
-  } catch (error) {
-    next(error);
+    // Server-side cleanup if needed (e.g., clear sessions, revoke tokens)
+    console.log(`User ${req.user?.uid} logged out`);
+    res.json({ success: true, message: 'Logged out successfully' });
+  } catch (error: any) {
+    console.error('Logout error:', error);
+    res.status(500).json({ success: false, error: 'Logout failed' });
   }
 });
 

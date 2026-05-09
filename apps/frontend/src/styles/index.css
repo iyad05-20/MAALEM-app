@@ -1,3 +1,129 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+@import "tailwindcss";
+
+/* ── Landing Page Premium Styles ── */
+:root {
+  --plus-jakarta: 'Plus Jakarta Sans', sans-serif;
+  --blue-electric: #1e88e5;
+  --text-primary: #0b1d2d;
+  --glass-nav-bg: rgba(245, 249, 255, 0.88);
+}
+
+.text-blue-electric { color: var(--blue-electric); }
+.bg-blue-electric { background-color: var(--blue-electric); }
+.border-blue-electric { border-color: var(--blue-electric); }
+
+/* Scroll Reveal */
+.reveal {
+  opacity: 0;
+  transform: translateY(32px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.reveal-delay-1 { transition-delay: 0.1s; }
+.reveal-delay-2 { transition-delay: 0.2s; }
+.reveal-delay-3 { transition-delay: 0.3s; }
+.reveal-delay-4 { transition-delay: 0.4s; }
+
+/* ── Navigation & Footer Glassmorphism ── */
+.glass-nav {
+  background: var(--glass-nav-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: 0 1px 24px rgba(30, 136, 229, 0.08);
+}
+
+/* Language Dropdown */
+.lang-dropdown {
+  position: relative;
+}
+
+.lang-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: rgba(245, 249, 255, 0.97);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(30, 136, 229, 0.2);
+  border-radius: 0.75rem;
+  min-width: 140px;
+  z-index: 100;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(-8px) scale(0.97);
+  pointer-events: none;
+  transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1);
+  box-shadow: 0 8px 32px rgba(30, 136, 229, 0.12);
+}
+
+[dir='rtl'] .lang-menu {
+  right: auto;
+  left: 0;
+}
+
+.lang-menu.open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: all;
+}
+
+.lang-option {
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgba(30, 77, 140, 0.85);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.lang-option:hover, .lang-option.active {
+  background: rgba(30, 136, 229, 0.08);
+  color: var(--blue-electric);
+}
+
+/* Animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+.animate-float { animation: float 4s ease-in-out infinite; }
+.float-delay-0 { animation-delay: 0s; }
+.float-delay-1 { animation-delay: 0.8s; }
+.float-delay-2 { animation-delay: 1.6s; }
+.float-delay-3 { animation-delay: 2.4s; }
+
+@keyframes slideRightIn {
+  0% { opacity: 0; transform: translateX(-40px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+.animate-slide-right {
+  animation: slideRightIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes scaleUpFade {
+  0% { opacity: 0; transform: scale(0.9); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.animate-scale-up {
+  animation: scaleUpFade 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeInCard {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-card {
+  animation: fadeInCard 0.6s ease-out forwards;
+}
+
+/* Landing specific font */
+.font-landing {
+  font-family: var(--plus-jakarta);
+}

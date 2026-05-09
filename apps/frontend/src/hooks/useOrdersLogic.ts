@@ -23,9 +23,10 @@ export const useOrdersLogic = (userId: string | undefined, userRole: 'user' | 'a
         setLoading(true);
 
         // Active Orders Listener
+        // or(): match new orders (clientId) AND legacy orders (userId) for client
         const ordersQuery = userRole === 'artisan'
             ? query(collection(db, "orders"), or(where("artisanId", "==", userId), where("isPublic", "==", true)))
-            : query(collection(db, "orders"), where("userId", "==", userId));
+            : query(collection(db, "orders"), or(where("clientId", "==", userId), where("userId", "==", userId)));
 
         const unsubOrders = onSnapshot(ordersQuery, (snapshot) => {
             const ordersData = snapshot.docs.map(doc => ({
@@ -39,7 +40,7 @@ export const useOrdersLogic = (userId: string | undefined, userRole: 'user' | 'a
         // Archived Orders Listener
         const archivedQuery = userRole === 'artisan'
             ? query(collection(db, "archivedOrders"), where("artisanId", "==", userId))
-            : query(collection(db, "archivedOrders"), where("userId", "==", userId));
+            : query(collection(db, "archivedOrders"), or(where("clientId", "==", userId), where("userId", "==", userId)));
 
         const unsubArchived = onSnapshot(archivedQuery, (snapshot) => {
             const archivedData = snapshot.docs.map(doc => ({

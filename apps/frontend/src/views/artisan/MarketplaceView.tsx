@@ -122,10 +122,11 @@ export const MarketplaceView: React.FC<Props> = ({ artisan }) => {
         responses: arrayUnion(artisan.id)
       });
 
-      // Notify the client with a persistent notification
-      if (selectedOrder.userId) {
+      // Notify the client — support both new orders (clientId) and legacy orders (userId)
+      const clientOwnerId = selectedOrder.clientId || selectedOrder.userId;
+      if (clientOwnerId) {
         await addDoc(collection(db, "notifications"), {
-          userId: selectedOrder.userId,
+          userId: clientOwnerId,
           title: "Nouveau Devis !",
           message: `${artisan.name} a proposé ${bidPrice} dh pour votre demande de ${selectedOrder.category}.`,
           type: 'system',
