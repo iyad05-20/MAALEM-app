@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Package, Clock, CheckCircle, ChevronRight, Plus, Star, Users, MapPin, X, TrendingUp, Calendar, CreditCard, Activity, Zap, Trash2, Loader2, AlertCircle, Check, Maximize2 } from 'lucide-react';
 import { View, Order, Artisan } from '../../types';
 
@@ -14,7 +15,8 @@ interface Props {
 }
 
 export const OrdersView: React.FC<Props> = ({ setView, orders, archivedOrders = [], onDeleteOrder, onArchiveOrder, onSelectOrder, onOpenChat }) => {
-  const [activeTab, setActiveTab] = useState<'En cours' | 'Terminé'>('En cours');
+  const { t } = useTranslation();
+  const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [fullScreenImage, setFullScreenImage] = useState<string | null>(null);
@@ -23,7 +25,7 @@ export const OrdersView: React.FC<Props> = ({ setView, orders, archivedOrders = 
   // STRICT SEPARATION:
   // 'En cours' tab shows only the 'orders' collection (Active)
   // 'Terminé' tab shows only the 'archivedOrders' collection (History)
-  const filteredOrders = (activeTab === 'En cours' ? orders : archivedOrders)
+  const filteredOrders = (activeTab === 'active' ? orders : archivedOrders)
     .filter(o => !deletedIds.has(o.id));
 
   const handleExecuteDelete = async (e: React.MouseEvent, order: Order) => {
@@ -46,7 +48,11 @@ export const OrdersView: React.FC<Props> = ({ setView, orders, archivedOrders = 
   return (
     <div className="min-h-screen bg-[#0a0a0c] animate-in slide-in-from-right duration-500 pb-32">
       <header className="px-6 pt-12 pb-6 sticky top-0 bg-[#0a0a0c]/90 backdrop-blur-xl z-50 border-b border-white/5 flex items-center justify-between">
-        <h1 className="text-2xl font-black text-white tracking-tight uppercase">Mes Commandes</h1>
+        <h1
+          className="text-2xl font-black text-white tracking-tight uppercase"
+        >
+          {t('orders.my_orders')}
+        </h1>
         <div className="flex gap-2">
           <button
             className="size-11 bg-white/5 rounded-2xl flex items-center justify-center text-purple-400 border border-purple-500/20 shadow-[0_0_15px_rgba(168,85,247,0.15)] active:scale-90 transition-all"
@@ -57,16 +63,19 @@ export const OrdersView: React.FC<Props> = ({ setView, orders, archivedOrders = 
       </header>
 
       <div className="px-6 mt-6 flex gap-2">
-        {(['En cours', 'Terminé'] as const).map((tab) => (
+        {[
+          { key: 'active', label: t('orders.active_tab') },
+          { key: 'completed', label: t('orders.completed_tab') }
+        ].map((tab) => (
           <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`flex-1 py-4 rounded-[1.5rem] text-[11px] font-black uppercase tracking-widest border transition-all ${activeTab === tab
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key as 'active' | 'completed')}
+            className={`flex-1 py-4 rounded-[1.5rem] text-[11px] font-black uppercase tracking-widest border transition-all ${activeTab === tab.key
               ? 'bg-[#1a1a20] border-white/20 text-white shadow-[0_10px_30px_rgba(0,0,0,0.5)]'
               : 'bg-transparent border-transparent text-slate-600'
               }`}
           >
-            {tab}
+            {tab.label}
           </button>
         ))}
       </div>

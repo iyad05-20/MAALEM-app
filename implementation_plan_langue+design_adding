@@ -1,0 +1,100 @@
+# Plan d'Intégration Multi-Langues (i18n) pour Travail en Parallèle
+
+L'objectif de ce plan est de mettre en place le système multi-langues (`react-i18next`) de manière à ce que l'Équipier A (Langues) et l'Équipier B (Design) puissent travailler en même temps sur les mêmes fichiers sans se bloquer mutuellement et en minimisant les conflits Git.
+
+## User Review Required
+
+> [!IMPORTANT]
+> Voici la méthodologie de travail recommandée. Prenez le temps de lire la stratégie Git (Étape 4) qui est la clé pour que vos deux développeurs puissent travailler en parallèle sans casser le code de l'autre.
+
+---
+
+## Étape 1 : L'Infrastructure de base (À faire par un seul développeur)
+
+Avant de se séparer le travail, il faut poser la plomberie.
+
+1. **Installation des dépendances :**
+   ```bash
+   npm install i18next react-i18next i18next-browser-languagedetector -w apps/frontend
+   ```
+
+2. **Création de la structure des fichiers :**
+   Dans `apps/frontend/src/`, créer un dossier `i18n/` :
+   - `src/i18n/config.ts` (Configuration principale)
+   - `src/locales/fr.json` (Français - Langue par défaut)
+   - `src/locales/ar.json` (Arabe - Darija/Fusha)
+
+3. **Initialisation dans `main.tsx` :**
+   Importer le fichier de configuration `import './i18n/config';` juste avant le rendu de l'application.
+
+---
+
+## Étape 2 : Le travail de l'Équipier A (Focus Langues)
+
+Cet équipier ne regarde **jamais** les classes CSS. Son seul but est la donnée.
+
+1. **Extraction dans les JSON :**
+   Il prend une vue (ex: `HomeView`), repère tous les textes, et les ajoute dans `fr.json` et `ar.json`.
+   ```json
+   // fr.json
+   {
+     "home": {
+       "urgent_title": "BESOIN URGENT ?",
+       "urgent_subtitle": "Réponse d'experts en 2 min chrono"
+     }
+   }
+   ```
+
+2. **Remplacement dans les fichiers `.tsx` :**
+   Il importe le hook et remplace le texte en dur.
+   ```tsx
+   import { useTranslation } from 'react-i18next';
+   
+   // Dans le composant :
+   const { t } = useTranslation();
+   
+   // Dans le JSX (Il ne touche pas au className !)
+   <h3 className="text-3xl font-black text-white...">
+     {t('home.urgent_title')}
+   </h3>
+   ```
+
+---
+
+## Étape 3 : Le travail de l'Équipier B (Focus Design)
+
+Cet équipier ne se soucie **jamais** du texte à l'intérieur des balises.
+
+1. Il modifie uniquement les attributs `className="..."`.
+2. S'il doit créer un nouveau composant de zéro, il met un texte temporaire (ex: "Texte ici") et prévient l'Équipier A d'ajouter la traduction plus tard.
+
+---
+
+## Étape 4 : La Stratégie Git (Pour éviter les conflits)
+
+Puisque les deux équipiers vont techniquement modifier le fichier `HomeView.tsx` en même temps, voici comment éviter que Git ne panique lors de la fusion (merge) :
+
+**La Règle d'or du formatage (Prettier) :**
+Assurez-vous que les attributs (`className`) et le texte enfant (children) soient sur **des lignes séparées**.
+
+*Mauvais format (Génère des conflits) :*
+```tsx
+<h3 className="text-white">{t('home.title')}</h3> 
+```
+*(Si l'Équipier A change le texte et l'Équipier B change la classe, Git verra une modification de la même ligne par deux personnes = CONFLIT).*
+
+*Bon format (Zéro conflit) :*
+```tsx
+<h3 
+  className="text-white text-lg font-bold"
+>
+  {t('home.title')}
+</h3>
+```
+*(L'Équipier B modifie la ligne 2. L'Équipier A modifie la ligne 4. Git fusionnera les deux automatiquement et sans erreur !)*
+
+---
+
+## Prochaine Action
+
+Si cette organisation vous convient, je peux commencer immédiatement à exécuter l'**Étape 1 (L'Infrastructure de base)**. Dis-moi si on y va !

@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Mail, Lock, Eye, EyeOff, Loader2, ArrowRight, Diamond, AlertCircle, User, Briefcase } from 'lucide-react';
 import { loginUser, signInWithGoogle } from '../../services/auth.service';
 
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export const LoginView: React.FC<Props> = ({ onLoginSuccess, onSwitchToSignup }) => {
+    const { t } = useTranslation();
     const [role, setRole] = useState<'user' | 'artisan'>('user');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -24,7 +26,7 @@ export const LoginView: React.FC<Props> = ({ onLoginSuccess, onSwitchToSignup })
             await signInWithGoogle();
             // onAuthStateChanged in useAuthLogic handles the rest
         } catch (err: any) {
-            setError(err.message || "Erreur de connexion Google.");
+            setError(err.message || t('auth.error_google_login'));
         } finally {
             setGoogleLoading(false);
         }
@@ -33,7 +35,7 @@ export const LoginView: React.FC<Props> = ({ onLoginSuccess, onSwitchToSignup })
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!email || !password) {
-            setError("Veuillez remplir tous les champs.");
+            setError(t('auth.error_fill_all'));
             return;
         }
 
@@ -44,7 +46,7 @@ export const LoginView: React.FC<Props> = ({ onLoginSuccess, onSwitchToSignup })
             const result = await loginUser(email, password, role);
             onLoginSuccess(result.data, role);
         } catch (err: any) {
-            setError(err.message || "Erreur de connexion.");
+            setError(err.message || t('auth.error_login'));
         } finally {
             setIsLoading(false);
         }
@@ -58,17 +60,33 @@ export const LoginView: React.FC<Props> = ({ onLoginSuccess, onSwitchToSignup })
                 <div className="size-16 bg-gradient-to-br from-[#a855f7] to-[#ec4899] rounded-[1.5rem] flex items-center justify-center mb-4 shadow-2xl overflow-hidden">
                     <img src="/icons/icon-512x512.png" alt="Vork Logo" className="w-10 h-10 object-contain" />
                 </div>
-                <h1 className="text-4xl font-black text-white tracking-tighter mb-1 uppercase">VORK</h1>
-                <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em]">Connexion</p>
+                <h1
+                  className="text-4xl font-black text-white tracking-tighter mb-1 uppercase"
+                >
+                  {t('common.vork')}
+                </h1>
+                <p
+                  className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em]"
+                >
+                  {t('auth.login_title')}
+                </p>
             </div>
 
             <div className="w-full max-w-sm glass-card bg-[#121214]/60 rounded-[2.5rem] p-8 border border-white/10 shadow-2xl relative z-20">
                 <div className="flex gap-2 mb-6">
-                    <button onClick={() => setRole('user')} className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 border transition-all ${role === 'user' ? 'bg-purple-600 border-purple-500 text-white shadow-lg' : 'bg-white/5 border-white/5 text-slate-600'}`}>
-                        <User size={12} /> Client
+                    <button
+                      onClick={() => setRole('user')}
+                      className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 border transition-all ${role === 'user' ? 'bg-purple-600 border-purple-500 text-white shadow-lg' : 'bg-white/5 border-white/5 text-slate-600'}`}
+                    >
+                      <User size={12} />
+                      {t('auth.client')}
                     </button>
-                    <button onClick={() => setRole('artisan')} className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 border transition-all ${role === 'artisan' ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg' : 'bg-white/5 border-white/5 text-slate-600'}`}>
-                        <Briefcase size={12} /> Artisan
+                    <button
+                      onClick={() => setRole('artisan')}
+                      className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 border transition-all ${role === 'artisan' ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg' : 'bg-white/5 border-white/5 text-slate-600'}`}
+                    >
+                      <Briefcase size={12} />
+                      {t('auth.artisan')}
                     </button>
                 </div>
 
@@ -88,7 +106,7 @@ export const LoginView: React.FC<Props> = ({ onLoginSuccess, onSwitchToSignup })
                                 <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
                                 <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
                             </svg>
-                            Continuer avec Google
+                            {t('auth.google_login')}
                         </>
                     )}
                 </button>
@@ -96,25 +114,41 @@ export const LoginView: React.FC<Props> = ({ onLoginSuccess, onSwitchToSignup })
                 {/* Separator */}
                 <div className="flex items-center gap-3 mb-5">
                     <div className="flex-1 h-px bg-white/10" />
-                    <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">ou</span>
+                    <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">{t('auth.or')}</span>
                     <div className="flex-1 h-px bg-white/10" />
                 </div>
 
                 <form onSubmit={handleLogin} className="space-y-4">
                     <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Email</label>
+                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('auth.email_label')}</label>
                         <div className="relative">
                             <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={16} />
-                            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@vork.sn" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white text-xs focus:outline-none focus:border-purple-500/50 transition-all placeholder:text-slate-700" />
+                            <input
+                              type="email"
+                              value={email}
+                              onChange={(e) => setEmail(e.target.value)}
+                              placeholder={t('auth.placeholder_email')}
+                              className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white text-xs focus:outline-none focus:border-purple-500/50 transition-all placeholder:text-slate-700"
+                            />
                         </div>
                     </div>
 
                     <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Mot de passe</label>
+                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('auth.password_label')}</label>
                         <div className="relative">
                             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={16} />
-                            <input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-12 text-white text-xs focus:outline-none focus:border-purple-500/50 transition-all placeholder:text-slate-700" />
-                            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 hover:text-white transition-colors">
+                            <input
+                              type={showPassword ? 'text' : 'password'}
+                              value={password}
+                              onChange={(e) => setPassword(e.target.value)}
+                              placeholder={t('auth.placeholder_password')}
+                              className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-12 text-white text-xs focus:outline-none focus:border-purple-500/50 transition-all placeholder:text-slate-700"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowPassword(!showPassword)}
+                              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 hover:text-white transition-colors"
+                            >
                                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                             </button>
                         </div>
@@ -127,13 +161,20 @@ export const LoginView: React.FC<Props> = ({ onLoginSuccess, onSwitchToSignup })
                         </div>
                     )}
 
-                    <button type="submit" disabled={isLoading} className="w-full bg-gradient-to-r from-[#a855f7] to-[#ec4899] py-5 rounded-2xl text-white font-black text-sm uppercase tracking-[0.2em] shadow-xl active:scale-[0.98] transition-all flex items-center justify-center gap-3 mt-4 group">
-                        {isLoading ? <Loader2 className="size-4 animate-spin" /> : <>Se connecter <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" /></>}
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="w-full bg-gradient-to-r from-[#a855f7] to-[#ec4899] py-5 rounded-2xl text-white font-black text-sm uppercase tracking-[0.2em] shadow-xl active:scale-[0.98] transition-all flex items-center justify-center gap-3 mt-4 group"
+                    >
+                        {isLoading ? <Loader2 className="size-4 animate-spin" /> : <>{t('auth.login_button')} <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" /></>}
                     </button>
                 </form>
 
-                <button onClick={onSwitchToSignup} className="w-full mt-6 py-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-colors">
-                    Pas de compte ? S'inscrire
+                <button
+                  onClick={onSwitchToSignup}
+                  className="w-full mt-6 py-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-colors"
+                >
+                  {t('auth.no_account')}
                 </button>
             </div>
         </div>

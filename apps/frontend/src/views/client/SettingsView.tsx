@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { ChevronLeft, Bell, Lock, Globe, Moon, Shield, Info, ChevronRight, CreditCard, Trash2 } from 'lucide-react';
 
 interface Props {
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export const SettingsView: React.FC<Props> = ({ onBack, isDarkMode, setIsDarkMode }) => {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen bg-[#0a0a0c] animate-in slide-in-from-right duration-500 pb-32 overflow-y-auto no-scrollbar">
       <header className="px-6 pt-12 pb-6 sticky top-0 bg-[#0a0a0c]/90 backdrop-blur-xl z-50 border-b border-white/5 flex items-center gap-4">
@@ -19,57 +21,117 @@ export const SettingsView: React.FC<Props> = ({ onBack, isDarkMode, setIsDarkMod
           <ChevronLeft className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-xl font-black text-white tracking-tight uppercase">Paramètres</h1>
-          <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest">Configuration App</p>
+          <h1
+            className="text-xl font-black text-white tracking-tight uppercase"
+          >
+            {t('settings.title')}
+          </h1>
+          <p
+            className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest"
+          >
+            {t('settings.subtitle')}
+          </p>
         </div>
       </header>
 
       <div className="px-6 mt-8 space-y-10">
         {/* Section: Compte */}
         <section className="space-y-4">
-          <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] px-2">Compte & Sécurité</h3>
+          <h3
+            className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] px-2"
+          >
+            {t('settings.account_security')}
+          </h3>
           <div className="space-y-2">
-            <SettingsItem icon={<Lock size={18} />} label="Changer le mot de passe" />
-            <SettingsItem icon={<CreditCard size={18} />} label="Méthodes de Paiement" />
-            <SettingsItem icon={<Shield size={18} />} label="Confidentialité des données" />
+            <SettingsItem
+              icon={<Lock size={18} />}
+              label={t('settings.change_password')}
+            />
+            <SettingsItem
+              icon={<CreditCard size={18} />}
+              label={t('settings.payment_methods')}
+            />
+            <SettingsItem
+              icon={<Shield size={18} />}
+              label={t('settings.data_privacy')}
+            />
           </div>
         </section>
 
         {/* Section: Notifications */}
         <section className="space-y-4">
-          <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] px-2">Préférences</h3>
+          <h3
+            className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] px-2"
+          >
+            {t('settings.preferences')}
+          </h3>
           <div className="space-y-2">
-            <SettingsItem icon={<Bell size={18} />} label="Notifications Push" toggle active />
+            <SettingsItem
+              icon={<Bell size={18} />}
+              label={t('settings.push_notifications')}
+              toggle
+              active
+            />
             <SettingsItem
               icon={<Moon size={18} />}
-              label="Mode Sombre"
+              label={t('settings.dark_mode')}
               toggle
               active={isDarkMode}
               onToggle={() => setIsDarkMode(!isDarkMode)}
             />
-            <SettingsItem icon={<Globe size={18} />} label="Langue" value="Français" />
+            <SettingsItem
+              icon={<Globe size={18} />}
+              label={t('settings.language')}
+              value={t('settings.language_value')}
+            />
           </div>
         </section>
 
         {/* Section: Support */}
         <section className="space-y-4">
-          <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] px-2">Support & Info</h3>
+          <h3
+            className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] px-2"
+          >
+            {t('settings.support_info')}
+          </h3>
           <div className="space-y-2">
-            <SettingsItem icon={<Info size={18} />} label="Centre d'aide" />
-            <SettingsItem icon={<Shield size={18} />} label="Conditions d'utilisation" />
-            <SettingsItem icon={<Info size={18} />} label="À propos de Vork" value="v2.1.0" />
+            <SettingsItem
+              icon={<Info size={18} />}
+              label={t('settings.help_center')}
+            />
+            <SettingsItem
+              icon={<Shield size={18} />}
+              label={t('settings.terms_of_service')}
+            />
+            <SettingsItem
+              icon={<Info size={18} />}
+              label={t('settings.about_vork')}
+              value="v2.1.0"
+            />
           </div>
         </section>
 
         {/* Section: Danger Zone */}
         <section className="space-y-4 pt-4">
-          <button className="w-full flex items-center gap-4 bg-red-500/5 border border-red-500/10 rounded-3xl p-5 hover:bg-red-500/10 transition-all group">
-            <div className="size-10 bg-red-500/10 rounded-2xl flex items-center justify-center text-red-500">
+          <button
+            className="w-full flex items-center gap-4 bg-red-500/5 border border-red-500/10 rounded-3xl p-5 hover:bg-red-500/10 transition-all group"
+          >
+            <div
+              className="size-10 bg-red-500/10 rounded-2xl flex items-center justify-center text-red-500"
+            >
               <Trash2 size={18} />
             </div>
             <div className="flex-1 text-left">
-              <p className="text-xs font-black text-red-500 uppercase tracking-tight">Supprimer le compte</p>
-              <p className="text-[8px] text-red-500/40 font-bold uppercase tracking-widest mt-0.5">Cette action est irréversible</p>
+              <p
+                className="text-xs font-black text-red-500 uppercase tracking-tight"
+              >
+                {t('settings.delete_account')}
+              </p>
+              <p
+                className="text-[8px] text-red-500/40 font-bold uppercase tracking-widest mt-0.5"
+              >
+                {t('settings.delete_account_warning')}
+              </p>
             </div>
           </button>
         </section>

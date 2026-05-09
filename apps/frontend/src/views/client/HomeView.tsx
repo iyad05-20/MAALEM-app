@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Zap, ChevronRight, Star, ShieldCheck } from 'lucide-react';
 import { Category, Artisan, View, Coordinates } from '../../types';
 import { getFormattedDistance } from '../../services/location.service';
@@ -20,18 +21,33 @@ interface Props {
   loading?: boolean;
 }
 
-const SectionHeader = React.memo(({ title, onSeeAll }: { title: string, onSeeAll?: () => void }) => (
-  <div className="flex justify-between items-end mb-4 px-6">
-    <h2 className="text-xl font-bold text-white tracking-tight">{title}</h2>
-    {onSeeAll && (
-      <button onClick={onSeeAll} className="text-[#a855f7] text-sm font-semibold flex items-center gap-1 hover:text-[#ec4899] transition-colors">
-        Voir tout <ChevronRight className="w-4 h-4" />
-      </button>
-    )}
-  </div>
-));
+const SectionHeader = React.memo(({ title, onSeeAll }: { title: string, onSeeAll?: () => void }) => {
+  const { t } = useTranslation();
+  return (
+    <div
+      className="flex justify-between items-end mb-4 px-6"
+    >
+      <h2
+        className="text-xl font-bold text-white tracking-tight"
+      >
+        {title}
+      </h2>
+      {onSeeAll && (
+        <button
+          onClick={onSeeAll}
+          className="text-[#a855f7] text-sm font-semibold flex items-center gap-1 hover:text-[#ec4899] transition-colors"
+        >
+          {t('home.see_all')}
+          {' '}
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      )}
+    </div>
+  );
+});
 
 const ArtisanCard: React.FC<{ art: Artisan, userLocation: Coordinates | null, onSelect: () => void, onReserve: (a: Artisan) => void }> = React.memo(({ art, userLocation, onSelect, onReserve }) => {
+  const { t } = useTranslation();
   const displayDistance = getFormattedDistance(userLocation, art.locationCoords) || art.distance;
   return (
     <div
@@ -56,7 +72,7 @@ const ArtisanCard: React.FC<{ art: Artisan, userLocation: Coordinates | null, on
             </div>
             <div className="pt-1">
               <h3 className="text-white text-lg font-black leading-tight tracking-tight mb-1">{art.name}</h3>
-              <p className="text-[#6366f1] text-[10px] font-black uppercase tracking-[0.1em]">{art.category} Expert</p>
+              <p className="text-[#6366f1] text-[10px] font-black uppercase tracking-[0.1em]">{art.category} {t('home.expert_badge')}</p>
               <div className="flex items-center gap-1 mt-2">
                 <Star className="w-3 h-3 text-yellow-400 fill-current" />
                 <span className="text-yellow-400 text-xs font-black">{art.rating}</span>
@@ -69,20 +85,20 @@ const ArtisanCard: React.FC<{ art: Artisan, userLocation: Coordinates | null, on
         </div>
         <div className="flex items-center gap-2 px-1">
           <ShieldCheck className="w-4 h-4 text-[#34d399]" />
-          <span className="text-[#34d399] text-[10px] font-bold uppercase tracking-widest">VORK Verified Expert</span>
+          <span className="text-[#34d399] text-[10px] font-bold uppercase tracking-widest">{t('home.vork_verified')}</span>
         </div>
         <div className="flex gap-3 pt-2">
           <button
             onClick={(e) => { e.stopPropagation(); onSelect(); }}
             className="flex-1 bg-white/5 py-4 rounded-2xl font-black text-[11px] text-white uppercase tracking-widest hover:bg-white/10 transition-colors border border-white/5"
           >
-            Profil
+            {t('home.profile_button')}
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); onReserve(art); }}
             className="flex-1 bg-gradient-to-br from-[#a855f7] to-[#ec4899] py-4 rounded-2xl font-black text-[11px] text-white uppercase tracking-widest shadow-xl shadow-purple-500/20 active:scale-95 transition-all"
           >
-            Réserver
+            {t('home.reserve_button')}
           </button>
         </div>
       </div>
@@ -91,15 +107,20 @@ const ArtisanCard: React.FC<{ art: Artisan, userLocation: Coordinates | null, on
 });
 
 export const HomeView: React.FC<Props> = ({ userRole, setView, artisans, userLocation, setSelectedArtisan, openCategory, onReserve, onOpenAllCategories, loading }) => {
+  const { t } = useTranslation();
   if (loading) return <HomeSkeleton />;
 
   // Strict Role Check to hide Urgent Banner for Artisans
   const showUrgentBanner = userRole !== 'artisan';
 
   return (
-    <div className="pt-6 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-40">
+    <div
+      className="pt-6 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-40"
+    >
       {showUrgentBanner && (
-        <div className="px-6 mb-10">
+        <div
+          className="px-6 mb-10"
+        >
           <button
             onClick={() => setView('urgent')}
             className="relative w-full glass-card p-8 rounded-[2.5rem] border border-red-500/20 flex flex-col items-start gap-4 active:scale-[0.98] transition-all overflow-hidden"
@@ -109,15 +130,25 @@ export const HomeView: React.FC<Props> = ({ userRole, setView, artisans, userLoc
               <Zap className="w-10 h-10 text-white animate-pulse" />
             </div>
             <div className="text-left relative z-10">
-              <h3 className="text-3xl font-black text-white tracking-tighter uppercase leading-none mb-1">BESOIN URGENT ?</h3>
-              <p className="text-red-200/60 font-medium">Réponse d'experts en 2 min chrono</p>
+              <h3
+                className="text-3xl font-black text-white tracking-tighter uppercase leading-none mb-1"
+              >
+                {t('home.urgent_title')}
+              </h3>
+              <p
+                className="text-red-200/60 font-medium"
+              >
+                {t('home.urgent_subtitle')}
+              </p>
             </div>
           </button>
         </div>
       )}
 
-      <div className="mb-10">
-        <SectionHeader title="Catégories" onSeeAll={onOpenAllCategories} />
+      <div
+        className="mb-10"
+      >
+        <SectionHeader title={t('home.categories_section')} onSeeAll={onOpenAllCategories} />
         <div className="flex overflow-x-auto gap-4 px-6 hide-scrollbar">
           {CATEGORIES.map(cat => (
             <CategoryCard key={cat.id} cat={cat} openCategory={openCategory} />
@@ -125,8 +156,10 @@ export const HomeView: React.FC<Props> = ({ userRole, setView, artisans, userLoc
         </div>
       </div>
 
-      <div className="mb-10">
-        <SectionHeader title="Top Artisans Pro" onSeeAll={() => setView('search')} />
+      <div
+        className="mb-10"
+      >
+        <SectionHeader title={t('home.top_artisans_section')} onSeeAll={() => setView('search')} />
         <div className="grid grid-cols-1 gap-6 px-6">
           {artisans.slice(0, 5).map(art => (
             <ArtisanCard key={art.id} art={art} userLocation={userLocation} onSelect={() => { setSelectedArtisan(art); setView('artisan-detail'); }} onReserve={onReserve} />
