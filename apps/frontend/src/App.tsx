@@ -31,7 +31,6 @@ export const App = () => {
 
 const AppContent = () => {
     const appLogic = useAppLogic();
-    
     const {
         view, setView,
         userRole, setUserRole,
@@ -43,13 +42,11 @@ const AppContent = () => {
         showVerifyEmail, setShowVerifyEmail,
         handleLogout,
         toggleRole,
+        setChatSource,
+        setAllCategoriesSource,
         toast, setToast,
         authLoading
     } = appLogic;
-
-    // Get the functions we need
-    const appLogicFull = useAppLogic();
-    const { setChatSource, setAllCategoriesSource } = appLogicFull;
 
     const [isOnline, setIsOnline] = React.useState(navigator.onLine);
 
