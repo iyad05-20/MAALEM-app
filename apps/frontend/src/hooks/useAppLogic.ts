@@ -1,5 +1,6 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { View, Category, Artisan, PortfolioItem, Chat, Order } from '../types';
 import { sanitizeFirestoreData, migrateUrl } from '../utils';
 import { db } from '../services/firebase.config';
@@ -23,21 +24,39 @@ import {
 } from "firebase/firestore";
 
 export const useAppLogic = () => {
+    const navigate = useNavigate();
+    const location = useLocation();
+
     // Hidden App Strategy: Default to landing-page unless ?vork, ?app OR launched as PWA
-    const [view, setView] = useState<View>(() => {
-        const params = new URLSearchParams(window.location.search);
-        const isStandalone = window.matchMedia('(display-mode: standalone)').matches 
-            || (window.navigator as any).standalone === true
-            || params.has('app')
-            || params.has('vork')
-            || params.get('mode') === 'pwa'
-            || document.referrer.includes('android-app://');
-        
-        if (isStandalone) {
-            return 'home';
+    const view = useMemo<View>(() => {
+        const path = location.pathname;
+        if (path === '/' || path === '/landing') {
+            const params = new URLSearchParams(location.search);
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches 
+                || (window.navigator as any).standalone === true
+                || params.has('app')
+                || params.has('vork')
+                || params.get('mode') === 'pwa'
+                || document.referrer.includes('android-app://');
+            
+            if (isStandalone) {
+                return 'home';
+            }
+            return 'landing-page';
+        }
+        if (path.startsWith('/app/')) {
+            return path.replace('/app/', '') as View;
         }
         return 'landing-page';
-    });
+    }, [location.pathname, location.search]);
+
+    const setView = useCallback((newView: View) => {
+        if (newView === 'landing-page') {
+            navigate('/');
+        } else {
+            navigate(`/app/${newView}`);
+        }
+    }, [navigate]);
     const [artisans, setArtisans] = useState<Artisan[]>([]);
     const [loading, setLoading] = useState(true);
 

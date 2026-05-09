@@ -34,44 +34,21 @@ export const useAuthLogic = () => {
             }
 
             if (!docSnap.exists()) {
-                // First login (Google OAuth) — auto-create profile
-                // Retrieve the role they selected before clicking the Google button
-                const savedRole = localStorage.getItem('vork_pending_google_role') as 'user' | 'artisan' || 'user';
-                role = savedRole;
-                docRef = doc(db, role === 'artisan' ? 'artisans' : 'users', uid);
-
-                const newProfile: any = {
+                // First login (Google OAuth) — auto-create client profile
+                const newProfile = {
                     id: uid,
                     uid: uid,
                     name: user.displayName || user.email?.split('@')[0] || 'Utilisateur',
                     email: user.email || '',
                     avatar: user.photoURL || '',
-                    role: role,
+                    role: 'user',
                     profileComplete: false,
                     phone: null,
                     favorites: [],
                     createdAt: new Date().toISOString(),
                 };
-
-                // Add default artisan fields if necessary
-                if (role === 'artisan') {
-                    Object.assign(newProfile, {
-                        category: 'Plomberie',
-                        available: true,
-                        rating: 5,
-                        experience: 0,
-                        jobsDone: 0,
-                        about: "Expert Vork.",
-                        services: ['Plomberie'],
-                        portfolio: [],
-                        reviews: [],
-                        location: ''
-                    });
-                }
-
                 await setDoc(docRef, newProfile);
-                localStorage.removeItem('vork_pending_google_role');
-                console.log(`✅ Auto-created ${role} profile for ${user.email} (Google login)`);
+                console.log(`✅ Auto-created profile for ${user.email} (first Google login)`);
             }
 
             // Return the onSnapshot unsubscribe function to keep profile in sync
@@ -103,12 +80,11 @@ export const useAuthLogic = () => {
 
             setAuthUser(user);
             if (user) {
-                // Skip email verification check for Google OAuth users (always verified)
+                // Skip email verification check for Google OAuth users
+                // (Google accounts are always verified)
                 const isGoogleUser = user.providerData.some(p => p.providerId === 'google.com');
                 if (!isGoogleUser && !user.emailVerified) {
                     setShowVerifyEmail(true);
-                } else {
-                    setShowVerifyEmail(false);
                 }
                 profileUnsubscribe = await loadUserProfileAndSubscribe(user);
             } else {
