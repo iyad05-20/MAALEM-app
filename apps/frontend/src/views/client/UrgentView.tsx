@@ -1,6 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Zap, ShieldAlert, Clock, CheckCircle2, Search, Send, Sparkles, AlertTriangle, Camera, Image as ImageIcon, Trash2, Loader2, MapPin, Edit2, Mic, StopCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Order, Coordinates } from '../../types';
 import { uploadToSupabase, base64ToBlob } from '../../services/supabase.config';
 import { CATEGORIES } from '../../data/mockData';
@@ -16,6 +17,7 @@ interface Props {
 type Step = 'input' | 'analyzing' | 'proposal' | 'matching';
 
 export const UrgentView: React.FC<Props> = ({ onClose, onAddOrder, userLocation }) => {
+  const { t } = useTranslation();
   const [step, setStep] = useState<Step>('input');
   const [description, setDescription] = useState('');
   const [images, setImages] = useState<string[]>([]);
@@ -206,14 +208,14 @@ export const UrgentView: React.FC<Props> = ({ onClose, onAddOrder, userLocation 
             <Zap className="size-5 text-white animate-pulse" />
           </div>
           <div>
-            <h1 className="text-xl font-black text-white tracking-tight uppercase leading-none">URGENCE VORK</h1>
+            <h1 className="text-xl font-black text-white tracking-tight uppercase leading-none">{t('urgent.title')}</h1>
             <div className="flex items-center gap-1.5 mt-1">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
               </span>
               <p className="text-[10px] text-red-400 font-bold uppercase tracking-widest">
-                {step === 'matching' ? 'Recherche active...' : 'Mode Assistance'}
+                {step === 'matching' ? t('urgent.searching_active') : t('urgent.assistance_mode')}
               </p>
             </div>
           </div>
@@ -230,7 +232,7 @@ export const UrgentView: React.FC<Props> = ({ onClose, onAddOrder, userLocation 
       <div className="bg-orange-500/10 border-y border-orange-500/20 px-6 py-2 flex items-center gap-3">
         <ShieldAlert size={16} className="text-orange-500 shrink-0" />
         <p className="text-[10px] text-orange-200 font-medium leading-tight">
-          Conseil sécurité : En cas de danger (feu, gaz), évacuez immédiatement avant d'utiliser l'app.
+          {t('urgent.safety_banner')}
         </p>
       </div>
 
@@ -246,19 +248,19 @@ export const UrgentView: React.FC<Props> = ({ onClose, onAddOrder, userLocation 
                 <MapPin size={16} className={locationStatus === 'locating' ? 'animate-bounce' : ''} />
               </div>
               <div>
-                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Localisation</p>
+                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">{t('urgent.location')}</p>
                 <p className={`text-xs font-bold ${userLocation ? 'text-white' : 'text-slate-400'}`}>
-                  {userLocation ? 'GPS Verrouillé: 5m' : 'Recherche GPS...'}
+                  {userLocation ? t('urgent.gps_locked', { distance: '5m' }) : t('urgent.searching_gps')}
                 </p>
               </div>
             </div>
 
             <div className="relative group">
-              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 mb-2 block">Que se passe-t-il ?</label>
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 mb-2 block">{t('urgent.what_happened')}</label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Ex: Une canalisation a éclaté dans la cuisine..."
+                placeholder={t('urgent.description_placeholder')}
                 className="w-full h-32 bg-white/5 border border-white/10 rounded-[2rem] p-6 text-lg text-white placeholder:text-slate-600 focus:outline-none focus:border-red-500/50 transition-all resize-none shadow-inner"
               />
               <div className="absolute bottom-4 right-4 flex gap-2">
@@ -271,7 +273,7 @@ export const UrgentView: React.FC<Props> = ({ onClose, onAddOrder, userLocation 
 
             <div className="space-y-3">
               <div className="flex justify-between items-center px-2">
-                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Preuves (IA)</h3>
+                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">{t('urgent.evidence_ai')}</h3>
                 <span className="text-[9px] text-red-500/50 font-bold uppercase">{images.length}/4</span>
               </div>
 
@@ -281,7 +283,7 @@ export const UrgentView: React.FC<Props> = ({ onClose, onAddOrder, userLocation 
                   className="size-24 shrink-0 rounded-[1.8rem] bg-red-600/10 border-2 border-dashed border-red-600/30 flex flex-col items-center justify-center gap-2 group hover:bg-red-600 hover:border-red-600 transition-all active:scale-95"
                 >
                   <Camera size={24} className="text-red-500 group-hover:text-white" />
-                  <span className="text-[8px] font-black text-red-500 group-hover:text-white uppercase tracking-widest">Photo</span>
+                  <span className="text-[8px] font-black text-red-500 group-hover:text-white uppercase tracking-widest">{t('urgent.photo')}</span>
                 </button>
 
                 <button
@@ -289,12 +291,12 @@ export const UrgentView: React.FC<Props> = ({ onClose, onAddOrder, userLocation 
                   className="size-24 shrink-0 rounded-[1.8rem] bg-white/5 border-2 border-dashed border-white/10 flex flex-col items-center justify-center gap-2 group hover:border-purple-500/30 transition-all active:scale-95"
                 >
                   <ImageIcon size={20} className="text-slate-500 group-hover:text-purple-500" />
-                  <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Galerie</span>
+                  <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">{t('urgent.gallery')}</span>
                 </button>
 
                 {images.map((img, idx) => (
                   <div key={idx} className="relative size-24 shrink-0 rounded-[1.8rem] overflow-hidden border border-white/10 group bg-[#121214]">
-                    <img src={img} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" alt="Urgency preview" />
+                    <img src={img} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" alt={t('urgent.urgency_preview')} />
                     <button
                       onClick={() => removeImage(idx)}
                       className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -315,7 +317,7 @@ export const UrgentView: React.FC<Props> = ({ onClose, onAddOrder, userLocation 
                 disabled={(!description.trim() && images.length === 0)}
                 className="w-full py-6 rounded-[2.5rem] bg-gradient-to-r from-red-600 to-orange-600 text-white font-black text-sm uppercase tracking-[0.2em] shadow-[0_10px_40px_rgba(220,38,38,0.4)] disabled:opacity-50 disabled:shadow-none transition-all active:scale-[0.98] flex items-center justify-center gap-3 relative overflow-hidden group"
               >
-                <span className="relative z-10 flex items-center gap-2">Lancer l'alerte <Zap size={18} className="fill-current" /></span>
+                <span className="relative z-10 flex items-center gap-2">{t('urgent.launch_alert')} <Zap size={18} className="fill-current" /></span>
                 <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
               </button>
             </div>
@@ -333,8 +335,8 @@ export const UrgentView: React.FC<Props> = ({ onClose, onAddOrder, userLocation 
               </div>
             </div>
             <div className="text-center space-y-2">
-              <h3 className="text-2xl font-black text-white uppercase tracking-tight">Analyse IA en cours...</h3>
-              <p className="text-slate-500 text-sm animate-pulse font-medium">Diagnostic des images et de la description</p>
+              <h3 className="text-2xl font-black text-white uppercase tracking-tight">{t('urgent.analyzing')}</h3>
+              <p className="text-slate-500 text-sm animate-pulse font-medium">{t('urgent.analyzing_subtext')}</p>
             </div>
           </div>
         )}
@@ -350,13 +352,13 @@ export const UrgentView: React.FC<Props> = ({ onClose, onAddOrder, userLocation 
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-2">
                     <Sparkles size={16} className="text-purple-400" />
-                    <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest">Diagnostic IA</span>
+                    <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest">{t('urgent.diagnostic')}</span>
                   </div>
                   <button
                     onClick={() => setIsEditing(!isEditing)}
                     className="text-[10px] font-black text-slate-500 hover:text-white uppercase tracking-widest flex items-center gap-1 transition-colors"
                   >
-                    <Edit2 size={12} /> {isEditing ? 'Fermer' : 'Modifier'}
+                    <Edit2 size={12} /> {isEditing ? t('common.close') : t('common.edit')}
                   </button>
                 </div>
 
@@ -368,7 +370,7 @@ export const UrgentView: React.FC<Props> = ({ onClose, onAddOrder, userLocation 
                       <AlertTriangle size={24} />
                     </div>
                     <div className="flex-1">
-                      <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Priorité</p>
+                      <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">{t('urgent.priority')}</p>
                       {isEditing ? (
                         <select
                           value={editedPriority}
@@ -389,7 +391,7 @@ export const UrgentView: React.FC<Props> = ({ onClose, onAddOrder, userLocation 
                       <Zap size={24} />
                     </div>
                     <div className="flex-1">
-                      <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Expert Requis</p>
+                      <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">{t('urgent.expert_required')}</p>
                       {isEditing ? (
                         <select
                           value={editedCategory}
@@ -422,15 +424,15 @@ export const UrgentView: React.FC<Props> = ({ onClose, onAddOrder, userLocation 
 
             {/* Estimated Price */}
             <div className="flex items-center justify-between px-6 py-4 bg-white/5 border border-white/5 rounded-3xl">
-              <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Budget Estimé</span>
-              <span className="text-white font-black text-sm tracking-tight">{analysis.estimatedPriceRange || 'Sur devis'} dh</span>
+              <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{t('urgent.estimated_budget')}</span>
+              <span className="text-white font-black text-sm tracking-tight">{analysis.estimatedPriceRange || t('urgent.on_quote')} dh</span>
             </div>
 
             <button
               onClick={startMatching}
               className="w-full py-6 rounded-[2.5rem] bg-white text-black font-black text-sm uppercase tracking-[0.2em] shadow-[0_0_40px_rgba(255,255,255,0.2)] active:scale-[0.98] transition-all flex items-center justify-center gap-3 mt-4 hover:bg-slate-200"
             >
-              Confirmer et Chercher <Search size={18} />
+              {t('urgent.confirm_and_search')} <Search size={18} />
             </button>
           </div>
         )}
@@ -463,18 +465,18 @@ export const UrgentView: React.FC<Props> = ({ onClose, onAddOrder, userLocation 
 
             <div className="text-center space-y-6 max-w-xs mx-auto">
               <div className="space-y-1">
-                <h3 className="text-3xl font-black text-white uppercase tracking-tighter">Recherche...</h3>
-                <p className="text-slate-500 text-sm font-medium">Nous contactons les experts <span className="text-white font-bold">{isEditing ? editedCategory : analysis?.category}</span> à proximité.</p>
+                <h3 className="text-3xl font-black text-white uppercase tracking-tighter">{t('urgent.searching')}</h3>
+                <p className="text-slate-500 text-sm font-medium">{t('urgent.contacting_experts', { category: isEditing ? editedCategory : analysis?.category })}</p>
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center gap-3 bg-white/5 px-4 py-3 rounded-xl border border-white/5 animate-in slide-in-from-bottom duration-500">
                   <CheckCircle2 size={16} className="text-emerald-500" />
-                  <span className="text-xs font-bold text-white">Analyse terminée</span>
+                  <span className="text-xs font-bold text-white">{t('urgent.analysis_done')}</span>
                 </div>
                 <div className="flex items-center gap-3 bg-white/5 px-4 py-3 rounded-xl border border-white/5 animate-in slide-in-from-bottom duration-500 delay-300">
                   <Loader2 size={16} className="text-indigo-500 animate-spin" />
-                  <span className="text-xs font-bold text-white">3 Experts notifiés...</span>
+                  <span className="text-xs font-bold text-white">{t('urgent.experts_notified', { count: 3 })}</span>
                 </div>
               </div>
             </div>

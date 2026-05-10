@@ -92,8 +92,8 @@ export const OrdersView: React.FC<Props> = ({ setView, orders, archivedOrders = 
             const isWaiting = order.status === "EN ATTENTE D'EXPERT";
 
             // Only allow deletion of pending requests in the active tab
-            const canDelete = activeTab === 'En cours' && isWaiting && !hasResponses;
-            const showArtisanName = activeTab === 'Terminé' || isEnCours || isPendingClosure;
+            const canDelete = activeTab === 'active' && isWaiting && !hasResponses;
+            const showArtisanName = activeTab === 'completed' || isEnCours || isPendingClosure;
 
             // Result Images for Archived Orders
             const resultImages = order.resultImages || order.finalReview?.images || [];
@@ -104,10 +104,10 @@ export const OrdersView: React.FC<Props> = ({ setView, orders, archivedOrders = 
                   onClick={() => onSelectOrder?.(order)}
                   className={`glass-card p-6 rounded-[2.5rem] bg-[#121214]/60 border border-white/5 relative group transition-all active:scale-[0.98] hover:border-purple-500/30 ${order.isUrgent ? 'border-red-500/30' : ''}`}
                 >
-                  {order.isUrgent && activeTab !== 'Terminé' && (
+                  {order.isUrgent && activeTab !== 'completed' && (
                     <div className="absolute -top-3 left-8 px-3 py-1 bg-red-600 text-white rounded-full text-[8px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-lg shadow-red-600/30 border border-white/20">
                       <Zap size={10} className="fill-current" />
-                      Urgence {order.priority}
+                      {t('orders.urgency')} {order.priority}
                     </div>
                   )}
 
@@ -119,19 +119,19 @@ export const OrdersView: React.FC<Props> = ({ setView, orders, archivedOrders = 
                       <div className="size-12 bg-red-500/20 rounded-2xl flex items-center justify-center text-red-500 mb-3">
                         <AlertCircle size={24} />
                       </div>
-                      <h4 className="text-white font-black text-sm uppercase tracking-tight mb-1">Annuler la demande ?</h4>
+                      <h4 className="text-white font-black text-sm uppercase tracking-tight mb-1">{t('orders.confirm_delete')}</h4>
                       <div className="flex gap-3 w-full mt-4">
                         <button
                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); setConfirmDeleteId(null); }}
                           className="flex-1 py-3 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400"
                         >
-                          Retour
+                          {t('common.back')}
                         </button>
                         <button
                           onClick={(e) => handleExecuteDelete(e, order)}
                           className="flex-1 py-3 bg-red-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest"
                         >
-                          Confirmer
+                          {t('orders.delete_button')}
                         </button>
                       </div>
                     </div>
@@ -146,7 +146,7 @@ export const OrdersView: React.FC<Props> = ({ setView, orders, archivedOrders = 
                   <div className="flex justify-between items-start mb-4">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className={`size-2.5 rounded-full ${isEnCours ? 'bg-emerald-500' : (order.isUrgent && activeTab !== 'Terminé' ? 'bg-red-500 animate-pulse' : (activeTab === 'Terminé' ? 'bg-slate-700' : 'bg-purple-500'))}`}></span>
+                        <span className={`size-2.5 rounded-full ${isEnCours ? 'bg-emerald-500' : (order.isUrgent && activeTab !== 'completed' ? 'bg-red-500 animate-pulse' : (activeTab === 'completed' ? 'bg-slate-700' : 'bg-purple-500'))}`}></span>
                         <h3 className="text-white font-black text-base uppercase tracking-tight">{order.category}</h3>
                       </div>
                       <p className="text-[10px] text-slate-600 font-black uppercase tracking-widest">{order.date}</p>
@@ -168,12 +168,12 @@ export const OrdersView: React.FC<Props> = ({ setView, orders, archivedOrders = 
                         )}
                       </div>
 
-                      <div className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-[0.15em] border ${activeTab === 'Terminé' ? 'bg-white/5 text-slate-500 border-white/10' :
+                      <div className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-[0.15em] border ${activeTab === 'completed' ? 'bg-white/5 text-slate-500 border-white/10' :
                         isWaiting ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' :
                           isEnCours ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
                             (isPendingClosure ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20')
                         }`}>
-                        {activeTab === 'Terminé'
+                        {activeTab === 'completed'
                           ? 'ARCHIVÉ'
                           : (isWaiting ? "EN ATTENTE" : (isEnCours ? "ACCEPTÉ" : (isPendingClosure ? 'VALIDATION...' : order.status)))}
                       </div>
@@ -185,9 +185,9 @@ export const OrdersView: React.FC<Props> = ({ setView, orders, archivedOrders = 
                   </p>
 
                   {/* Result Images Thumbnail Strip */}
-                  {activeTab === 'Terminé' && resultImages.length > 0 && (
+                  {activeTab === 'completed' && resultImages.length > 0 && (
                     <div className="mb-5">
-                      <p className="text-[8px] font-black text-emerald-500/70 uppercase tracking-widest mb-2 pl-1">Photos du résultat</p>
+                      <p className="text-[8px] font-black text-emerald-500/70 uppercase tracking-widest mb-2 pl-1">{t('orders.result_photos')}</p>
                       <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
                         {resultImages.map((img, idx) => (
                           <div
@@ -195,7 +195,7 @@ export const OrdersView: React.FC<Props> = ({ setView, orders, archivedOrders = 
                             onClick={(e) => { e.stopPropagation(); setFullScreenImage(img); }}
                             className="relative size-14 shrink-0 rounded-xl overflow-hidden border border-white/10 group cursor-pointer hover:border-emerald-500/50 transition-all bg-[#121214]"
                           >
-                            <img src={img} className="w-full h-full object-cover" alt="Result thumbnail" />
+                            <img src={img} className="w-full h-full object-cover" alt={t('orders.result_thumbnail')} />
                             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/30 transition-all">
                               <Maximize2 size={12} className="text-white" />
                             </div>
@@ -225,8 +225,8 @@ export const OrdersView: React.FC<Props> = ({ setView, orders, archivedOrders = 
                       </div>
                       <span className={`text-[10px] font-black uppercase tracking-widest ${hasResponses || showArtisanName ? 'text-purple-400' : 'text-slate-500'}`}>
                         {showArtisanName
-                          ? order.artisanName || 'Expert assigné'
-                          : (hasResponses ? `${order.responses?.length} experts intéressés` : 'Recherche expert...')}
+                          ? order.artisanName || t('orders.assigned_expert')
+                          : (hasResponses ? `${order.responses?.length} ${t('orders.interested_experts')}` : t('orders.searching_expert'))}
                       </span>
                     </div>
                     <ChevronRight size={18} className="text-slate-700" />
@@ -239,7 +239,7 @@ export const OrdersView: React.FC<Props> = ({ setView, orders, archivedOrders = 
           <div className="flex flex-col items-center justify-center py-32 opacity-20">
             <Package size={64} className="mb-6 text-slate-500" />
             <p className="text-xs font-black uppercase tracking-[0.4em] text-slate-500">
-              {activeTab === 'En cours' ? 'Aucune commande' : 'Historique vide'}
+              {activeTab === 'active' ? t('orders.no_orders') : t('orders.empty_history')}
             </p>
           </div>
         )}

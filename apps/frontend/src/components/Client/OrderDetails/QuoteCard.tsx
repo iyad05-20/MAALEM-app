@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Star, XCircle, UserCheck, Loader2 } from 'lucide-react';
 import { Quote } from '../../../types';
 import { SmartAvatar } from '../../Shared/SmartAvatar';
@@ -15,6 +16,7 @@ interface QuoteCardProps {
 export const QuoteCard: React.FC<QuoteCardProps> = ({ 
     quote, isAccepting, isRejecting, onAccept, onReject, disabled 
 }) => {
+    const { t } = useTranslation();
     return (
         <div className="glass-card p-6 rounded-[2.5rem] bg-[#121214] border border-white/10 shadow-2xl">
             <div className="flex items-start gap-4 mb-6">
@@ -43,14 +45,14 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
                     disabled={disabled} 
                     className="flex-1 py-4 rounded-2xl bg-white/5 text-red-400 border border-white/5 font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2"
                 >
-                    {isRejecting ? <Loader2 className="size-4 animate-spin" /> : <><XCircle size={16} /> Refuser</>}
+                    {isRejecting ? <Loader2 className="size-4 animate-spin" /> : <><XCircle size={16} /> {t('order_detail.reject')}</>}
                 </button>
                 <button 
                     onClick={() => onAccept(quote)} 
                     disabled={disabled} 
                     className="flex-[2] py-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2"
                 >
-                    {isAccepting ? <Loader2 className="size-4 animate-spin" /> : <><UserCheck size={16} /> Accepter</>}
+                    {isAccepting ? <Loader2 className="size-4 animate-spin" /> : <><UserCheck size={16} /> {t('order_detail.accept')}</>}
                 </button>
             </div>
         </div>

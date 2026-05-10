@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Star, ImageIcon, X, CheckCircle2 } from 'lucide-react';
 import { SmartAvatar } from '../../Shared/SmartAvatar';
 import { useFilePreviews } from '../../../hooks/useFilePreview';
@@ -17,6 +18,7 @@ interface CompletionModalProps {
 export const CompletionModal: React.FC<CompletionModalProps> = ({ 
     isOpen, onClose, onConfirm, artisanName, artisanImage, orderId, showToast 
 }) => {
+    const { t } = useTranslation();
     const [rating, setRating] = useState(0);
     const [comment, setComment] = useState('');
     const [step, setStep] = useState<'rate' | 'uploading' | 'processing' | 'success'>('rate');
@@ -56,7 +58,7 @@ export const CompletionModal: React.FC<CompletionModalProps> = ({
         } catch (error) {
             console.error("Error submitting review:", error);
             setStep('rate');
-            showToast("Erreur lors de l'envoi. Veuillez réessayer.", "error");
+            showToast(t('order_detail.submit_error'), "error");
         }
     };
 
@@ -70,8 +72,8 @@ export const CompletionModal: React.FC<CompletionModalProps> = ({
                             <SmartAvatar src={artisanImage} name={artisanName} initialsClassName="text-xl font-black text-white" />
                         </div>
                         <div>
-                            <h2 className="text-xl font-black text-white uppercase tracking-tight">Mission Terminée !</h2>
-                            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">Notez le travail de {artisanName}</p>
+                            <h2 className="text-xl font-black text-white uppercase tracking-tight">{t('order_detail.mission_completed')}</h2>
+                            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">{t('order_detail.rate_work_for', { name: artisanName })}</p>
                         </div>
 
                         <div className="flex justify-center gap-2">
@@ -83,16 +85,16 @@ export const CompletionModal: React.FC<CompletionModalProps> = ({
                         </div>
 
                         <div className="w-full space-y-3 text-left">
-                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Photos du résultat <span className="text-indigo-400">(Requis)</span></label>
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">{t('order_detail.result_photos')} <span className="text-indigo-400">({t('order_detail.required')})</span></label>
                             <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
                                 {images.length < 4 && (
                                     <button onClick={() => fileInputRef.current?.click()} className="size-20 shrink-0 rounded-2xl border-2 border-dashed border-white/10 bg-white/5 flex flex-col items-center justify-center gap-1 group hover:border-indigo-500/50 transition-all">
                                         <ImageIcon size={18} className="text-slate-500 group-hover:text-indigo-400" />
-                                        <span className="text-[8px] font-black text-slate-500 group-hover:text-indigo-400 uppercase tracking-widest">Ajouter</span>
+                                        <span className="text-[8px] font-black text-slate-500 group-hover:text-indigo-400 uppercase tracking-widest">{t('common.add')}</span>
                                     </button>
                                 )}
                                 <input type="file" ref={fileInputRef} className="hidden" accept="image/*" multiple onChange={handleFileChange} />
-                                {images.map((file, idx) => (
+                                 {images.map((_, idx) => (
                                     <div key={idx} className="size-20 shrink-0 rounded-2xl relative overflow-hidden border border-white/10 group">
                                         <img src={previews[idx]} className="w-full h-full object-cover" alt="Preview" />
                                         <button onClick={() => removeImage(idx)} className="absolute top-1 right-1 size-5 bg-red-600 rounded-full flex items-center justify-center text-white shadow-lg"><X size={10} /></button>
@@ -104,13 +106,13 @@ export const CompletionModal: React.FC<CompletionModalProps> = ({
                         <textarea
                             value={comment}
                             onChange={(e) => setComment(e.target.value)}
-                            placeholder="Un commentaire sur la prestation ? (Optionnel)"
+                            placeholder={t('order_detail.comment_placeholder')}
                             className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm text-white focus:outline-none focus:border-indigo-500 resize-none h-20 placeholder:text-slate-600"
                         />
 
                         <div className="flex w-full gap-3 pt-2">
-                            <button onClick={onClose} className="flex-1 py-4 bg-white/5 rounded-2xl text-slate-500 font-black text-[10px] uppercase tracking-widest hover:bg-white/10">Annuler</button>
-                            <button onClick={handleSubmit} disabled={rating === 0} className="flex-[2] py-4 bg-emerald-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 transition-all">Clôturer la mission</button>
+                            <button onClick={onClose} className="flex-1 py-4 bg-white/5 rounded-2xl text-slate-500 font-black text-[10px] uppercase tracking-widest hover:bg-white/10">{t('common.cancel_button')}</button>
+                            <button onClick={handleSubmit} disabled={rating === 0} className="flex-[2] py-4 bg-emerald-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 transition-all">{t('order_detail.close_mission')}</button>
                         </div>
                     </div>
                 )}
@@ -121,7 +123,7 @@ export const CompletionModal: React.FC<CompletionModalProps> = ({
                             <div className="absolute inset-0 border-4 border-emerald-500/20 rounded-full"></div>
                             <div className="absolute inset-0 border-t-4 border-emerald-500 rounded-full animate-spin"></div>
                         </div>
-                        <h3 className="text-white font-black uppercase tracking-widest animate-pulse">{step === 'uploading' ? 'Envoi des photos...' : 'Archivage en cours...'}</h3>
+                        <h3 className="text-white font-black uppercase tracking-widest animate-pulse">{step === 'uploading' ? t('order_detail.uploading_photos') : t('order_detail.archiving_in_progress')}</h3>
                     </div>
                 )}
 
@@ -130,7 +132,7 @@ export const CompletionModal: React.FC<CompletionModalProps> = ({
                         <div className="size-24 bg-emerald-500 rounded-full flex items-center justify-center shadow-[0_0_40_rgba(16,185,129,0.5)]">
                             <CheckCircle2 size={48} className="text-white animate-bounce" />
                         </div>
-                        <h3 className="text-2xl font-black text-white uppercase tracking-tight">Succès !</h3>
+                        <h3 className="text-2xl font-black text-white uppercase tracking-tight">{t('order_detail.success')}</h3>
                     </div>
                 )}
             </div>

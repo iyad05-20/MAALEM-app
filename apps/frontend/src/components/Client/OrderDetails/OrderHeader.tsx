@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { ImageIcon, Clock } from 'lucide-react';
 import { Order } from '../../../types';
 
@@ -9,6 +10,7 @@ interface OrderHeaderProps {
 }
 
 export const OrderHeader: React.FC<OrderHeaderProps> = ({ order, isPendingClosure, isAssigned }) => {
+    const { t } = useTranslation();
     return (
         <div className="glass-card p-6 rounded-[2.5rem] bg-[#1a1a20]/60 border border-white/5">
             <div className="flex items-center gap-5">
@@ -20,7 +22,7 @@ export const OrderHeader: React.FC<OrderHeaderProps> = ({ order, isPendingClosur
                         {order.title || order.category}
                     </h2>
                     <div className="flex items-center gap-2 text-slate-400">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400">
+                <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400">
                             {order.category}
                         </span>
                         <span className="text-slate-700">•</span>
@@ -30,13 +32,13 @@ export const OrderHeader: React.FC<OrderHeaderProps> = ({ order, isPendingClosur
                 </div>
             </div>
             <div className="flex items-center justify-between mt-6 pt-6 border-t border-white/5">
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">STATUT</span>
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('order_detail.status')}</span>
                 <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${
                     isAssigned ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-orange-500/10 border-orange-500/20 text-orange-400'
                 }`}>
                     <div className={`size-2 rounded-full ${order.status === 'Terminé' ? 'bg-emerald-500' : 'bg-orange-500 animate-pulse'}`}></div>
                     <span className="text-[9px] font-black uppercase tracking-widest">
-                        {isPendingClosure ? 'VALIDATION...' : order.status}
+                        {isPendingClosure ? t('order_detail.validation') : order.status}
                     </span>
                 </div>
             </div>

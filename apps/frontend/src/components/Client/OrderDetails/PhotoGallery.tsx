@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Maximize2 } from 'lucide-react';
 
 interface PhotoGalleryProps {
@@ -12,6 +13,7 @@ interface PhotoGalleryProps {
 export const PhotoGallery: React.FC<PhotoGalleryProps> = ({ 
     title, images, onImageClick, titleColorClass = "text-slate-500", borderColorClass = "border-white/10" 
 }) => {
+    const { t } = useTranslation();
     if (!images || images.length === 0) return null;
 
     return (
@@ -29,7 +31,7 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
                         <img 
                             src={url} 
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
-                            alt={`${title} detail`} 
+                            alt={t('order_detail.photo_detail', { title })} 
                         />
                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/30 transition-all">
                             <Maximize2 size={16} className="text-white" />
