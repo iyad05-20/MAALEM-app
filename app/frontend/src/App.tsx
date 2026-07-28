@@ -1,0 +1,239 @@
+import { useState, useEffect } from 'react';
+import type { View, Product } from './types';
+import { HomeView } from './views/client/HomeView';
+import { SearchView } from './views/client/SearchView';
+import { AtelierView } from './views/client/AtelierView';
+import { AuthView } from './views/client/AuthView';
+import { BottomNav } from './components/Shared/BottomNav';
+import { MAALEM_DATA } from './data/mockData';
+import { recSession } from './services/recommendationSession';
+import { authService, type UserProfile } from './services/authService';
+import { AnimatePresence, motion } from 'framer-motion';
+import './styles/global.css';
+
+// ─── Resolve products by ID ──────────────────────────────────────────────────
+const productMap = Object.fromEntries(MAALEM_DATA.products.map(p => [p.id, p]));
+const resolve = (ids: string[]) => ids.map(id => productMap[id]).filter(Boolean);
+
+// Helper to extract tags from a product
+const extractTags = (product: any): string[] => {
+  if (!product) return [];
+  if (Array.isArray(product.tags)) return product.tags;
+  if (product.rec_tags) {
+    const tags: string[] = [];
+    if (Array.isArray(product.rec_tags.style)) tags.push(...product.rec_tags.style);
+    if (Array.isArray(product.rec_tags.material)) tags.push(...product.rec_tags.material);
+    if (Array.isArray(product.rec_tags.color_vibe)) tags.push(...product.rec_tags.color_vibe);
+    return tags;
+  }
+  return [];
+};
+
+// ─── Placeholder views ──────────────────────────────────────────────────────
+const PlaceholderView = ({ title, subtitle, onLogout }: { title: string; subtitle: string; onLogout?: () => void }) => (
+  <motion.div 
+    key={title}
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -10 }}
+    transition={{ duration: 0.2 }}
+    className="app-view" 
+    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: 24, textAlign: 'center' }}
+  >
+    <h2 className="section-title" style={{ marginBottom: 8 }}>{title}</h2>
+    <p className="section-subtitle" style={{ marginBottom: 20 }}>{subtitle}</p>
+    {onLogout && (
+      <button
+        onClick={onLogout}
+        style={{
+          padding: '12px 24px',
+          borderRadius: 16,
+          background: '#dc3545',
+          color: '#FFF',
+          border: 'none',
+          fontWeight: 600,
+          cursor: 'pointer'
+        }}
+      >
+        Se déconnecter
+      </button>
+    )}
+  </motion.div>
+);
+
+// ─── App Root ────────────────────────────────────────────────────────────────
+function App() {
+  const [view, setView] = useState<View>('home');
+  const [dynamicAiPicks, setDynamicAiPicks] = useState<Product[]>([]);
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [authChecking, setAuthChecking] = useState(true);
+
+  const trending = resolve(MAALEM_DATA.collections.trending);
+  const fallbackAiPicks = resolve(MAALEM_DATA.collections.aiPicks);
+  const premium = resolve(MAALEM_DATA.collections.premium);
+  const duoSpotlight = resolve(MAALEM_DATA.collections.duoSpotlight || []);
+  const duoMaalem = resolve(MAALEM_DATA.collections.duoMaalem || []);
+  const regionFes = resolve(MAALEM_DATA.collections.regionFes || []);
+  const occasionsData = {
+    cadeaux: resolve(MAALEM_DATA.collections.occasions?.cadeaux || []),
+    maison: resolve(MAALEM_DATA.collections.occasions?.maison || []),
+    cuisine: resolve(MAALEM_DATA.collections.occasions?.cuisine || []),
+  };
+
+  const [recResponseState, setRecResponseState] = useState<any>(null);
+
+  // Check auth session on load
+  useEffect(() => {
+    const verifyAuth = async () => {
+      const stored = authService.getStoredUser();
+      if (stored) {
+        setCurrentUser(stored);
+      }
+      const verified = await authService.checkSession();
+      if (verified) {
+        setCurrentUser(verified);
+      }
+      setAuthChecking(false);
+    };
+    verifyAuth();
+  }, []);
+
+  // Initialize recommendation session when authenticated & register auto-sync
+  useEffect(() => {
+    if (!currentUser) return;
+    const initRec = async () => {
+      recSession.registerAutoSyncCallback((res) => {
+        if (res && res.items.length > 0) {
+          setDynamicAiPicks(res.items as Product[]);
+          setRecResponseState(res);
+        }
+      });
+
+      await recSession.initSession(currentUser.id);
+      const res = await recSession.fetchFeed(currentUser.id, 15);
+      if (res && res.items.length > 0) {
+        setDynamicAiPicks(res.items as Product[]);
+        setRecResponseState(res);
+      }
+    };
+    initRec();
+  }, [currentUser]);
+
+  const handleSelectProduct = (product: Product) => {
+    const tags = extractTags(product);
+    recSession.trackAction('VIEW', tags);
+  };
+
+  const handleLogout = async () => {
+    if (currentUser) {
+      await recSession.logout(currentUser.id);
+    }
+    await authService.logout();
+    setCurrentUser(null);
+    setView('home');
+  };
+
+  const handleRefreshFeed = async () => {
+    if (!currentUser) return;
+    console.log(`[APP] ✦ Swift Refresh triggered for user ${currentUser.id}`);
+    const res = await recSession.fetchFeed(currentUser.id, 15);
+    if (res && res.items.length > 0) {
+      setDynamicAiPicks(res.items as Product[]);
+      setRecResponseState(res);
+    }
+  };
+
+  if (authChecking) {
+    return (
+      <div className="phone-shell" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FCFBF9' }}>
+        <div style={{ color: '#1A2A3A', fontSize: '0.95rem', fontWeight: 600 }}>Chargement de MAALEM...</div>
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <div className="phone-shell">
+        <AuthView onAuthSuccess={(user) => setCurrentUser(user)} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="phone-shell">
+      {/* E4 Signature Patterns */}
+      <div className="pattern-corner pattern-top-right" />
+      <div className="pattern-corner pattern-bottom-left" />
+
+      {/* Main Content Switcher */}
+      <main className="app-content">
+        <AnimatePresence mode="wait">
+          {(view === 'home' || view === 'search') && (
+            <HomeView
+              key="home"
+              hero={MAALEM_DATA.hero}
+              trending={trending}
+              aiPicks={dynamicAiPicks.length > 0 ? dynamicAiPicks : fallbackAiPicks}
+              premium={premium}
+              duoSpotlight={duoSpotlight}
+              duoMaalem={duoMaalem}
+              regionFes={regionFes}
+              occasionsData={occasionsData}
+              featuredArtisan={MAALEM_DATA.featuredArtisan}
+              promoData={MAALEM_DATA.promo}
+              onNavigate={setView as any}
+              onSelectProduct={handleSelectProduct}
+              onRefreshFeed={handleRefreshFeed}
+              recResponseState={recResponseState}
+            />
+          )}
+          {view === 'atelier' && (
+            <AtelierView key="atelier" />
+          )}
+          {view === 'favorites' && (
+            <PlaceholderView key="favorites" title="Mes Favoris" subtitle="Vos inspirations sauvegardées" />
+          )}
+          {view === 'profile' && (
+            <PlaceholderView
+              key="profile"
+              title={`Profil : ${currentUser.fullName || currentUser.email}`}
+              subtitle={`Connecté en tant que ${currentUser.email}`}
+              onLogout={handleLogout}
+            />
+          )}
+          {view === 'cart' && (
+            <PlaceholderView key="cart" title="Mes Commandes" subtitle="Suivi de vos achats d'artisanat" />
+          )}
+          {view === 'product-detail' && (
+            <PlaceholderView key="product-detail" title="Détail du Produit" subtitle="Chargement..." />
+          )}
+        </AnimatePresence>
+      </main>
+
+      {/* Search Overlay */}
+      <AnimatePresence>
+        {view === 'search' && (
+          <SearchView key="search-overlay" onNavigate={setView} />
+        )}
+      </AnimatePresence>
+
+      {/* Floating Bottom Nav */}
+      <AnimatePresence>
+        {view !== 'search' && (
+          <motion.div
+            key="bottom-nav"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.25, ease: "easeInOut" }}
+            style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 100 }}
+          >
+            <BottomNav activeView={view} onNavigate={setView} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+export default App;
