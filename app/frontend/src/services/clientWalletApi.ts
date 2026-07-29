@@ -1,0 +1,259 @@
+import type { ClientOrder, ClientWallet, WalletTransaction } from "../types/clientPayment";
+
+const LOCAL_STORAGE_KEY_ORDERS = "vork_client_orders_v2";
+const LOCAL_STORAGE_KEY_WALLET = "vork_client_wallet_v2";
+
+const INITIAL_DEMO_ORDERS: ClientOrder[] = [
+  {
+    id: "ord-std-001",
+    clientRef: "client-me",
+    artisanRef: "artisan-fes",
+    artisanName: "Maâlem Driss - Fès",
+    productTitle: "Lanterne en Cuivre Ciselé",
+    productImage: "https://images.unsplash.com/photo-1544816155-12df9643f363?w=600&auto=format&fit=crop&q=60",
+    totalPrice: 450,
+    productType: "standard",
+    status: "livre",
+    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    deliveredAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    tranche: "total_100",
+  },
+  {
+    id: "ord-perso-002",
+    clientRef: "client-me",
+    artisanRef: "artisan-kech",
+    artisanName: "Maâlem Hassan - Marrakech",
+    productTitle: "Tapis Zanafi Sur-Mesure",
+    productImage: "https://images.unsplash.com/photo-1600121848594-d8644e57abab?w=600&auto=format&fit=crop&q=60",
+    totalPrice: 1800,
+    productType: "personnalise",
+    status: "en_preparation",
+    createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+    acceptedAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+    depositAmount: 900,
+    tranche: "acompte_50",
+  },
+  {
+    id: "ord-std-003",
+    clientRef: "client-me",
+    artisanRef: "artisan-safi",
+    artisanName: "Atelier Céramique - Safi",
+    productTitle: "Vase en Céramique Bleu Majorelle",
+    productImage: "https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?w=600&auto=format&fit=crop&q=60",
+    totalPrice: 320,
+    productType: "standard",
+    status: "en_attente_paiement",
+    createdAt: new Date().toISOString(),
+    tranche: "total_100",
+  },
+];
+
+function getStoredOrders(): ClientOrder[] {
+  const data = localStorage.getItem(LOCAL_STORAGE_KEY_ORDERS);
+  if (!data) {
+    localStorage.setItem(LOCAL_STORAGE_KEY_ORDERS, JSON.stringify(INITIAL_DEMO_ORDERS));
+    return INITIAL_DEMO_ORDERS;
+  }
+  return JSON.parse(data) as ClientOrder[];
+}
+
+function saveOrders(orders: ClientOrder[]): void {
+  localStorage.setItem(LOCAL_STORAGE_KEY_ORDERS, JSON.stringify(orders));
+}
+
+function getStoredWallet(userId: string): ClientWallet {
+  const data = localStorage.getItem(`${LOCAL_STORAGE_KEY_WALLET}_${userId}`);
+  if (!data) {
+    const initial: ClientWallet = {
+      userId,
+      balance: 600,
+      pendingWithdrawals: 0,
+      transactions: [
+        {
+          id: "tx-init-1",
+          type: "annulation_remboursement_client",
+          montant: 600,
+          compteDebit: "escrow[ord-old-99]",
+          compteCredit: `wallet[${userId}]`,
+          createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+          metadata: "Remboursement commande annulée",
+        },
+      ],
+    };
+    localStorage.setItem(`${LOCAL_STORAGE_KEY_WALLET}_${userId}`, JSON.stringify(initial));
+    return initial;
+  }
+  return JSON.parse(data) as ClientWallet;
+}
+
+function saveWallet(wallet: ClientWallet): void {
+  localStorage.setItem(`${LOCAL_STORAGE_KEY_WALLET}_${wallet.userId}`, JSON.stringify(wallet));
+}
+
+export const clientWalletAPI = {
+  async fetchOrders(_clientRef = "client-me"): Promise<ClientOrder[]> {
+    try {
+      const res = await fetch(`/api/client/orders?clientRef=${_clientRef}`);
+      if (res.ok) {
+        const data = await res.json() as ClientOrder[];
+        if (data && data.length > 0) return data;
+      }
+    } catch {
+      // Fallback local dev
+    }
+    return getStoredOrders();
+  },
+
+  async payOrder(orderId: string): Promise<{ success: boolean; redirectUrl: string; amount: number; tranche: string }> {
+    try {
+      const res = await fetch(`/api/client/orders/${orderId}/pay`, { method: "POST", headers: { "Content-Type": "application/json" } });
+      if (res.ok) return await res.json() as { success: boolean; redirectUrl: string; amount: number; tranche: string };
+    } catch {
+      // Fallback local dev
+    }
+    const orders = getStoredOrders();
+    const order = orders.find((o) => o.id === orderId);
+    if (!order) throw new Error("Commande introuvable");
+
+    const isGrosMontant = order.totalPrice >= 1000;
+    const amount = isGrosMontant ? Math.round(order.totalPrice * 0.5) : order.totalPrice;
+    const tranche = isGrosMontant ? "acompte_50" : "total_100";
+
+    order.status = isGrosMontant ? "acompte_verse" : "payee_integralement";
+    order.depositAmount = amount;
+    order.tranche = tranche as "total_100" | "acompte_50";
+    saveOrders(orders);
+
+    return { success: true, redirectUrl: `/mock-cmi/pay?intent_id=mock-intent-${orderId}&amount=${amount}`, amount, tranche };
+  },
+
+  async cancelOrder(orderId: string): Promise<{ success: boolean; refundAmount: number }> {
+    try {
+      const res = await fetch(`/api/client/orders/${orderId}/cancel`, { method: "POST", headers: { "Content-Type": "application/json" } });
+      if (res.ok) return await res.json() as { success: boolean; refundAmount: number };
+    } catch {
+      // Fallback local dev
+    }
+    const orders = getStoredOrders();
+    const order = orders.find((o) => o.id === orderId);
+    if (!order) throw new Error("Commande introuvable");
+
+    if (order.status === "en_cours_de_transport" || order.status === "livre" || order.status === "complete") {
+      throw new Error("Annulation impossible : la commande est déjà expédiée ou livrée.");
+    }
+
+    if (order.productType === "personnalise" && order.acceptedAt) {
+      const diffMinutes = (Date.now() - new Date(order.acceptedAt).getTime()) / (1000 * 60);
+      if (diffMinutes > 60) {
+        throw new Error("Annulation impossible : Pour un produit sur-mesure, l'annulation doit se faire dans l'heure suivant l'acceptation.");
+      }
+    }
+
+    const refundAmount = order.depositAmount ?? order.totalPrice;
+    order.status = "annulee";
+    saveOrders(orders);
+
+    const wallet = getStoredWallet(order.clientRef);
+    wallet.balance = Math.round((wallet.balance + refundAmount) * 100) / 100;
+    const tx: WalletTransaction = {
+      id: `tx-cancel-${Date.now()}`,
+      type: "annulation_remboursement_client",
+      montant: refundAmount,
+      compteDebit: `escrow[${orderId}]`,
+      compteCredit: `wallet[${order.clientRef}]`,
+      createdAt: new Date().toISOString(),
+      metadata: `Remboursement annulation commande ${order.id}`,
+    };
+    wallet.transactions.unshift(tx);
+    saveWallet(wallet);
+
+    return { success: true, refundAmount };
+  },
+
+  async requestReturn(orderId: string, mode: "cathedis" | "propres_moyens", returnShippingFee = 35): Promise<{ success: boolean; returnId: string }> {
+    try {
+      const res = await fetch(`/api/client/orders/${orderId}/return`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode, returnShippingFee }) });
+      if (res.ok) return await res.json() as { success: boolean; returnId: string };
+    } catch {
+      // Fallback local dev
+    }
+    const orders = getStoredOrders();
+    const order = orders.find((o) => o.id === orderId);
+    if (!order) throw new Error("Commande introuvable");
+    if (order.productType !== "standard") throw new Error("Le droit de rétractation de 7 jours ne s'applique qu'aux produits standards.");
+    if (order.status !== "livre") throw new Error("Le retour n'est possible qu'après la livraison.");
+
+    order.status = "retour_initie";
+    order.carrierChoice = mode;
+    order.returnShippingFee = mode === "cathedis" ? returnShippingFee : 0;
+    order.returnStatus = "initie";
+    saveOrders(orders);
+
+    return { success: true, returnId: `ret-${Date.now()}` };
+  },
+
+  async createDispute(orderId: string, reason: string, photos: string[]): Promise<{ success: boolean; disputeId: string }> {
+    try {
+      const res = await fetch(`/api/admin/orders/${orderId}/disputes`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reason, photos }) });
+      if (res.ok) return await res.json() as { success: boolean; disputeId: string };
+    } catch {
+      // Fallback local dev
+    }
+    const orders = getStoredOrders();
+    const order = orders.find((o) => o.id === orderId);
+    if (!order) throw new Error("Commande introuvable");
+
+    order.status = "en_reclamation";
+    order.disputeReason = reason;
+    order.disputeStatus = "ouvert";
+    saveOrders(orders);
+
+    return { success: true, disputeId: `disp-${Date.now()}` };
+  },
+
+  async getWallet(userId = "client-me"): Promise<ClientWallet> {
+    try {
+      const res = await fetch(`/api/client/wallet/${userId}/balance`);
+      if (res.ok) {
+        const data = await res.json() as { balance: number };
+        return { userId, balance: data.balance, pendingWithdrawals: 0, transactions: [] };
+      }
+    } catch {
+      // Fallback local dev
+    }
+    return getStoredWallet(userId);
+  },
+
+  async requestWithdrawal(userId = "client-me", amount: number, rib: string): Promise<{ success: boolean; withdrawalId: string }> {
+    if (rib.length !== 24 || !/^\d+$/.test(rib)) throw new Error("Le RIB doit comporter exactement 24 chiffres.");
+    if (amount <= 0) throw new Error("Montant invalide.");
+
+    try {
+      const res = await fetch(`/api/client/wallet/${userId}/withdraw`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ amount, rib }) });
+      if (res.ok) return await res.json() as { success: boolean; withdrawalId: string };
+    } catch {
+      // Fallback local dev
+    }
+
+    const wallet = getStoredWallet(userId);
+    if (wallet.balance < amount) throw new Error("Solde disponible insuffisant sur votre Wallet Vork.");
+
+    wallet.balance = Math.round((wallet.balance - amount) * 100) / 100;
+    wallet.pendingWithdrawals = Math.round((wallet.pendingWithdrawals + amount) * 100) / 100;
+    const withdrawalId = `wdr-${Date.now()}`;
+
+    const tx: WalletTransaction = {
+      id: withdrawalId,
+      type: "retrait_demande_rib",
+      montant: amount,
+      compteDebit: `wallet[${userId}]`,
+      compteCredit: "pending_withdrawals",
+      createdAt: new Date().toISOString(),
+      metadata: `Demande virement RIB (****${rib.slice(-4)}) - Exécution prévue Lundi`,
+    };
+    wallet.transactions.unshift(tx);
+    saveWallet(wallet);
+
+    return { success: true, withdrawalId };
+  },
+};

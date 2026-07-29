@@ -6,7 +6,9 @@ export type View =
   | 'favorites'
   | 'profile'
   | 'cart'
-  | 'product-detail';
+  | 'product-detail'
+  | 'client-wallet'
+  | 'client-order-detail';
 
 // ─── Badge Types ──────────────────────────────────────────────────────────────
 export type Badge = 'Premium' | 'AI Pick' | 'Unique' | 'Dans votre style' | 'Sélection IA' | null;

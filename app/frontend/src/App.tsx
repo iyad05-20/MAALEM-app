@@ -4,6 +4,9 @@ import { HomeView } from './views/client/HomeView';
 import { SearchView } from './views/client/SearchView';
 import { AtelierView } from './views/client/AtelierView';
 import { AuthView } from './views/client/AuthView';
+import { ProfileView } from './views/client/ProfileView';
+import { ClientOrderDetailView } from './views/client/ClientOrderDetailView';
+import { ClientWalletView } from './views/client/ClientWalletView';
 import { BottomNav } from './components/Shared/BottomNav';
 import { MAALEM_DATA } from './data/mockData';
 import { recSession } from './services/recommendationSession';
@@ -29,35 +32,18 @@ const extractTags = (product: any): string[] => {
   return [];
 };
 
-// ─── Placeholder views ──────────────────────────────────────────────────────
-const PlaceholderView = ({ title, subtitle, onLogout }: { title: string; subtitle: string; onLogout?: () => void }) => (
-  <motion.div 
+const PlaceholderView = ({ title, subtitle }: { title: string; subtitle: string }) => (
+  <motion.div
     key={title}
     initial={{ opacity: 0, y: 10 }}
     animate={{ opacity: 1, y: 0 }}
     exit={{ opacity: 0, y: -10 }}
     transition={{ duration: 0.2 }}
-    className="app-view" 
+    className="app-view"
     style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: 24, textAlign: 'center' }}
   >
     <h2 className="section-title" style={{ marginBottom: 8 }}>{title}</h2>
-    <p className="section-subtitle" style={{ marginBottom: 20 }}>{subtitle}</p>
-    {onLogout && (
-      <button
-        onClick={onLogout}
-        style={{
-          padding: '12px 24px',
-          borderRadius: 16,
-          background: '#dc3545',
-          color: '#FFF',
-          border: 'none',
-          fontWeight: 600,
-          cursor: 'pointer'
-        }}
-      >
-        Se déconnecter
-      </button>
-    )}
+    <p className="section-subtitle">{subtitle}</p>
   </motion.div>
 );
 
@@ -194,15 +180,26 @@ function App() {
             <PlaceholderView key="favorites" title="Mes Favoris" subtitle="Vos inspirations sauvegardées" />
           )}
           {view === 'profile' && (
-            <PlaceholderView
+            <ProfileView
               key="profile"
-              title={`Profil : ${currentUser.fullName || currentUser.email}`}
-              subtitle={`Connecté en tant que ${currentUser.email}`}
+              currentUser={currentUser}
               onLogout={handleLogout}
+              onNavigate={setView as any}
             />
           )}
-          {view === 'cart' && (
-            <PlaceholderView key="cart" title="Mes Commandes" subtitle="Suivi de vos achats d'artisanat" />
+          {(view === 'cart' || view === 'client-order-detail') && (
+            <ClientOrderDetailView
+              key="client-order-detail"
+              onBack={() => setView('home')}
+              onNavigateToWallet={() => setView('client-wallet')}
+            />
+          )}
+          {view === 'client-wallet' && (
+            <ClientWalletView
+              key="client-wallet"
+              userId={currentUser.id}
+              onBack={() => setView('profile')}
+            />
           )}
           {view === 'product-detail' && (
             <PlaceholderView key="product-detail" title="Détail du Produit" subtitle="Chargement..." />

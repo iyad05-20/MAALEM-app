@@ -7,13 +7,17 @@ import recommendationRoutes from './routes/recommendation.routes.js';
 import searchRoutes         from './routes/search.routes.js';
 import productsRoutes       from './routes/products.routes.js';
 import favoritesRoutes      from './routes/favorites.routes.js';
+import clientRoutes         from './client/routes/clientRoutes.js';
+import mockCmiRouter        from './core/paymentProviders/mockCmi.js';
 import { loadProducts }       from './services/recommendation.service.js';
 import { initSearchIndex }  from './services/search/meilisearch.service.js';
+import { initSchema }       from './core/db/index.js';
 
 dotenv.config();
 
 (async () => {
   try {
+    initSchema();
     await loadProducts();
     await initSearchIndex();
   } catch (err) {
@@ -54,6 +58,8 @@ app.use('/api/recommendations', recommendationRoutes);
 app.use('/api/search',          searchRoutes);
 app.use('/api/products',        productsRoutes);
 app.use('/api/favorites',       favoritesRoutes);
+app.use('/api/client',          clientRoutes);
+app.use('/mock-cmi',            mockCmiRouter);
 
 // ─── 404 ──────────────────────────────────────────────────────────────────────
 app.use((req, res) => {
@@ -73,9 +79,10 @@ app.listen(PORT, () => {
   console.log(`   GET  /health`);
   console.log(`   GET  /api/products`);
   console.log(`   GET  /api/recommendations?userId=x`);
-  console.log(`   POST /api/recommendations/interact`);
   console.log(`   GET  /api/search?q=zellige`);
-  console.log(`   GET  /api/search/suggest?q=zel\n`);
+  console.log(`   POST /api/client/orders`);
+  console.log(`   POST /api/client/orders/:id/pay`);
+  console.log(`   GET  /api/client/wallet/:userId/balance\n`);
 });
 
 export { app };
