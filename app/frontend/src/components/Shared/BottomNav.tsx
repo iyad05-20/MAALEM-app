@@ -133,24 +133,6 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeView, onNavigate }) 
                 transition: 'color 0.25s ease',
               }}
             >
-              {/* Always-present pill — slides via layoutId, fades via opacity */}
-              <motion.div
-                layoutId="active-nav-bg"
-                animate={{ opacity: isActive ? 1 : 0, scale: isActive ? 1 : 0.8 }}
-                transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-                style={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: '50%',
-                  width: '52px',
-                  height: '52px',
-                  backgroundColor: 'rgba(0,0,0,0.06)',
-                  borderRadius: '26px',
-                  transform: 'translate(-50%, -50%)',
-                  zIndex: 0,
-                  pointerEvents: 'none',
-                }}
-              />
               <div style={{ width: '22px', height: '22px', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {isActive ? item.filledIcon : item.outlineIcon}
               </div>
