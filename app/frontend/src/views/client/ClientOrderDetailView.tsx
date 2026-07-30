@@ -100,6 +100,8 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
   const [showCmiModal, setShowCmiModal] = useState(false);
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [showDisputeModal, setShowDisputeModal] = useState(false);
+  const [cgvAccepted, setCgvAccepted] = useState(false);
+  const [showCgvTextModal, setShowCgvTextModal] = useState(false);
 
   // Formulaires & Sécurité
   const [returnMode, setReturnMode] = useState<"cathedis" | "propres_moyens">("cathedis");
@@ -570,13 +572,75 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
               <p style={{ fontFamily: "var(--font-body)", fontSize: 13, color: "var(--text-secondary)", marginBottom: 16 }}>
                 Montant à régler : <strong style={{ color: "var(--primary)" }}>{depositAmount} MAD</strong> {isHighAmount ? "(Acompte 50%)" : "(Paiement 100%)"}.
               </p>
+              
+              {/* CGV Checkbox */}
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 16, background: "rgba(26,42,58,0.02)", border: "1px dashed var(--border)", padding: "12px", borderRadius: 12 }}>
+                <input 
+                  type="checkbox" 
+                  id="cgv-accept-checkbox"
+                  checked={cgvAccepted} 
+                  onChange={(e) => setCgvAccepted(e.target.checked)}
+                  style={{ marginTop: 2, cursor: "pointer" }}
+                />
+                <label htmlFor="cgv-accept-checkbox" style={{ fontFamily: "var(--font-body)", fontSize: "0.75rem", color: "var(--text-primary)", cursor: "pointer", lineHeight: "1.3" }}>
+                  J'accepte sans réserve les{" "}
+                  <span 
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowCgvTextModal(true); }}
+                    style={{ textDecoration: "underline", fontWeight: 700, color: "#8B6914", cursor: "pointer" }}
+                  >
+                    CGV Vork
+                  </span>{" "}
+                  (Rétractation 7j, Heure de grâce 60m sur-mesure, Séquestre sécurisé 15j).
+                </label>
+              </div>
+
               <div style={{ background: "rgba(26,42,58,0.04)", border: "1px solid var(--border)", padding: "10px 14px", borderRadius: 12, marginBottom: 20, display: "flex", alignItems: "center", gap: 8, fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text-secondary)" }}>
                 <Lock size={14} color="#4A7C59" /> Simulation sécurisée CMI Maroc 3D-Secure 2.0
               </div>
               <div style={{ display: "flex", gap: 10 }}>
-                <button onClick={() => setShowCmiModal(false)} style={{ flex: 1, padding: "12px", borderRadius: 14, border: "1px solid var(--border)", background: "none", fontFamily: "var(--font-body)", fontWeight: 600, fontSize: 13, color: "var(--text-secondary)", cursor: "pointer" }}>Annuler</button>
-                <button onClick={handlePay} disabled={loading} style={{ flex: 2, padding: "12px", borderRadius: 14, border: "none", background: "var(--primary)", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, color: "#fff", cursor: "pointer" }}>{loading ? "Traitement…" : `Payer ${depositAmount} MAD`}</button>
+                <button onClick={() => { setShowCmiModal(false); setCgvAccepted(false); }} style={{ flex: 1, padding: "12px", borderRadius: 14, border: "1px solid var(--border)", background: "none", fontFamily: "var(--font-body)", fontWeight: 600, fontSize: 13, color: "var(--text-secondary)", cursor: "pointer" }}>Annuler</button>
+                <button 
+                  onClick={handlePay} 
+                  disabled={loading || !cgvAccepted} 
+                  style={{ 
+                    flex: 2, 
+                    padding: "12px", 
+                    borderRadius: 14, 
+                    border: "none", 
+                    background: cgvAccepted ? "var(--primary)" : "var(--text-placeholder)", 
+                    fontFamily: "var(--font-display)", 
+                    fontWeight: 700, 
+                    fontSize: 13, 
+                    color: "#fff", 
+                    cursor: cgvAccepted ? "pointer" : "not-allowed" 
+                  }}
+                >
+                  {loading ? "Traitement…" : `Payer ${depositAmount} MAD`}
+                </button>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── MODALE MOBILE : Texte des CGV Vork ────────────────────── */}
+      <AnimatePresence>
+        {showCgvTextModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: "absolute", inset: 0, background: "rgba(26,42,58,0.7)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, zIndex: 110 }}>
+            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} style={{ background: "var(--surface)", borderRadius: 24, padding: 20, width: "100%", maxHeight: "80%", display: "flex", flexDirection: "column", boxShadow: "var(--shadow-lg)", border: "1px solid var(--border)" }}>
+              <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, color: "var(--primary)", marginBottom: 12, borderBottom: "1px solid var(--border)", paddingBottom: 8 }}>Conditions Générales Vork</h3>
+              <div style={{ flex: 1, overflowY: "auto", fontFamily: "var(--font-body)", fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: "1.5", display: "flex", flexDirection: "column", gap: 10, paddingRight: 6, scrollbarWidth: "none" }}>
+                <p><strong>1. Modèle Séquestre (Escrow 15j) :</strong> Afin de protéger l'acheteur et l'artisan, 100% des fonds réglés par CMI sont séquestrés et conservés par la plateforme Vork pendant 15 jours révolus après la livraison de la commande.</p>
+                <p><strong>2. Rétractation légale (7 jours) :</strong> Pour tout produit standard, l'acheteur dispose d'un droit de rétractation de 7 jours après la livraison. Les frais de retour Cathedis de 35 MAD sont déduits du remboursement.</p>
+                <p><strong>3. Produits Sur-Mesure / Personnalisés :</strong> Conformément à l'article 36 de la Loi 31-08, le droit de rétractation ne s'applique pas aux produits confectionnés sur commande. L'acheteur dispose d'une période de grâce de 60 minutes après acceptation par le Maâlem pour annuler sans frais.</p>
+                <p><strong>4. Signalement Vice Caché (15 jours) :</strong> Pendant les 15 jours de séquestre, en cas de défaut de fabrication ou vice caché grave, l'acheteur peut geler le séquestre pour examen par l'arbitrage Vork.</p>
+              </div>
+              <button 
+                onClick={() => setShowCgvTextModal(false)} 
+                style={{ marginTop: 16, width: "100%", padding: "12px", borderRadius: 14, background: "var(--primary)", color: "#fff", border: "none", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, cursor: "pointer" }}
+              >
+                Fermer et retourner au paiement
+              </button>
             </motion.div>
           </motion.div>
         )}

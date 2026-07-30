@@ -104,6 +104,57 @@ export const clientWalletAPI = {
     return getStoredOrders();
   },
 
+  async createOrder(
+    clientRef: string,
+    artisanRef: string,
+    totalPrice: number,
+    productType: "standard" | "personnalise" = "standard",
+    productTitle?: string,
+    productImage?: string,
+    artisanName?: string
+  ): Promise<ClientOrder> {
+    try {
+      const res = await fetch(`/api/client/orders`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientRef, artisanRef, totalPrice, productType }),
+      });
+      if (res.ok) {
+        const backendOrder = await res.json() as ClientOrder;
+        // Enrich backend order with local display details
+        backendOrder.productTitle = productTitle;
+        backendOrder.productImage = productImage;
+        backendOrder.artisanName = artisanName;
+
+        const current = getStoredOrders();
+        current.unshift(backendOrder);
+        saveOrders(current);
+        return backendOrder;
+      }
+    } catch {
+      // Fallback local dev
+    }
+
+    const newOrderId = `ord-${Date.now()}`;
+    const newOrder: ClientOrder = {
+      id: newOrderId,
+      clientRef,
+      artisanRef,
+      artisanName: artisanName || "Maâlem Abdelkader",
+      productTitle,
+      productImage,
+      totalPrice,
+      productType,
+      status: "en_attente_paiement",
+      createdAt: new Date().toISOString(),
+      tranche: "total_100",
+    };
+    const current = getStoredOrders();
+    current.unshift(newOrder);
+    saveOrders(current);
+    return newOrder;
+  },
+
   async payOrder(orderId: string): Promise<{ success: boolean; redirectUrl: string; amount: number; tranche: string }> {
     try {
       const res = await fetch(`/api/client/orders/${orderId}/pay`, { method: "POST", headers: { "Content-Type": "application/json" } });

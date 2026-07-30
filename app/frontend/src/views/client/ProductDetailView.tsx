@@ -4,6 +4,7 @@ import { X, Star, Heart, Shield, ArrowRight, MessageSquare, Edit3 } from 'lucide
 import type { Product, View } from '../../types';
 import { recSession } from '../../services/recommendationSession';
 import { reviewsService, type Review } from '../../services/reviewsService';
+import { clientWalletAPI } from '../../services/clientWalletApi';
 
 interface ProductDetailViewProps {
   product: Product;
@@ -99,28 +100,23 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
       recSession.trackAction('ORDER', tags);
       console.log(`[DETAIL] 🛒 ORDER action queued on tags [${tags.join(', ')}]`);
 
-      const newOrderId = `ord-${Date.now()}`;
-      const newOrder: any = {
-        id: newOrderId,
-        clientRef: "client-me",
-        artisanRef: product.artisanId || "artisan-default",
-        artisanName: product.artisanName || "Maâlem Abdelkader",
-        productTitle: product.title,
-        productImage: product.image || getFallbackImage(product.category),
-        totalPrice: priceVal,
-        productType: "standard",
-        status: "en_attente_paiement",
-        createdAt: new Date().toISOString(),
-        tranche: "total_100",
-      };
+      const clientRef = "client-me";
+      const artisanRef = product.artisanId || "artisan-default";
+      const artisanName = product.artisanName || "Maâlem Abdelkader";
+      const productImage = product.image || getFallbackImage(product.category);
 
-      const storedOrdersRaw = localStorage.getItem("vork_client_orders_v2");
-      const currentOrders = storedOrdersRaw ? JSON.parse(storedOrdersRaw) : [];
-      currentOrders.push(newOrder);
-      localStorage.setItem("vork_client_orders_v2", JSON.stringify(currentOrders));
+      const newOrder = await clientWalletAPI.createOrder(
+        clientRef,
+        artisanRef,
+        priceVal,
+        "standard",
+        product.title,
+        productImage,
+        artisanName
+      );
 
-      console.log(`[DETAIL] Order initialized for ${product.title} (ID: ${newOrderId})`);
-      setActiveOrderId(newOrderId);
+      console.log(`[DETAIL] Order initialized for ${product.title} (ID: ${newOrder.id})`);
+      setActiveOrderId(newOrder.id);
       onNavigate('client-order-detail');
       onClose();
     } catch (err) {
