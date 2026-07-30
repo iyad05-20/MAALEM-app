@@ -7,10 +7,14 @@ import { AuthView } from './views/client/AuthView';
 import { ProfileView } from './views/client/ProfileView';
 import { ClientOrderDetailView } from './views/client/ClientOrderDetailView';
 import { ClientWalletView } from './views/client/ClientWalletView';
+import { ProductDetailView } from './views/client/ProductDetailView';
+import { FavoritesView } from './views/client/FavoritesView';
+import { SeeAllRecsView } from './views/client/SeeAllRecsView';
 import { BottomNav } from './components/Shared/BottomNav';
 import { MAALEM_DATA } from './data/mockData';
 import { recSession } from './services/recommendationSession';
 import { authService, type UserProfile } from './services/authService';
+import { favoritesService } from './services/favoritesService';
 import { AnimatePresence, motion } from 'framer-motion';
 import './styles/global.css';
 
@@ -53,6 +57,11 @@ function App() {
   const [dynamicAiPicks, setDynamicAiPicks] = useState<Product[]>([]);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [authChecking, setAuthChecking] = useState(true);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
+  const [showFavoritesOverlay, setShowFavoritesOverlay] = useState(false);
+  const [showSeeAllOverlay, setShowSeeAllOverlay] = useState(false);
+  const [dbProducts, setDbProducts] = useState<Product[]>([]);
 
   const trending = resolve(MAALEM_DATA.collections.trending);
   const fallbackAiPicks = resolve(MAALEM_DATA.collections.aiPicks);
@@ -67,6 +76,7 @@ function App() {
   };
 
   const [recResponseState, setRecResponseState] = useState<any>(null);
+  const [favoritesList, setFavoritesList] = useState<string[]>([]);
 
   // Check auth session on load
   useEffect(() => {
@@ -83,6 +93,30 @@ function App() {
     };
     verifyAuth();
   }, []);
+
+  // Load products from Supabase on mount to build robust resolution catalog
+  useEffect(() => {
+    const loadDbProducts = async () => {
+      try {
+        const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001/api';
+        const res = await fetch(`${API_BASE}/products?limit=100`);
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+          setDbProducts(json.data);
+        }
+      } catch (err) {
+        console.error("Error loading products from db:", err);
+      }
+    };
+    loadDbProducts();
+  }, []);
+
+  // Reset activeOrderId when user navigates away from order tracking
+  useEffect(() => {
+    if (view !== 'client-order-detail' && view !== 'cart') {
+      setActiveOrderId(null);
+    }
+  }, [view]);
 
   // Initialize recommendation session when authenticated & register auto-sync
   useEffect(() => {
@@ -101,14 +135,64 @@ function App() {
         setDynamicAiPicks(res.items as Product[]);
         setRecResponseState(res);
       }
+
+      // Load favorites
+      try {
+        const favs = await favoritesService.fetchFavorites(currentUser.id);
+        setFavoritesList(favs);
+      } catch (err) {
+        console.error("Error loading user favorites:", err);
+      }
     };
     initRec();
   }, [currentUser]);
 
+  const handleToggleFavorite = async (product: Product) => {
+    if (!currentUser) return;
+    const isCurrentlyFav = favoritesList.includes(product.id);
+    const tags = extractTags(product);
+    
+    // Optimistic UI update
+    if (isCurrentlyFav) {
+      setFavoritesList(prev => prev.filter(id => id !== product.id));
+    } else {
+      setFavoritesList(prev => [...prev, product.id]);
+      recSession.trackAction('BOOKMARK', tags);
+    }
+    
+    try {
+      const res = await favoritesService.toggleFavorite(currentUser.id, product.id);
+      if (res.success) {
+        if (res.isFavorite) {
+          setFavoritesList(prev => Array.from(new Set([...prev, product.id])));
+        } else {
+          setFavoritesList(prev => prev.filter(id => id !== product.id));
+        }
+      }
+    } catch (err) {
+      console.error("Error toggling favorite:", err);
+    }
+  };
+
   const handleSelectProduct = (product: Product) => {
     const tags = extractTags(product);
     recSession.trackAction('VIEW', tags);
+    setSelectedProduct(product);
   };
+
+  const resolveFavorite = (id: string): Product | undefined => {
+    const foundDb = dbProducts.find(p => p.id === id);
+    if (foundDb) return foundDb;
+
+    const foundAi = dynamicAiPicks.find(p => p.id === id);
+    if (foundAi) return foundAi;
+
+    return productMap[id];
+  };
+
+  const resolvedFavorites = favoritesList
+    .map(id => resolveFavorite(id))
+    .filter(Boolean) as Product[];
 
   const handleLogout = async () => {
     if (currentUser) {
@@ -171,25 +255,33 @@ function App() {
               onSelectProduct={handleSelectProduct}
               onRefreshFeed={handleRefreshFeed}
               recResponseState={recResponseState}
+              favoritesList={favoritesList}
+              onToggleFavorite={handleToggleFavorite}
+              onSeeAllRecs={() => setShowSeeAllOverlay(true)}
             />
           )}
           {view === 'atelier' && (
             <AtelierView key="atelier" />
-          )}
-          {view === 'favorites' && (
-            <PlaceholderView key="favorites" title="Mes Favoris" subtitle="Vos inspirations sauvegardées" />
           )}
           {view === 'profile' && (
             <ProfileView
               key="profile"
               currentUser={currentUser}
               onLogout={handleLogout}
-              onNavigate={setView as any}
+              onNavigate={(v) => {
+                if (v === 'favorites') {
+                  setShowFavoritesOverlay(true);
+                } else {
+                  setView(v);
+                }
+              }}
+              favoritesCount={favoritesList.length}
             />
           )}
           {(view === 'cart' || view === 'client-order-detail') && (
             <ClientOrderDetailView
               key="client-order-detail"
+              orderId={activeOrderId || undefined}
               onBack={() => setView('home')}
               onNavigateToWallet={() => setView('client-wallet')}
             />
@@ -210,13 +302,61 @@ function App() {
       {/* Search Overlay */}
       <AnimatePresence>
         {view === 'search' && (
-          <SearchView key="search-overlay" onNavigate={setView} />
+          <SearchView
+            key="search-overlay"
+            onNavigate={setView}
+            onSelectProduct={handleSelectProduct}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Product Detail Overlay */}
+      <AnimatePresence>
+        {selectedProduct && (
+          <ProductDetailView
+            key="product-detail-overlay"
+            product={selectedProduct}
+            onClose={() => setSelectedProduct(null)}
+            onNavigate={setView}
+            setActiveOrderId={setActiveOrderId}
+            isFavorite={favoritesList.includes(selectedProduct.id)}
+            onToggleFavorite={handleToggleFavorite}
+            currentUser={currentUser}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Favorites Overlay */}
+      <AnimatePresence>
+        {showFavoritesOverlay && (
+          <FavoritesView
+            key="favorites-overlay"
+            favoritedProducts={resolvedFavorites}
+            onClose={() => setShowFavoritesOverlay(false)}
+            onSelectProduct={handleSelectProduct}
+            onToggleFavorite={handleToggleFavorite}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* See All Recs Overlay */}
+      <AnimatePresence>
+        {showSeeAllOverlay && (
+          <SeeAllRecsView
+            key="see-all-recs-overlay"
+            products={dynamicAiPicks.length > 0 ? dynamicAiPicks : fallbackAiPicks}
+            title={recResponseState?.sectionTitle || "Pour vous"}
+            onClose={() => setShowSeeAllOverlay(false)}
+            onSelectProduct={handleSelectProduct}
+            favoritesList={favoritesList}
+            onToggleFavorite={handleToggleFavorite}
+          />
         )}
       </AnimatePresence>
 
       {/* Floating Bottom Nav */}
       <AnimatePresence>
-        {view !== 'search' && (
+        {view !== 'search' && !selectedProduct && !showFavoritesOverlay && !showSeeAllOverlay && (
           <motion.div
             key="bottom-nav"
             initial={{ opacity: 0, y: 20 }}

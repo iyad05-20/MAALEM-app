@@ -7,6 +7,7 @@ import recommendationRoutes from './routes/recommendation.routes.js';
 import searchRoutes         from './routes/search.routes.js';
 import productsRoutes       from './routes/products.routes.js';
 import favoritesRoutes      from './routes/favorites.routes.js';
+import reviewsRoutes        from './routes/reviews.routes.js';
 import clientRoutes         from './client/routes/clientRoutes.js';
 import mockCmiRouter        from './core/paymentProviders/mockCmi.js';
 import { loadProducts }       from './services/recommendation.service.js';
@@ -58,6 +59,7 @@ app.use('/api/recommendations', recommendationRoutes);
 app.use('/api/search',          searchRoutes);
 app.use('/api/products',        productsRoutes);
 app.use('/api/favorites',       favoritesRoutes);
+app.use('/api/reviews',         reviewsRoutes);
 app.use('/api/client',          clientRoutes);
 app.use('/mock-cmi',            mockCmiRouter);
 

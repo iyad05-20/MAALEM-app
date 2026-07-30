@@ -1,10 +1,12 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { Product } from '../../types';
 import { recSession } from '../../services/recommendationSession';
 
 interface ProductCardProps {
   product: Product;
   onSelect?: (product: Product) => void;
+  isFavorite?: boolean;
+  onToggleFavorite?: (product: Product) => void;
 }
 
 const getFallbackImage = (category_group?: string) => {
@@ -44,10 +46,14 @@ const extractProductTags = (p: any): string[] => {
   return Array.from(new Set(tags));
 };
 
-export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
-  const [isFav, setIsFav] = useState(false);
+export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect, isFavorite, onToggleFavorite }) => {
+  const [isFav, setIsFav] = useState(isFavorite || false);
   const [imgLoaded, setImgLoaded] = useState(false);
   const favBtnRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    setIsFav(isFavorite || false);
+  }, [isFavorite]);
 
   const pAny = product as any;
   const tags = extractProductTags(pAny);
@@ -69,12 +75,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) =
     const nextFavState = !isFav;
     setIsFav(nextFavState);
 
-    if (nextFavState) {
-      // 2. Queue BOOKMARK action (+10.0 pts)
-      recSession.trackAction('BOOKMARK', tags);
-      console.log(`[CARD] 💖 BOOKMARK queued for ${product.title} on tags [${tags.join(', ')}]`);
+    if (onToggleFavorite) {
+      onToggleFavorite(product);
+    } else {
+      if (nextFavState) {
+        // 2. Queue BOOKMARK action (+10.0 pts)
+        recSession.trackAction('BOOKMARK', tags);
+      }
     }
-  }, [isFav, product.title, tags]);
+  }, [isFav, product, onToggleFavorite, tags]);
 
   const handleOrderClick = (e: React.MouseEvent) => {
     e.stopPropagation();

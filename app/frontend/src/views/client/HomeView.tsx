@@ -29,12 +29,22 @@ interface HomeViewProps {
   onSelectProduct?: (product: Product) => void;
   onRefreshFeed?: () => Promise<void>;
   recResponseState?: any;
+  favoritesList?: string[];
+  onToggleFavorite?: (product: Product) => void;
+  onSeeAllRecs?: () => void;
 }
 
 // ─── Horizontal Product Row with Focus Scaling ─────────────────────────────
-const ProductRow: React.FC<{ products: Product[]; onSelectProduct?: (p: Product) => void }> = ({
+const ProductRow: React.FC<{
+  products: Product[];
+  onSelectProduct?: (p: Product) => void;
+  favoritesList?: string[];
+  onToggleFavorite?: (product: Product) => void;
+}> = ({
   products,
   onSelectProduct,
+  favoritesList = [],
+  onToggleFavorite,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number>(0);
@@ -72,10 +82,24 @@ const ProductRow: React.FC<{ products: Product[]; onSelectProduct?: (p: Product)
     };
   }, [updateFocus]);
 
+  useEffect(() => {
+    const container = containerRef.current;
+    if (container) {
+      container.scrollLeft = 0;
+      updateFocus();
+    }
+  }, [products, updateFocus]);
+
   return (
     <div className="scroll-container" ref={containerRef}>
       {products.map(product => (
-        <ProductCard key={product.id} product={product} onSelect={onSelectProduct} />
+        <ProductCard
+          key={product.id}
+          product={product}
+          onSelect={onSelectProduct}
+          isFavorite={favoritesList.includes(product.id)}
+          onToggleFavorite={onToggleFavorite}
+        />
       ))}
       <div style={{ flexShrink: 0, width: 12 }} />
     </div>
@@ -98,6 +122,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
   onSelectProduct,
   onRefreshFeed,
   recResponseState,
+  favoritesList = [],
+  onToggleFavorite,
+  onSeeAllRecs,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrollY, setScrollY] = useState(0);
@@ -275,8 +302,14 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 subtitle={sectionState === 'personalized' ? "Sélection personnalisée selon vos goûts" : "Une immersion dans nos ateliers de création"}
                 hasAccentBar={sectionState === 'personalized'}
                 linkLabel={sectionState === 'personalized' ? "Voir tout" : "Explorer"}
+                onLinkClick={onSeeAllRecs}
               />
-              <ProductRow products={aiPicks} onSelectProduct={onSelectProduct} />
+              <ProductRow
+                products={aiPicks.slice(0, 10)}
+                onSelectProduct={onSelectProduct}
+                favoritesList={favoritesList}
+                onToggleFavorite={onToggleFavorite}
+              />
             </div>
           )}
 
@@ -287,7 +320,12 @@ export const HomeView: React.FC<HomeViewProps> = ({
               subtitle="Les pièces les plus convoitées en ce moment"
               linkLabel="Tout voir"
             />
-            <ProductRow products={trending} onSelectProduct={onSelectProduct} />
+            <ProductRow
+              products={trending}
+              onSelectProduct={onSelectProduct}
+              favoritesList={favoritesList}
+              onToggleFavorite={onToggleFavorite}
+            />
           </div>
         </div>
       </section>
@@ -334,6 +372,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
             <OccasionsModule
               occasionsData={occasionsData}
               onSelectProduct={onSelectProduct}
+              favoritesList={favoritesList}
+              onToggleFavorite={onToggleFavorite}
             />
           </div>
         </div>
@@ -375,6 +415,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
             <ProductRow
               products={regionFes.length > 0 ? regionFes : trending}
               onSelectProduct={onSelectProduct}
+              favoritesList={favoritesList}
+              onToggleFavorite={onToggleFavorite}
             />
           </div>
 

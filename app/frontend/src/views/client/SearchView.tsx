@@ -2,12 +2,14 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Search, ArrowUpRight } from 'lucide-react';
 import { SearchProductCard } from '../../components/Shared/SearchProductCard';
+import { MAALEM_DATA } from '../../data/mockData';
 import type { View } from '../../types';
 
 import { recSession } from '../../services/recommendationSession';
 
 interface SearchViewProps {
   onNavigate: (view: View) => void;
+  onSelectProduct?: (product: any) => void;
 }
 
 const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001/api';
@@ -35,7 +37,7 @@ const COLLECTIONS = [
 ];
 
 
-export const SearchView: React.FC<SearchViewProps> = ({ onNavigate }) => {
+export const SearchView: React.FC<SearchViewProps> = ({ onNavigate, onSelectProduct }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<any[]>([]);
@@ -345,7 +347,22 @@ export const SearchView: React.FC<SearchViewProps> = ({ onNavigate }) => {
                     </div>
                     <div className="results-grid">
                       {results.map(p => (
-                        <SearchProductCard key={p.id} product={p} />
+                        <SearchProductCard
+                          key={p.id}
+                          product={p}
+                          onSelect={(searchProd) => {
+                            const fullProd = MAALEM_DATA.products.find(item => item.id === searchProd.id) || {
+                              id: searchProd.id,
+                              title: searchProd.title,
+                              category: searchProd.category_group,
+                              price: searchProd.price ? `${searchProd.price} MAD` : 'Sur demande',
+                              rating: 4.8,
+                              badge: null,
+                              image: ''
+                            };
+                            onSelectProduct?.(fullProd);
+                          }}
+                        />
                       ))}
                     </div>
                   </>

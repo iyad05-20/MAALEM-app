@@ -21,12 +21,14 @@ interface ProfileViewProps {
   currentUser: UserProfile;
   onLogout: () => void;
   onNavigate: (view: View) => void;
+  favoritesCount?: number;
 }
 
 export const ProfileView: React.FC<ProfileViewProps> = ({
   currentUser,
   onLogout,
   onNavigate,
+  favoritesCount = 0,
 }) => {
   const [walletBalance, setWalletBalance] = useState<number>(600);
   const [ordersCount, setOrdersCount] = useState<number>(3);
@@ -252,7 +254,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 display: 'block',
               }}
             >
-              5
+              {favoritesCount}
             </span>
             <span style={{ fontFamily: 'var(--font-body)', fontSize: 11, color: 'var(--text-secondary)' }}>
               Favoris
@@ -383,7 +385,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 Mes Créations Favorites
               </p>
               <p style={{ fontFamily: 'var(--font-body)', fontSize: 11, color: 'var(--text-secondary)', margin: 0 }}>
-                5 articles artisanaux enregistrés
+                {favoritesCount} {favoritesCount > 1 ? 'articles artisanaux enregistrés' : 'article artisanal enregistré'}
               </p>
             </div>
           </div>

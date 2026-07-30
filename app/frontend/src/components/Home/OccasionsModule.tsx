@@ -10,6 +10,8 @@ interface OccasionsModuleProps {
     cuisine: Product[];
   };
   onSelectProduct?: (product: Product) => void;
+  favoritesList?: string[];
+  onToggleFavorite?: (product: Product) => void;
 }
 
 type TabType = 'cadeaux' | 'maison' | 'cuisine';
@@ -23,6 +25,8 @@ const TABS: { id: TabType; label: string; icon: string }[] = [
 export const OccasionsModule: React.FC<OccasionsModuleProps> = ({
   occasionsData,
   onSelectProduct,
+  favoritesList = [],
+  onToggleFavorite,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('cadeaux');
 
@@ -62,6 +66,8 @@ export const OccasionsModule: React.FC<OccasionsModuleProps> = ({
               key={product.id}
               product={product}
               onSelect={onSelectProduct}
+              isFavorite={favoritesList.includes(product.id)}
+              onToggleFavorite={onToggleFavorite}
             />
           ))}
         </motion.div>
