@@ -62,6 +62,7 @@ function App() {
   const [showFavoritesOverlay, setShowFavoritesOverlay] = useState(false);
   const [showSeeAllOverlay, setShowSeeAllOverlay] = useState(false);
   const [dbProducts, setDbProducts] = useState<Product[]>([]);
+  const [isOrderDetailOpen, setIsOrderDetailOpen] = useState(false);
 
   const trending = resolve(MAALEM_DATA.collections.trending);
   const fallbackAiPicks = resolve(MAALEM_DATA.collections.aiPicks);
@@ -284,6 +285,7 @@ function App() {
               orderId={activeOrderId || undefined}
               onBack={() => setView('home')}
               onNavigateToWallet={() => setView('client-wallet')}
+              onDetailToggle={setIsOrderDetailOpen}
             />
           )}
           {view === 'client-wallet' && (
@@ -356,7 +358,7 @@ function App() {
 
       {/* Floating Bottom Nav */}
       <AnimatePresence>
-        {view !== 'search' && !selectedProduct && !showFavoritesOverlay && !showSeeAllOverlay && (
+        {view !== 'search' && !selectedProduct && !showFavoritesOverlay && !showSeeAllOverlay && !isOrderDetailOpen && (
           <motion.div
             key="bottom-nav"
             initial={{ opacity: 0, y: 20 }}

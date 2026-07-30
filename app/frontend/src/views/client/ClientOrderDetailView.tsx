@@ -11,6 +11,7 @@ import {
   Package,
   ChevronRight,
   Lock,
+  X,
 } from "lucide-react";
 import type { ClientOrder } from "../../types/clientPayment";
 import { clientWalletAPI } from "../../services/clientWalletApi";
@@ -19,6 +20,7 @@ interface ClientOrderDetailViewProps {
   orderId?: string;
   onBack?: () => void;
   onNavigateToWallet?: () => void;
+  onDetailToggle?: (isOpen: boolean) => void;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -89,6 +91,7 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
   orderId,
   onBack,
   onNavigateToWallet,
+  onDetailToggle,
 }) => {
   const [orders, setOrders] = useState<ClientOrder[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<ClientOrder | null>(null);
@@ -130,6 +133,20 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
   };
 
   useEffect(() => { loadData(); }, [orderId]);
+
+  useEffect(() => {
+    if (onDetailToggle) {
+      onDetailToggle(selectedOrder !== null);
+    }
+  }, [selectedOrder, onDetailToggle]);
+
+  useEffect(() => {
+    return () => {
+      if (onDetailToggle) {
+        onDetailToggle(false);
+      }
+    };
+  }, [onDetailToggle]);
 
   if (loading && orders.length === 0) {
     return (
@@ -249,13 +266,13 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
   return (
     <div className="app-view" style={{ paddingTop: 0, position: "relative" }}>
 
-      {/* ── Mobile Top Header ───────────────────────────────────── */}
+      {/* ── Mobile Top Header (Always list header) ────────────────── */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 16, marginBottom: 12 }}>
-        <button onClick={selectedOrder ? () => setSelectedOrder(null) : onBack} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "var(--shadow-sm)" }}>
+        <button onClick={onBack} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "var(--shadow-sm)" }}>
           <ArrowLeft size={18} color="var(--primary)" />
         </button>
         <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, color: "var(--primary)", margin: 0 }}>
-          {selectedOrder ? "Détails Commande" : "Mes Commandes"}
+          Mes Commandes
         </h1>
         {onNavigateToWallet ? (
           <button onClick={onNavigateToWallet} style={{ background: "rgba(212,175,55,0.12)", border: "1px solid rgba(212,175,55,0.35)", borderRadius: 12, padding: "8px 12px", fontFamily: "var(--font-body)", fontSize: 12, fontWeight: 600, color: "#8B6914", cursor: "pointer" }}>
@@ -264,9 +281,9 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
         ) : <div style={{ width: 40 }} />}
       </div>
 
-      {/* ── Feedback Banner ─────────────────────────────────────── */}
+      {/* ── Feedback Banner (Only shown on list page) ─────────────── */}
       <AnimatePresence>
-        {message && (
+        {message && !selectedOrder && (
           <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} style={{ padding: "12px 14px", borderRadius: 14, marginBottom: 16, background: message.type === "success" ? "rgba(45,106,79,0.10)" : "rgba(220,53,69,0.10)", border: `1px solid ${message.type === "success" ? "rgba(45,106,79,0.30)" : "rgba(220,53,69,0.30)"}`, display: "flex", alignItems: "center", gap: 8, fontFamily: "var(--font-body)", fontSize: 12, color: message.type === "success" ? "#2D6A4F" : "#DC3545" }}>
             {message.type === "success" ? <CheckCircle size={16} /> : <AlertTriangle size={16} />}
             <span style={{ flex: 1 }}>{message.text}</span>
@@ -274,298 +291,420 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
         )}
       </AnimatePresence>
 
-      {/* ── LIST VIEW (Rendered when no selectedOrder) ─────────────── */}
-      {!selectedOrder ? (
-        <>
-          {/* Segmented Tab Switcher */}
-          <div style={{ display: "flex", background: "rgba(0,0,0,0.04)", borderRadius: 14, padding: 4, marginBottom: 16 }}>
-            <button
-              onClick={() => setActiveTab("active")}
-              style={{
-                flex: 1,
-                padding: "8px 0",
-                borderRadius: 10,
-                border: "none",
-                background: activeTab === "active" ? "#FFFFFF" : "transparent",
-                color: activeTab === "active" ? "var(--primary)" : "var(--text-secondary)",
-                fontFamily: "var(--font-display)",
-                fontWeight: 700,
-                fontSize: 12,
-                cursor: "pointer",
-                boxShadow: activeTab === "active" ? "0 2px 6px rgba(0,0,0,0.06)" : "none",
-                transition: "all 0.2s ease"
-              }}
-            >
-              En cours ({orders.filter(o => !["complete", "annulee"].includes(o.status)).length})
-            </button>
-            <button
-              onClick={() => setActiveTab("history")}
-              style={{
-                flex: 1,
-                padding: "8px 0",
-                borderRadius: 10,
-                border: "none",
-                background: activeTab === "history" ? "#FFFFFF" : "transparent",
-                color: activeTab === "history" ? "var(--primary)" : "var(--text-secondary)",
-                fontFamily: "var(--font-display)",
-                fontWeight: 700,
-                fontSize: 12,
-                cursor: "pointer",
-                boxShadow: activeTab === "history" ? "0 2px 6px rgba(0,0,0,0.06)" : "none",
-                transition: "all 0.2s ease"
-              }}
-            >
-              Historique ({orders.filter(o => ["complete", "annulee"].includes(o.status)).length})
-            </button>
-          </div>
+      {/* Segmented Tab Switcher */}
+      <div style={{ display: "flex", background: "rgba(0,0,0,0.04)", borderRadius: 14, padding: 4, marginBottom: 16 }}>
+        <button
+          onClick={() => setActiveTab("active")}
+          style={{
+            flex: 1,
+            padding: "8px 0",
+            borderRadius: 10,
+            border: "none",
+            background: activeTab === "active" ? "#FFFFFF" : "transparent",
+            color: activeTab === "active" ? "var(--primary)" : "var(--text-secondary)",
+            fontFamily: "var(--font-display)",
+            fontWeight: 700,
+            fontSize: 12,
+            cursor: "pointer",
+            boxShadow: activeTab === "active" ? "0 2px 6px rgba(0,0,0,0.06)" : "none",
+            transition: "all 0.2s ease"
+          }}
+        >
+          En cours ({orders.filter(o => !["complete", "annulee"].includes(o.status)).length})
+        </button>
+        <button
+          onClick={() => setActiveTab("history")}
+          style={{
+            flex: 1,
+            padding: "8px 0",
+            borderRadius: 10,
+            border: "none",
+            background: activeTab === "history" ? "#FFFFFF" : "transparent",
+            color: activeTab === "history" ? "var(--primary)" : "var(--text-secondary)",
+            fontFamily: "var(--font-display)",
+            fontWeight: 700,
+            fontSize: 12,
+            cursor: "pointer",
+            boxShadow: activeTab === "history" ? "0 2px 6px rgba(0,0,0,0.06)" : "none",
+            transition: "all 0.2s ease"
+          }}
+        >
+          Historique ({orders.filter(o => ["complete", "annulee"].includes(o.status)).length})
+        </button>
+      </div>
 
-          {/* Vertical scroll list of orders */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 12, overflowY: "auto", maxHeight: "calc(100vh - 200px)", paddingBottom: 40, scrollbarWidth: "none" }}>
-            {visibleOrders.length > 0 ? (
-              visibleOrders.map((o) => (
-                <div 
-                  key={o.id} 
-                  onClick={() => setSelectedOrder(o)}
-                  style={{
-                    display: 'flex',
-                    gap: 12,
-                    background: 'var(--surface)',
-                    border: '1px solid var(--border)',
-                    borderRadius: 16,
-                    padding: 12,
-                    cursor: 'pointer',
-                    boxShadow: 'var(--shadow-sm)',
-                    alignItems: 'center',
-                    textAlign: 'left'
-                  }}
-                >
-                  <img 
-                    src={o.productImage || 'https://images.unsplash.com/photo-1549490349-8643362247b5?w=500&q=80'} 
-                    alt={o.productTitle} 
-                    style={{ width: 64, height: 64, borderRadius: 12, objectFit: 'cover' }}
-                  />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.85rem', color: 'var(--primary)', margin: '0 0 4px 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {o.productTitle}
-                    </p>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: STATUS_COLORS[o.status] || '#6B7280' }} />
-                      <span style={{ fontSize: '0.72rem', fontWeight: 600, color: STATUS_COLORS[o.status] || '#6B7280' }}>
-                        {STATUS_LABELS[o.status] || o.status}
-                      </span>
-                    </div>
-                    <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>
-                      {new Date(o.createdAt).toLocaleDateString('fr-FR')}
+      {/* Vertical scroll list of orders (Premium Minimalist Cards) */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, overflowY: "auto", maxHeight: "calc(100vh - 200px)", paddingBottom: 40, scrollbarWidth: "none" }}>
+        {visibleOrders.length > 0 ? (
+          visibleOrders.map((o) => {
+            const getSimpleStatus = (status: string) => {
+              switch (status) {
+                case "en_attente_paiement":
+                case "paiement_initie":
+                case "paiement_echoue":
+                  return { dotColor: "#CC7755", label: "Paiement" };
+                case "acompte_verse":
+                case "payee_integralement":
+                case "en_preparation":
+                  return { dotColor: "#D4AF37", label: "Fabrication" };
+                case "en_cours_de_transport":
+                  return { dotColor: "#1A2A3A", label: "Livraison" };
+                case "livre":
+                case "complete":
+                  return { dotColor: "#2D6A4F", label: "Livrée" };
+                case "en_reclamation":
+                case "retour_initie":
+                  return { dotColor: "#DC3545", label: "Litige" };
+                case "annulee":
+                default:
+                  return { dotColor: "#6B7280", label: "Annulée" };
+              }
+            };
+            const statInfo = getSimpleStatus(o.status);
+
+            return (
+              <div 
+                key={o.id} 
+                onClick={() => setSelectedOrder(o)}
+                style={{
+                  display: 'flex',
+                  gap: 16,
+                  background: '#FFFEFC',
+                  border: '1px solid rgba(196, 169, 106, 0.12)',
+                  borderRadius: 16,
+                  padding: 16,
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(26, 42, 58, 0.02)',
+                  alignItems: 'center',
+                  textAlign: 'left'
+                }}
+              >
+                {/* Product image (larger, premium) */}
+                <img 
+                  src={o.productImage || 'https://images.unsplash.com/photo-1549490349-8643362247b5?w=500&q=80'} 
+                  alt={o.productTitle} 
+                  style={{ width: 72, height: 72, borderRadius: 12, objectFit: 'cover', border: '1px solid rgba(26, 42, 58, 0.05)' }}
+                />
+                
+                {/* Middle details: title and simplified status */}
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.9rem', color: 'var(--primary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {o.productTitle}
+                  </p>
+                  
+                  {/* Status text with simple colored dot */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: statInfo.dotColor, flexShrink: 0 }} />
+                    <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                      {statInfo.label}
                     </span>
                   </div>
-                  <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                    <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '0.9rem', color: 'var(--primary)', margin: 0 }}>
-                      {o.totalPrice} MAD
-                    </p>
-                    <ChevronRight size={14} color="var(--text-secondary)" />
+                </div>
+
+                {/* Right side: price and clickable arrow */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+                  <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '0.95rem', color: 'var(--primary)', margin: 0 }}>
+                    {o.totalPrice} MAD
+                  </p>
+                  <ChevronRight size={16} color="var(--text-secondary)" style={{ opacity: 0.6 }} />
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div style={{ background: "var(--surface)", borderRadius: 20, border: "1px dashed var(--border)", padding: "48px 20px", textAlign: "center", marginTop: 20 }}>
+            <Package size={36} color="var(--text-secondary)" style={{ marginBottom: 12, opacity: 0.7 }} />
+            <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "var(--primary)", margin: "0 0 6px 0" }}>Aucune commande</h4>
+            <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "var(--text-secondary)", margin: 0 }}>
+              {activeTab === "active" ? "Vous n'avez pas de commande en cours de traitement." : "Votre historique de commande est vide."}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* ── PREMIUM DETAILED OVERLAY (slides up from bottom when selectedOrder !== null) ── */}
+      <AnimatePresence>
+        {selectedOrder && (
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }} 
+            onClick={() => setSelectedOrder(null)}
+            style={{ 
+              position: "fixed", 
+              inset: 0, 
+              background: "rgba(26,42,58,0.45)", 
+              backdropFilter: "blur(6px)", 
+              WebkitBackdropFilter: "blur(6px)", 
+              display: "flex", 
+              alignItems: "flex-end", 
+              justifyContent: "center", 
+              zIndex: 80 
+            }}
+          >
+            <motion.div 
+              initial={{ y: "100%" }} 
+              animate={{ y: 0 }} 
+              exit={{ y: "100%" }} 
+              transition={{ type: "spring", damping: 25, stiffness: 200 }} 
+              onClick={(e) => e.stopPropagation()}
+              style={{ 
+                background: "#FCFBF9", 
+                borderRadius: "32px 32px 0 0", 
+                padding: "20px 20px 40px", 
+                width: "100%", 
+                maxWidth: 640,
+                height: "92vh", 
+                boxShadow: "0 -10px 40px rgba(0,0,0,0.15)",
+                borderTop: "1.5px solid rgba(196, 169, 106, 0.2)",
+                display: "flex",
+                flexDirection: "column",
+                overflow: "hidden"
+              }}
+            >
+              {/* Grabber Handle */}
+              <div style={{ width: 40, height: 4, background: "rgba(0,0,0,0.1)", borderRadius: 2, margin: "0 auto 16px", flexShrink: 0 }} />
+
+              {/* Overlay Header */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexShrink: 0 }}>
+                <button 
+                  onClick={() => setSelectedOrder(null)} 
+                  style={{ 
+                    background: "var(--surface)", 
+                    border: "1px solid var(--border)", 
+                    borderRadius: 12, 
+                    width: 36, 
+                    height: 36, 
+                    display: "flex", 
+                    alignItems: "center", 
+                    justifyContent: "center", 
+                    cursor: "pointer" 
+                  }}
+                >
+                  <ArrowLeft size={16} color="var(--primary)" />
+                </button>
+                <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 16, color: "var(--primary)", margin: 0 }}>
+                  Suivi de Création
+                </h2>
+                <button 
+                  onClick={() => setSelectedOrder(null)} 
+                  style={{ 
+                    background: "var(--surface)", 
+                    border: "1px solid var(--border)", 
+                    borderRadius: 12, 
+                    width: 36, 
+                    height: 36, 
+                    display: "flex", 
+                    alignItems: "center", 
+                    justifyContent: "center", 
+                    cursor: "pointer" 
+                  }}
+                >
+                  <X size={16} color="var(--primary)" />
+                </button>
+              </div>
+
+              {/* Scrollable Overlay Content */}
+              <div style={{ flex: 1, overflowY: "auto", paddingRight: 4, scrollbarWidth: "none" }}>
+                
+                {/* Stepper Progress Bar */}
+                <div style={{ background: "var(--surface)", borderRadius: 20, border: "1px solid var(--border)", padding: "20px 16px", marginBottom: 16, boxShadow: "var(--shadow-sm)" }}>
+                  <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, color: "var(--primary)", margin: "0 0 16px 0" }}>État de fabrication & livraison</p>
+                  
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", position: "relative", padding: "0 8px" }}>
+                    {/* Progress bar background line */}
+                    <div style={{ position: "absolute", top: 12, left: 24, right: 24, height: 3, background: "#E5E7EB", zIndex: 0 }} />
+                    
+                    {/* Active green progress line */}
+                    <div 
+                      style={{ 
+                        position: "absolute", 
+                        top: 12, 
+                        left: 24, 
+                        width: `${
+                          selectedOrder.status === "en_attente_paiement" || selectedOrder.status === "paiement_echoue" || selectedOrder.status === "paiement_initie" ? "0%" :
+                          selectedOrder.status === "acompte_verse" || selectedOrder.status === "payee_integralement" || selectedOrder.status === "en_preparation" ? "33%" :
+                          selectedOrder.status === "en_cours_de_transport" ? "66%" : "100%"
+                        }`,
+                        height: 3, 
+                        background: "#4A7C59", 
+                        zIndex: 0,
+                        transition: "width 0.4s ease"
+                      }} 
+                    />
+
+                    {getStatusSteps(selectedOrder.status).map((step, idx) => (
+                      <div key={idx} style={{ display: "flex", flexDirection: "column", alignItems: "center", zIndex: 1, position: "relative", width: 60 }}>
+                        <div 
+                          style={{ 
+                            width: 24, 
+                            height: 24, 
+                            borderRadius: "50%", 
+                            background: step.done ? "#4A7C59" : step.active ? "#D4AF37" : "#FFFFFF", 
+                            border: `2px solid ${step.done ? "#4A7C59" : step.active ? "#D4AF37" : "#CBD5E1"}`, 
+                            display: "flex", 
+                            alignItems: "center", 
+                            justifyContent: "center",
+                            fontSize: 10,
+                            fontWeight: 700,
+                            color: step.done ? "#FFFFFF" : step.active ? "#FFFFFF" : "#64748B",
+                            boxShadow: step.active ? "0 0 0 4px rgba(212,175,55,0.18)" : "none",
+                            transition: "all 0.3s ease"
+                          }}
+                        >
+                          {step.done ? "✓" : idx + 1}
+                        </div>
+                        <span 
+                          style={{ 
+                            marginTop: 6, 
+                            fontFamily: "var(--font-body)", 
+                            fontSize: 10, 
+                            fontWeight: step.active || step.done ? 600 : 500, 
+                            color: step.active ? "#8B6914" : step.done ? "#2D6A4F" : "#64748B",
+                            textAlign: "center"
+                          }}
+                        >
+                          {step.label}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ))
-            ) : (
-              <div style={{ background: "var(--surface)", borderRadius: 20, border: "1px dashed var(--border)", padding: "48px 20px", textAlign: "center", marginTop: 20 }}>
-                <Package size={36} color="var(--text-secondary)" style={{ marginBottom: 12, opacity: 0.7 }} />
-                <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "var(--primary)", margin: "0 0 6px 0" }}>Aucune commande</h4>
-                <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "var(--text-secondary)", margin: 0 }}>
-                  {activeTab === "active" ? "Vous n'avez pas de commande en cours de traitement." : "Votre historique de commande est vide."}
-                </p>
-              </div>
-            )}
-          </div>
-        </>
-      ) : (
-        /* ── DETAIL VIEW (Rendered when selectedOrder is not null) ── */
-        <>
-          {/* Stepper Progress Bar */}
-          <div style={{ background: "var(--surface)", borderRadius: 20, border: "1px solid var(--border)", padding: "20px 16px", marginBottom: 16, boxShadow: "var(--shadow-sm)" }}>
-            <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, color: "var(--primary)", margin: "0 0 16px 0" }}>État de fabrication & livraison</p>
-            
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", position: "relative", padding: "0 8px" }}>
-              {/* Progress bar background line */}
-              <div style={{ position: "absolute", top: 12, left: 24, right: 24, height: 3, background: "#E5E7EB", zIndex: 0 }} />
-              
-              {/* Active green progress line */}
-              <div 
-                style={{ 
-                  position: "absolute", 
-                  top: 12, 
-                  left: 24, 
-                  width: `${
-                    selectedOrder.status === "en_attente_paiement" || selectedOrder.status === "paiement_echoue" || selectedOrder.status === "paiement_initie" ? "0%" :
-                    selectedOrder.status === "acompte_verse" || selectedOrder.status === "payee_integralement" || selectedOrder.status === "en_preparation" ? "33%" :
-                    selectedOrder.status === "en_cours_de_transport" ? "66%" : "100%"
-                  }`,
-                  height: 3, 
-                  background: "#4A7C59", 
-                  zIndex: 0,
-                  transition: "width 0.4s ease"
-                }} 
-              />
 
-              {getStatusSteps(selectedOrder.status).map((step, idx) => (
-                <div key={idx} style={{ display: "flex", flexDirection: "column", alignItems: "center", zIndex: 1, position: "relative", width: 60 }}>
-                  <div 
-                    style={{ 
-                      width: 24, 
-                      height: 24, 
-                      borderRadius: "50%", 
-                      background: step.done ? "#4A7C59" : step.active ? "#D4AF37" : "#FFFFFF", 
-                      border: `2px solid ${step.done ? "#4A7C59" : step.active ? "#D4AF37" : "#CBD5E1"}`, 
-                      display: "flex", 
-                      alignItems: "center", 
-                      justifyContent: "center",
-                      fontSize: 10,
-                      fontWeight: 700,
-                      color: step.done ? "#FFFFFF" : step.active ? "#FFFFFF" : "#64748B",
-                      boxShadow: step.active ? "0 0 0 4px rgba(212,175,55,0.18)" : "none",
-                      transition: "all 0.3s ease"
-                    }}
-                  >
-                    {step.done ? "✓" : idx + 1}
-                  </div>
-                  <span 
-                    style={{ 
-                      marginTop: 6, 
-                      fontFamily: "var(--font-body)", 
-                      fontSize: 10, 
-                      fontWeight: step.active || step.done ? 600 : 500, 
-                      color: step.active ? "#8B6914" : step.done ? "#2D6A4F" : "#64748B",
-                      textAlign: "center"
-                    }}
-                  >
-                    {step.label}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Product Card */}
-          <div style={{ background: "var(--surface)", borderRadius: 20, border: "1px solid var(--border)", overflow: "hidden", marginBottom: 16, boxShadow: "var(--shadow-md)" }}>
-            {selectedOrder.productImage && (
-              <div style={{ position: "relative", height: 140, overflow: "hidden" }}>
-                <img src={selectedOrder.productImage} alt={selectedOrder.productTitle} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(26,42,58,0.85) 0%, transparent 65%)" }} />
-                <div style={{ position: "absolute", bottom: 12, left: 14, right: 14 }}>
-                  <span style={{ display: "inline-block", background: isCustom ? "rgba(204,119,85,0.90)" : "rgba(156,175,136,0.90)", color: "#fff", fontSize: 10, fontWeight: 700, fontFamily: "var(--font-body)", padding: "2px 8px", borderRadius: 12, letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 4 }}>
-                    {isCustom ? "Sur-Mesure IA" : "Standard"}
-                  </span>
-                  <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14, color: "#fff", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{selectedOrder.productTitle}</p>
-                </div>
-              </div>
-            )}
-
-            <div style={{ padding: "14px 16px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                <div>
-                  <p style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text-secondary)", margin: 0 }}>Maâlem Créateur</p>
-                  <p style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 13, color: "var(--primary)", margin: 0 }}>{selectedOrder.artisanName || selectedOrder.artisanRef}</p>
-                </div>
-                <div style={{ textAlign: "right" }}>
-                  <p style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text-secondary)", margin: 0 }}>Prix Total</p>
-                  <p style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 16, color: "var(--primary)", margin: 0 }}>{selectedOrder.totalPrice} <span style={{ fontSize: 11, fontWeight: 500 }}>MAD</span></p>
-                </div>
-              </div>
-
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 10, borderTop: "1px solid var(--border)" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: statusColor }} />
-                  <span style={{ fontFamily: "var(--font-body)", fontSize: 12, fontWeight: 600, color: statusColor }}>{statusLabel}</span>
-                </div>
-                <span style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text-secondary)" }}>{new Date(selectedOrder.createdAt).toLocaleDateString("fr-FR")}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Action Buttons Section */}
-          <div style={{ marginBottom: 12 }}>
-            <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, color: "var(--primary)", marginBottom: 10 }}>Actions disponibles</p>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {/* 1. [Payer en ligne via CMI] */}
-              {(selectedOrder.status === "en_attente_paiement" || selectedOrder.status === "paiement_echoue") && (
-                <motion.button whileTap={{ scale: 0.98 }} onClick={() => setShowCmiModal(true)} disabled={loading} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 16px", borderRadius: 14, background: "var(--primary)", color: "#fff", border: "none", cursor: "pointer", boxShadow: "var(--shadow-md)", width: "100%" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <CreditCard size={18} />
-                    <div style={{ textAlign: "left" }}>
-                      <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, margin: 0 }}>Payer via CMI (3D Secure)</p>
-                      <p style={{ fontFamily: "var(--font-body)", fontSize: 11, opacity: 0.75, margin: 0 }}>{isHighAmount ? `Acompte 50% : ${depositAmount} MAD` : `Règlement total : ${depositAmount} MAD`}</p>
-                    </div>
-                  </div>
-                  <ChevronRight size={16} opacity={0.7} />
-                </motion.button>
-              )}
-
-              {/* 2. [Annuler la commande] */}
-              {canCancel && (
-                <div>
-                  <motion.button whileTap={{ scale: 0.98 }} onClick={handleCancel} disabled={loading || !!isCustomLocked} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 16px", borderRadius: 14, background: isCustomLocked ? "rgba(107,114,128,0.08)" : "rgba(220,53,69,0.08)", color: isCustomLocked ? "var(--text-secondary)" : "#C0392B", border: `1px solid ${isCustomLocked ? "var(--border)" : "rgba(220,53,69,0.25)"}`, cursor: isCustomLocked ? "not-allowed" : "pointer", width: "100%", opacity: isCustomLocked ? 0.6 : 1 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <XCircle size={18} />
-                      <div style={{ textAlign: "left" }}>
-                        <p style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 13, margin: 0 }}>Annuler la commande</p>
-                        <p style={{ fontFamily: "var(--font-body)", fontSize: 11, opacity: 0.75, margin: 0 }}>
-                          {isCustomLocked ? "Ferme après 1h" : isGracePeriodActive ? `Gratuit · ${Math.round(60 - diffMinutes)}min` : "Remboursement 100% Wallet"}
-                        </p>
+                {/* Product Card */}
+                <div style={{ background: "var(--surface)", borderRadius: 20, border: "1px solid var(--border)", overflow: "hidden", marginBottom: 16, boxShadow: "var(--shadow-md)" }}>
+                  {selectedOrder.productImage && (
+                    <div style={{ position: "relative", height: 140, overflow: "hidden" }}>
+                      <img src={selectedOrder.productImage} alt={selectedOrder.productTitle} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(26,42,58,0.85) 0%, transparent 65%)" }} />
+                      <div style={{ position: "absolute", bottom: 12, left: 14, right: 14 }}>
+                        <span style={{ display: "inline-block", background: isCustom ? "rgba(204,119,85,0.90)" : "rgba(156,175,136,0.90)", color: "#fff", fontSize: 10, fontWeight: 700, fontFamily: "var(--font-body)", padding: "2px 8px", borderRadius: 12, letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 4 }}>
+                          {isCustom ? "Sur-Mesure IA" : "Standard"}
+                        </span>
+                        <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14, color: "#fff", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{selectedOrder.productTitle}</p>
                       </div>
                     </div>
-                    {!isCustomLocked && <ChevronRight size={16} opacity={0.6} />}
-                  </motion.button>
-                  {isCustomLocked && (
-                    <p style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "#C0392B", marginTop: 4, paddingLeft: 4 }}>
-                      ⚠️ Produit sur-mesure : commande ferme après 1h.
-                    </p>
                   )}
-                  {isGracePeriodActive && (
-                    <p style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "#2D6A4F", marginTop: 4, paddingLeft: 4 }}>
-                      ⏱️ Heure de grâce active : {Math.round(60 - diffMinutes)} min restantes pour annuler.
-                    </p>
-                  )}
+
+                  <div style={{ padding: "14px 16px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                      <div>
+                        <p style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text-secondary)", margin: 0 }}>Maâlem Créateur</p>
+                        <p style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 13, color: "var(--primary)", margin: 0 }}>{selectedOrder.artisanName || selectedOrder.artisanRef}</p>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <p style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text-secondary)", margin: 0 }}>Prix Total</p>
+                        <p style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 16, color: "var(--primary)", margin: 0 }}>{selectedOrder.totalPrice} <span style={{ fontSize: 11, fontWeight: 500 }}>MAD</span></p>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 10, borderTop: "1px solid var(--border)" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <div style={{ width: 8, height: 8, borderRadius: "50%", background: statusColor }} />
+                        <span style={{ fontFamily: "var(--font-body)", fontSize: 12, fontWeight: 600, color: statusColor }}>{statusLabel}</span>
+                      </div>
+                      <span style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text-secondary)" }}>{new Date(selectedOrder.createdAt).toLocaleDateString("fr-FR")}</span>
+                    </div>
+                  </div>
                 </div>
-              )}
 
-              {/* 3. [Demander un Retour 7j] */}
-              {canReturn7d && (
-                <motion.button whileTap={{ scale: 0.98 }} onClick={() => setShowReturnModal(true)} disabled={loading} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 16px", borderRadius: 14, background: "rgba(26,42,58,0.05)", color: "var(--primary)", border: "1px solid var(--border)", cursor: "pointer", width: "100%" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <RotateCcw size={18} />
-                    <div style={{ textAlign: "left" }}>
-                      <p style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 13, margin: 0 }}>Demander un Retour (7j)</p>
-                      <p style={{ fontFamily: "var(--font-body)", fontSize: 11, opacity: 0.6, margin: 0 }}>Cathedis ou propres moyens</p>
-                    </div>
+                {/* Overlay Inner Feedback Banner */}
+                {message && (
+                  <div style={{ padding: "12px 14px", borderRadius: 14, marginBottom: 16, background: message.type === "success" ? "rgba(45,106,79,0.10)" : "rgba(220,53,69,0.10)", border: `1px solid ${message.type === "success" ? "rgba(45,106,79,0.30)" : "rgba(220,53,69,0.30)"}`, display: "flex", alignItems: "center", gap: 8, fontFamily: "var(--font-body)", fontSize: 12, color: message.type === "success" ? "#2D6A4F" : "#DC3545" }}>
+                    {message.type === "success" ? <CheckCircle size={16} /> : <AlertTriangle size={16} />}
+                    <span style={{ flex: 1 }}>{message.text}</span>
                   </div>
-                  <ChevronRight size={16} opacity={0.5} />
-                </motion.button>
-              )}
+                )}
 
-              {/* 4. [Signaler un Vice Caché 15j] */}
-              {canDispute15d && (
-                <motion.button whileTap={{ scale: 0.98 }} onClick={() => setShowDisputeModal(true)} disabled={loading} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 16px", borderRadius: 14, background: "rgba(212,175,55,0.08)", color: "#8B6914", border: "1px solid rgba(212,175,55,0.30)", cursor: "pointer", width: "100%" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <ShieldAlert size={18} />
-                    <div style={{ textAlign: "left" }}>
-                      <p style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 13, margin: 0 }}>Signaler un Vice Caché (15j)</p>
-                      <p style={{ fontFamily: "var(--font-body)", fontSize: 11, opacity: 0.7, margin: 0 }}>Gel de l'escrow · Arbitrage Vork</p>
-                    </div>
+                {/* Action Buttons Section */}
+                <div style={{ marginBottom: 12 }}>
+                  <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, color: "var(--primary)", marginBottom: 10 }}>Actions disponibles</p>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {/* 1. [Payer en ligne via CMI] */}
+                    {(selectedOrder.status === "en_attente_paiement" || selectedOrder.status === "paiement_echoue") && (
+                      <motion.button whileTap={{ scale: 0.98 }} onClick={() => setShowCmiModal(true)} disabled={loading} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 16px", borderRadius: 14, background: "var(--primary)", color: "#fff", border: "none", cursor: "pointer", boxShadow: "var(--shadow-md)", width: "100%" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <CreditCard size={18} />
+                          <div style={{ textAlign: "left" }}>
+                            <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, margin: 0 }}>Payer via CMI (3D Secure)</p>
+                            <p style={{ fontFamily: "var(--font-body)", fontSize: 11, opacity: 0.75, margin: 0 }}>{isHighAmount ? `Acompte 50% : ${depositAmount} MAD` : `Règlement total : ${depositAmount} MAD`}</p>
+                          </div>
+                        </div>
+                        <ChevronRight size={16} opacity={0.7} />
+                      </motion.button>
+                    )}
+
+                    {/* 2. [Annuler la commande] */}
+                    {canCancel && (
+                      <div>
+                        <motion.button whileTap={{ scale: 0.98 }} onClick={handleCancel} disabled={loading || !!isCustomLocked} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 16px", borderRadius: 14, background: isCustomLocked ? "rgba(107,114,128,0.08)" : "rgba(220,53,69,0.08)", color: isCustomLocked ? "var(--text-secondary)" : "#C0392B", border: `1px solid ${isCustomLocked ? "var(--border)" : "rgba(220,53,69,0.25)"}`, cursor: isCustomLocked ? "not-allowed" : "pointer", width: "100%", opacity: isCustomLocked ? 0.6 : 1 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <XCircle size={18} />
+                            <div style={{ textAlign: "left" }}>
+                              <p style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 13, margin: 0 }}>Annuler la commande</p>
+                              <p style={{ fontFamily: "var(--font-body)", fontSize: 11, opacity: 0.75, margin: 0 }}>
+                                {isCustomLocked ? "Ferme après 1h" : isGracePeriodActive ? `Gratuit · ${Math.round(60 - diffMinutes)}min` : "Remboursement 100% Wallet"}
+                              </p>
+                            </div>
+                          </div>
+                          {!isCustomLocked && <ChevronRight size={16} opacity={0.6} />}
+                        </motion.button>
+                        {isCustomLocked && (
+                          <p style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "#C0392B", marginTop: 4, paddingLeft: 4 }}>
+                            ⚠️ Produit sur-mesure : commande ferme après 1h.
+                          </p>
+                        )}
+                        {isGracePeriodActive && (
+                          <p style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "#2D6A4F", marginTop: 4, paddingLeft: 4 }}>
+                            ⏱️ Heure de grâce active : {Math.round(60 - diffMinutes)} min restantes pour annuler.
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* 3. [Demander un Retour 7j] */}
+                    {canReturn7d && (
+                      <motion.button whileTap={{ scale: 0.98 }} onClick={() => setShowReturnModal(true)} disabled={loading} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 16px", borderRadius: 14, background: "rgba(26,42,58,0.05)", color: "var(--primary)", border: "1px solid var(--border)", cursor: "pointer", width: "100%" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <RotateCcw size={18} />
+                          <div style={{ textAlign: "left" }}>
+                            <p style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 13, margin: 0 }}>Demander un Retour (7j)</p>
+                            <p style={{ fontFamily: "var(--font-body)", fontSize: 11, opacity: 0.6, margin: 0 }}>Cathedis ou propres moyens</p>
+                          </div>
+                        </div>
+                        <ChevronRight size={16} opacity={0.5} />
+                      </motion.button>
+                    )}
+
+                    {/* 4. [Signaler un Vice Caché 15j] */}
+                    {canDispute15d && (
+                      <motion.button whileTap={{ scale: 0.98 }} onClick={() => setShowDisputeModal(true)} disabled={loading} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 16px", borderRadius: 14, background: "rgba(212,175,55,0.08)", color: "#8B6914", border: "1px solid rgba(212,175,55,0.30)", cursor: "pointer", width: "100%" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <ShieldAlert size={18} />
+                          <div style={{ textAlign: "left" }}>
+                            <p style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 13, margin: 0 }}>Signaler un Vice Caché (15j)</p>
+                            <p style={{ fontFamily: "var(--font-body)", fontSize: 11, opacity: 0.7, margin: 0 }}>Gel de l'escrow · Arbitrage Vork</p>
+                          </div>
+                        </div>
+                        <ChevronRight size={16} opacity={0.6} />
+                      </motion.button>
+                    )}
                   </div>
-                  <ChevronRight size={16} opacity={0.6} />
-                </motion.button>
-              )}
-            </div>
-          </div>
-        </>
-      )}
+                </div>
+
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── MODALE MOBILE : Paiement CMI ─────────────────────────── */}
       <AnimatePresence>
         {showCmiModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: "absolute", inset: 0, background: "rgba(26,42,58,0.65)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 90 }}>
-            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 26, stiffness: 220 }} style={{ background: "var(--surface)", borderRadius: "24px 24px 0 0", padding: "20px 20px 32px", width: "100%", borderTop: "1px solid var(--border)" }}>
-              <div style={{ width: 36, height: 4, background: "var(--border)", borderRadius: 2, margin: "0 auto 16px" }} />
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: "fixed", inset: 0, background: "rgba(26,42,58,0.65)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 90 }}>
+            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 26, stiffness: 220 }} style={{ background: "#FCFBF9", borderRadius: "24px 24px 0 0", padding: "20px 20px 32px", width: "100%", maxWidth: 640, borderTop: "1.5px solid rgba(196, 169, 106, 0.2)", boxShadow: "0 -10px 30px rgba(0,0,0,0.15)" }}>
+              <div style={{ width: 36, height: 4, background: "rgba(0,0,0,0.1)", borderRadius: 2, margin: "0 auto 16px" }} />
               <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 17, color: "var(--primary)", marginBottom: 6 }}>Paiement CMI 3D Secure</h3>
               <p style={{ fontFamily: "var(--font-body)", fontSize: 13, color: "var(--text-secondary)", marginBottom: 16 }}>
                 Montant à régler : <strong style={{ color: "var(--primary)" }}>{depositAmount} MAD</strong> {isHighAmount ? "(Acompte 50%)" : "(Paiement 100%)"}.
@@ -585,9 +724,9 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
       {/* ── MODALE MOBILE : Demande de Retour (7j) ───────────────── */}
       <AnimatePresence>
         {showReturnModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: "absolute", inset: 0, background: "rgba(26,42,58,0.65)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 90 }}>
-            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 26, stiffness: 220 }} style={{ background: "var(--surface)", borderRadius: "24px 24px 0 0", padding: "20px 20px 32px", width: "100%", borderTop: "1px solid var(--border)" }}>
-              <div style={{ width: 36, height: 4, background: "var(--border)", borderRadius: 2, margin: "0 auto 16px" }} />
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: "fixed", inset: 0, background: "rgba(26,42,58,0.65)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 90 }}>
+            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 26, stiffness: 220 }} style={{ background: "#FCFBF9", borderRadius: "24px 24px 0 0", padding: "20px 20px 32px", width: "100%", maxWidth: 640, borderTop: "1.5px solid rgba(196, 169, 106, 0.2)", boxShadow: "0 -10px 30px rgba(0,0,0,0.15)" }}>
+              <div style={{ width: 36, height: 4, background: "rgba(0,0,0,0.1)", borderRadius: 2, margin: "0 auto 16px" }} />
               <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 17, color: "var(--primary)", marginBottom: 6 }}>Rétractation (7 jours)</h3>
               <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "var(--text-secondary)", marginBottom: 16 }}>Choisissez votre mode d'expédition pour le retour.</p>
 
@@ -617,9 +756,9 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
       {/* ── MODALE MOBILE : Vice Caché (15j) ────────────────────── */}
       <AnimatePresence>
         {showDisputeModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: "absolute", inset: 0, background: "rgba(26,42,58,0.65)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 90 }}>
-            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 26, stiffness: 220 }} style={{ background: "var(--surface)", borderRadius: "24px 24px 0 0", padding: "20px 20px 32px", width: "100%", borderTop: "1px solid var(--border)" }}>
-              <div style={{ width: 36, height: 4, background: "var(--border)", borderRadius: 2, margin: "0 auto 16px" }} />
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: "fixed", inset: 0, background: "rgba(26,42,58,0.65)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 90 }}>
+            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 26, stiffness: 220 }} style={{ background: "#FCFBF9", borderRadius: "24px 24px 0 0", padding: "20px 20px 32px", width: "100%", maxWidth: 640, borderTop: "1.5px solid rgba(196, 169, 106, 0.2)", boxShadow: "0 -10px 30px rgba(0,0,0,0.15)" }}>
+              <div style={{ width: 36, height: 4, background: "rgba(0,0,0,0.1)", borderRadius: 2, margin: "0 auto 16px" }} />
               <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 17, color: "var(--primary)", marginBottom: 4 }}>Signaler un Vice Caché</h3>
               <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "var(--text-secondary)", marginBottom: 14 }}>Décrivez le défaut. L'escrow sera gelé pour arbitrage.</p>
 
