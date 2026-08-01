@@ -37,6 +37,16 @@ const COLLECTIONS = [
 ];
 
 
+let cachedSearchKey: string | null = null;
+async function getSearchKey(): Promise<string> {
+  if (cachedSearchKey) return cachedSearchKey;
+  const res = await fetch(`${API_BASE}/search/key`);
+  if (!res.ok) throw new Error('Search key retrieval failed');
+  const data = await res.json();
+  cachedSearchKey = data.searchKey;
+  return cachedSearchKey!;
+}
+
 export const SearchView: React.FC<SearchViewProps> = ({ onNavigate, onSelectProduct }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState('');
@@ -53,9 +63,34 @@ export const SearchView: React.FC<SearchViewProps> = ({ onNavigate, onSelectProd
   const fetchSuggestions = useCallback(async (q: string) => {
     if (!q.trim() || q.length < 2) { setSuggestions([]); return; }
     try {
-      const res = await fetch(`${API_BASE}/search/suggest?q=${encodeURIComponent(q)}`);
+      const key = await getSearchKey();
+      const meiliHost = import.meta.env.VITE_MEILISEARCH_HOST || 'http://localhost:7700';
+      const res = await fetch(`${meiliHost}/indexes/products/search`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${key}`
+        },
+        body: JSON.stringify({
+          q: q,
+          limit: 8,
+          attributesToHighlight: ['title'],
+          attributesToRetrieve: ['title', 'category_group']
+        })
+      });
       const data = await res.json();
-      if (data.success) setSuggestions(data.suggestions || []);
+      if (data.hits) {
+        const seen = new Set();
+        const suggs = [];
+        for (const hit of data.hits) {
+          const text = hit.title.toLowerCase();
+          if (!seen.has(text)) {
+            seen.add(text);
+            suggs.push({ text: hit.title, type: 'product', category: hit.category_group });
+          }
+        }
+        setSuggestions(suggs);
+      }
     } catch { /* silent */ }
   }, []);
 
@@ -75,13 +110,73 @@ export const SearchView: React.FC<SearchViewProps> = ({ onNavigate, onSelectProd
     recSession.trackAction('SEARCH', [queryTag]);
 
     try {
-      const res = await fetch(`${API_BASE}/search?q=${encodeURIComponent(q)}`);
-      const data = await res.json();
-      if (data.success) {
-        const foundItems = data.data || [];
-        setResults(foundItems);
+      const key = await getSearchKey();
+      const meiliHost = import.meta.env.VITE_MEILISEARCH_HOST || 'http://localhost:7700';
+      const searchOptions: any = {
+        limit: 20,
+        facets: ['category_group', 'rec_tags.style', 'rec_tags.material', 'rec_tags.color_vibe', 'price']
+      };
 
-        // Extract intent & category tags from search results
+      // 1. Direct Search
+      let res = await fetch(`${meiliHost}/indexes/products/search`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${key}`
+        },
+        body: JSON.stringify({ q, ...searchOptions })
+      });
+      let data = await res.json();
+      let foundItems = data.hits || [];
+
+      // 2. Intent fallback if direct hits are empty
+      if (foundItems.length === 0) {
+        const intentRes = await fetch(`${meiliHost}/indexes/search_intents/search`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${key}`
+          },
+          body: JSON.stringify({ q, limit: 1 })
+        });
+        const intentData = await intentRes.json();
+        
+        if (intentData.hits && intentData.hits.length > 0) {
+          const intent = intentData.hits[0];
+          const filterParts = [];
+          
+          if (intent.category_groups) {
+            filterParts.push(`category_group = "${intent.category_groups}"`);
+          } else if (intent.tags && intent.tags.length > 0) {
+            const validStyleTags = ['traditionnel', 'berbere', 'luxe', 'artisanal', 'marocain', 'moderne', 'rustique'];
+            const matchingTags = intent.tags.filter((t: string) => validStyleTags.includes(t));
+            if (matchingTags.length > 0) {
+              const tagList = matchingTags.map((t: string) => `"${t}"`).join(', ');
+              filterParts.push(`rec_tags.style IN [${tagList}]`);
+            }
+          }
+
+          if (filterParts.length > 0) {
+            searchOptions.filter = filterParts.join(' AND ');
+          }
+
+          const refinedRes = await fetch(`${meiliHost}/indexes/products/search`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${key}`
+            },
+            body: JSON.stringify({ q: '', ...searchOptions })
+          });
+          const refinedData = await refinedRes.json();
+          foundItems = refinedData.hits || [];
+        }
+      }
+
+      setResults(foundItems);
+
+      // Track search interaction tags in profile
+      if (foundItems.length > 0) {
         const searchTags: string[] = [queryTag];
         foundItems.forEach((item: any) => {
           if (item.rec_tags) {
@@ -96,8 +191,12 @@ export const SearchView: React.FC<SearchViewProps> = ({ onNavigate, onSelectProd
         recSession.trackAction('SEARCH', uniqueSearchTags);
         console.log(`[SEARCH] 🔍 SEARCH action queued on tags [${uniqueSearchTags.join(', ')}]`);
       }
-    } catch { setResults([]); }
-    finally { setIsSearching(false); }
+    } catch (e) {
+      console.error('Search error:', e);
+      setResults([]);
+    } finally {
+      setIsSearching(false);
+    }
   }, []);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
