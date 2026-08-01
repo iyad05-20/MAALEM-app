@@ -56,6 +56,8 @@ class RecommendationSessionManager {
     return false;
   }
 
+  private isFetchingFeed = false;
+
   /**
    * Phase 2: Track user interaction locally
    * If pendingActions >= 3, automatically triggers a background feed fetch/sync!
@@ -80,11 +82,29 @@ class RecommendationSessionManager {
    * Phase 3: Fetch feed & piggyback pending actions
    */
   async fetchFeed(userId: string = this.currentUserId, topK = 15): Promise<FeedResponse> {
+    if (this.isFetchingFeed) {
+      console.log(`[REC-FE-SESSION] ⏳ Feed fetch is already in flight. Skipping duplicate trigger.`);
+      return {
+        items: [],
+        sectionState: 'hidden',
+        sectionTitle: null,
+        highestTagScore: 0,
+        activeTagsCount: 0,
+        epsilon: 0.50
+      };
+    }
+
+    this.isFetchingFeed = true;
     this.currentUserId = userId;
+
+    // Snapshot and clear pending actions immediately to prevent race conditions during async network call
+    const actionsToSend = [...this.pendingActions];
+    this.pendingActions = [];
+
     try {
       const payload = {
         userId,
-        pending_actions: [...this.pendingActions],
+        pending_actions: actionsToSend,
         lastFeeds: { ...this.lastFeeds },
         topK
       };
@@ -98,9 +118,6 @@ class RecommendationSessionManager {
 
       const data = await res.json();
       if (data.success && Array.isArray(data.data)) {
-        // Clear pending actions after successful send
-        this.pendingActions = [];
-
         // Update sliding window of last 2 feeds
         const newFeedIds = data.data.map((p: any) => p.id);
         this.lastFeeds = {
@@ -122,6 +139,8 @@ class RecommendationSessionManager {
       }
     } catch (err) {
       console.error(`[REC-FE-SESSION] ❌ Error fetching feed:`, err);
+    } finally {
+      this.isFetchingFeed = false;
     }
 
     return {

@@ -31,25 +31,35 @@ export function seedSearchIndexOnce() {
  */
 export async function initSearchIndex() {
   console.log('⚡ Running Meilisearch index initialization check...');
-  await seedProducts();
-  await seedIntents();
-  console.log('✅ Meilisearch initialization check done.');
+  try {
+    await seedProducts();
+    await seedIntents();
+    console.log('✅ Meilisearch initialization check done.');
+  } catch (error) {
+    console.error('❌ Meilisearch initialization failed:', error.message);
+  }
 }
 
 async function seedProducts() {
+  let stats = null;
   try {
-    const stats = await productsIndex.getStats();
+    stats = await productsIndex.getStats();
     if (stats.numberOfDocuments > 0) {
       console.log(`✅ Meilisearch: 'products' index already populated with ${stats.numberOfDocuments} items. Skipping seed.`);
       return;
     }
   } catch (error) {
-    if (error.code !== 'index_not_found') {
-      console.error('❌ Meilisearch error checking products stats:', error.message);
-      throw error;
+    // If stats check fails for ANY reason (index missing, network blip, etc), attempt index creation
+    console.log("⚙️ Index 'products' not found or stats failed. Attempting creation...");
+    try {
+      await client.createIndex('products', { primaryKey: 'id' });
+    } catch (createError) {
+      // Ignore if index was created concurrently by another process
+      if (createError.code !== 'index_already_exists') {
+        console.error('❌ Failed to create "products" index:', createError.message);
+        throw createError;
+      }
     }
-    console.log("⚙️ Creating Meilisearch index 'products'...");
-    await client.createIndex('products', { primaryKey: 'id' });
   }
 
   // Configure settings
@@ -82,19 +92,23 @@ async function seedProducts() {
 }
 
 async function seedIntents() {
+  let stats = null;
   try {
-    const stats = await intentsIndex.getStats();
+    stats = await intentsIndex.getStats();
     if (stats.numberOfDocuments > 0) {
       console.log(`✅ Meilisearch: 'search_intents' index already populated with ${stats.numberOfDocuments} items. Skipping seed.`);
       return;
     }
   } catch (error) {
-    if (error.code !== 'index_not_found') {
-      console.error('❌ Meilisearch error checking intents stats:', error.message);
-      throw error;
+    console.log("⚙️ Index 'search_intents' not found or stats failed. Attempting creation...");
+    try {
+      await client.createIndex('search_intents', { primaryKey: 'id' });
+    } catch (createError) {
+      if (createError.code !== 'index_already_exists') {
+        console.error('❌ Failed to create "search_intents" index:', createError.message);
+        throw createError;
+      }
     }
-    console.log("⚙️ Creating Meilisearch index 'search_intents'...");
-    await client.createIndex('search_intents', { primaryKey: 'id' });
   }
 
   // Configure settings
