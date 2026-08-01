@@ -11,8 +11,8 @@ router.get('/', async (req, res) => {
   }
 
   try {
-    // Fetch reviews and join with public profiles for author info
-    const { data, error } = await supabase
+    // Fetch reviews
+    const { data: reviews, error } = await supabase
       .from('reviews')
       .select(`
         id,
@@ -20,11 +20,7 @@ router.get('/', async (req, res) => {
         product_id,
         rating,
         comment,
-        created_at,
-        profiles (
-          full_name,
-          avatar_url
-        )
+        created_at
       `)
       .eq('product_id', productId)
       .order('created_at', { ascending: false });
@@ -34,20 +30,44 @@ router.get('/', async (req, res) => {
       return res.status(500).json({ success: false, error: error.message });
     }
 
+    // Resolve profiles manually to avoid schema relationship constraint issues
+    const profilesMap = {};
+    if (reviews && reviews.length > 0) {
+      const userIds = [...new Set(reviews.map(r => r.user_id).filter(Boolean))];
+      if (userIds.length > 0) {
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, full_name, avatar_url')
+          .in('id', userIds);
+
+        if (!profilesError && profiles) {
+          profiles.forEach(p => {
+            profilesMap[p.id] = p;
+          });
+        } else if (profilesError) {
+          console.error('[REVIEWS-ROUTE] Profiles fetch error:', profilesError.message);
+        }
+      }
+    }
+
     res.json({
       success: true,
-      reviews: data.map(r => ({
-        id: r.id,
-        userId: r.user_id,
-        productId: r.product_id,
-        rating: r.rating,
-        comment: r.comment,
-        createdAt: r.created_at,
-        author: r.profiles?.full_name || 'Utilisateur anonyme',
-        avatarUrl: r.profiles?.avatar_url || null
-      }))
+      reviews: reviews.map(r => {
+        const profile = profilesMap[r.user_id];
+        return {
+          id: r.id,
+          userId: r.user_id,
+          productId: r.product_id,
+          rating: r.rating,
+          comment: r.comment,
+          createdAt: r.created_at,
+          author: profile?.full_name || 'Utilisateur anonyme',
+          avatarUrl: profile?.avatar_url || null
+        };
+      })
     });
   } catch (err) {
+    console.error('[REVIEWS-ROUTE] Exception:', err.message);
     res.status(500).json({ success: false, error: err.message });
   }
 });

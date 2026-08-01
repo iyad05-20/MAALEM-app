@@ -29,20 +29,24 @@ const withdrawSchema = z.object({
 });
 
 /**
- * [CLIENT APP] Récupérer la liste des commandes du client.
+ * [CLIENT API] Récupérer la liste des commandes du client.
  */
 router.get("/orders", (req, res) => {
   const clientRef = req.query.clientRef ? String(req.query.clientRef) : "client-me";
+  console.log(`\n[VORK-API] 📥 GET /orders - Fetching for client: ${clientRef}`);
   const list = db.select().from(orders).where(eq(orders.clientRef, clientRef)).all();
+  console.log(`[VORK-API] ✅ Found ${list.length} orders`);
   res.json(list);
 });
 
 /**
- * [CLIENT APP] Créer une nouvelle commande.
+ * [CLIENT API] Créer une nouvelle commande.
  */
 router.post("/orders", (req, res) => {
+  console.log(`\n[VORK-API] 📥 POST /orders - Payload:`, req.body);
   const parsed = createOrderSchema.safeParse(req.body);
   if (!parsed.success) {
+    console.error(`[VORK-API] ❌ Validation error:`, parsed.error.format());
     return res.status(422).json({ error: parsed.error.flatten() });
   }
   const now = new Date().toISOString();
@@ -62,15 +66,18 @@ router.post("/orders", (req, res) => {
     .run();
 
   const order = db.select().from(orders).where(eq(orders.id, id)).get();
+  console.log(`[VORK-API] ✅ Order created successfully (ID: ${id}, Status: ${order.status})`);
   res.json(order);
 });
 
 /**
- * [CLIENT APP] Initier le paiement (CMI / Acompte 50%).
+ * [CLIENT API] Initier le paiement (CMI / Acompte 50%).
  */
 router.post("/orders/:id/pay", (req, res) => {
+  console.log(`\n[VORK-API] 📥 POST /orders/${req.params.id}/pay - Initiating payment`);
   const order = db.select().from(orders).where(eq(orders.id, req.params.id)).get();
   if (!order) {
+    console.error(`[VORK-API] ❌ Order not found: ${req.params.id}`);
     return res.status(404).json({ error: "commande introuvable" });
   }
 
@@ -98,11 +105,14 @@ router.post("/orders/:id/pay", (req, res) => {
     .where(eq(orders.id, order.id))
     .run();
 
+  const hostHeader = req.get("host") || "localhost";
+  const hostName = hostHeader.split(":")[0];
   const requete = provider.construireRequete(
     { id: intentId, montant },
-    `${req.protocol}://${req.get("host")}/mock-cmi`
+    `http://${hostName}:3000/mock-cmi`
   );
 
+  console.log(`[VORK-API] ✅ Payment intent created (IntentID: ${intentId}, Amount: ${montant} MAD, Tranche: ${tranche})`);
   res.json({
     success: true,
     paymentIntentId: intentId,
@@ -113,24 +123,45 @@ router.post("/orders/:id/pay", (req, res) => {
 });
 
 /**
- * [CLIENT APP] Annulation de la commande par le client.
+ * [CLIENT API] Annulation de la commande par le client.
  */
 router.post("/orders/:id/cancel", (req, res) => {
+  console.log(`\n[VORK-API] 📥 POST /orders/${req.params.id}/cancel - Requesting cancellation`);
   try {
     const cancelTime = req.body?.cancelTime ? String(req.body.cancelTime) : undefined;
     const result = cancelOrder(db, req.params.id, cancelTime);
+    console.log(`[VORK-API] ✅ Order cancelled successfully:`, result);
     res.json({ success: true, ...result });
   } catch (e) {
+    console.error(`[VORK-API] ❌ Cancellation failed:`, e.message);
     res.status(400).json({ error: e.message });
   }
 });
 
 /**
- * [CLIENT APP] Demande de retour (Rétractation 7j).
+ * [CLIENT API] Validation de la réception / Livraison de la commande.
+ */
+router.post("/orders/:id/deliver", (req, res) => {
+  console.log(`\n[VORK-API] 📥 POST /orders/${req.params.id}/deliver - Confirming receipt`);
+  try {
+    const deliveryTime = req.body?.deliveryTime ? String(req.body.deliveryTime) : undefined;
+    deliverOrder(db, req.params.id, deliveryTime);
+    console.log(`[VORK-API] ✅ Order marked as delivered successfully.`);
+    res.json({ success: true });
+  } catch (e) {
+    console.error(`[VORK-API] ❌ Receipt confirmation failed:`, e.message);
+    res.status(400).json({ error: e.message });
+  }
+});
+
+/**
+ * [CLIENT API] Demande de retour (Rétractation 7j).
  */
 router.post("/orders/:id/return", (req, res) => {
+  console.log(`\n[VORK-API] 📥 POST /orders/${req.params.id}/return - Requesting return`);
   const parsed = returnSchema.safeParse(req.body);
   if (!parsed.success) {
+    console.error(`[VORK-API] ❌ Return validation error:`, parsed.error.format());
     return res.status(422).json({ error: parsed.error.flatten() });
   }
 
@@ -141,18 +172,20 @@ router.post("/orders/:id/return", (req, res) => {
       parsed.data.mode,
       parsed.data.returnShippingFee
     );
+    console.log(`[VORK-API] ✅ Return request registered (ReturnID: ${returnId})`);
     res.json({ success: true, returnId });
   } catch (e) {
+    console.error(`[VORK-API] ❌ Return request failed:`, e.message);
     res.status(400).json({ error: e.message });
   }
 });
 
 /**
- * [CLIENT APP] Consulter le solde du Wallet Client.
- * (Les fonds client sont 100% disponibles, jamais bloqués)
+ * [CLIENT API] Consulter le solde du Wallet Client.
  */
 router.get("/wallet/:userId/balance", (req, res) => {
   const userId = req.params.userId;
+  console.log(`\n[VORK-API] 📥 GET /wallet/${userId}/balance - Fetching balance`);
   const compteClient = `wallet[${userId}]`;
 
   const creditsResult = db
@@ -171,6 +204,7 @@ router.get("/wallet/:userId/balance", (req, res) => {
   const debits = Number(debitsResult?.total ?? 0);
   const balance = Math.max(0, Math.round((credits - debits) * 100) / 100);
 
+  console.log(`[VORK-API] ✅ Balance for user ${userId} calculated: ${balance} MAD`);
   res.json({
     userId,
     balance,
@@ -178,15 +212,17 @@ router.get("/wallet/:userId/balance", (req, res) => {
 });
 
 /**
- * [CLIENT APP] Demande de virement sur RIB Bancaire Client.
+ * [CLIENT API] Demande de virement sur RIB Bancaire Client.
  */
 router.post("/wallet/:userId/withdraw", (req, res) => {
+  const userId = req.params.userId;
+  console.log(`\n[VORK-API] 📥 POST /wallet/${userId}/withdraw - Requesting payout`);
   const parsed = withdrawSchema.safeParse(req.body);
   if (!parsed.success) {
+    console.error(`[VORK-API] ❌ Withdrawal validation error:`, parsed.error.format());
     return res.status(422).json({ error: parsed.error.flatten() });
   }
 
-  const userId = req.params.userId;
   const now = new Date().toISOString();
   const withdrawalId = crypto.randomUUID();
 
@@ -217,8 +253,10 @@ router.post("/wallet/:userId/withdraw", (req, res) => {
         .run();
     });
 
+    console.log(`[VORK-API] ✅ Withdrawal request registered (RequestID: ${withdrawalId}, Amount: ${parsed.data.amount} MAD)`);
     res.json({ success: true, withdrawalId });
   } catch (e) {
+    console.error(`[VORK-API] ❌ Withdrawal request failed:`, e.message);
     res.status(400).json({ error: e.message });
   }
 });

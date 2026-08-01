@@ -18,6 +18,7 @@ import { clientWalletAPI } from "../../services/clientWalletApi";
 
 interface ClientOrderDetailViewProps {
   orderId?: string;
+  userId?: string;
   onBack?: () => void;
   onNavigateToWallet?: () => void;
   onDetailToggle?: (isOpen: boolean) => void;
@@ -89,6 +90,7 @@ const getStatusSteps = (status: string) => {
 
 export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
   orderId,
+  userId,
   onBack,
   onNavigateToWallet,
   onDetailToggle,
@@ -114,7 +116,7 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
   const loadData = async () => {
     setLoading(true);
     try {
-      const list = await clientWalletAPI.fetchOrders("client-me");
+      const list = await clientWalletAPI.fetchOrders(userId || "client-me");
       setOrders(list);
       if (orderId) {
         const current = list.find((o: ClientOrder) => o.id === orderId) || null;
@@ -206,8 +208,12 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
     try {
       const res = await clientWalletAPI.payOrder(selectedOrder.id);
       setShowCmiModal(false);
-      setMessage({ type: "success", text: `Paiement CMI 3D Secure validé (${res.amount} MAD réglés).` });
-      await loadData();
+      if (res.redirectUrl) {
+        window.location.href = res.redirectUrl;
+      } else {
+        setMessage({ type: "success", text: `Paiement CMI 3D Secure validé (${res.amount} MAD réglés).` });
+        await loadData();
+      }
     } catch (e: unknown) {
       setMessage({ type: "error", text: (e as Error).message });
     } finally { setLoading(false); }

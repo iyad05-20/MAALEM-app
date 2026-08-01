@@ -7,6 +7,7 @@ import { clientWalletAPI } from "../../services/clientWalletApi";
 interface ClientWalletViewProps {
   userId?: string;
   onBack?: () => void;
+  onModalToggle?: (isOpen: boolean) => void;
 }
 
 const TX_LABELS: Record<string, string> = {
@@ -15,13 +16,27 @@ const TX_LABELS: Record<string, string> = {
   retour_remboursement: "Remboursement retour",
 };
 
-export const ClientWalletView: React.FC<ClientWalletViewProps> = ({ userId = "client-me", onBack }) => {
+export const ClientWalletView: React.FC<ClientWalletViewProps> = ({ userId = "client-me", onBack, onModalToggle }) => {
   const [wallet, setWallet] = useState<ClientWallet | null>(null);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [amount, setAmount] = useState("");
   const [rib, setRib] = useState("");
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  useEffect(() => {
+    if (onModalToggle) {
+      onModalToggle(showModal);
+    }
+  }, [showModal, onModalToggle]);
+
+  useEffect(() => {
+    return () => {
+      if (onModalToggle) {
+        onModalToggle(false);
+      }
+    };
+  }, [onModalToggle]);
 
   const loadWallet = async () => {
     setLoading(true);
@@ -172,7 +187,7 @@ export const ClientWalletView: React.FC<ClientWalletViewProps> = ({ userId = "cl
       {/* ── MODALE MOBILE : Virement RIB ─────────────────────────── */}
       <AnimatePresence>
         {showModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: "absolute", inset: 0, background: "rgba(26,42,58,0.65)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 90 }}>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: "absolute", inset: 0, background: "rgba(26,42,58,0.65)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 110 }}>
             <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 26, stiffness: 220 }} style={{ background: "var(--surface)", borderRadius: "24px 24px 0 0", padding: "20px 20px 32px", width: "100%", borderTop: "1px solid var(--border)" }}>
               <div style={{ width: 36, height: 4, background: "var(--border)", borderRadius: 2, margin: "0 auto 16px" }} />
               <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 17, color: "var(--primary)", marginBottom: 4 }}>Demande de Virement RIB</h3>

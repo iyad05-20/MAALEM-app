@@ -63,6 +63,7 @@ function App() {
   const [showSeeAllOverlay, setShowSeeAllOverlay] = useState(false);
   const [dbProducts, setDbProducts] = useState<Product[]>([]);
   const [isOrderDetailOpen, setIsOrderDetailOpen] = useState(false);
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
 
   const trending = resolve(MAALEM_DATA.collections.trending);
   const fallbackAiPicks = resolve(MAALEM_DATA.collections.aiPicks);
@@ -112,11 +113,13 @@ function App() {
     loadDbProducts();
   }, []);
 
-  // Reset activeOrderId when user navigates away from order tracking
+  // Reset activeOrderId and close overlays when user navigates to a new view
   useEffect(() => {
     if (view !== 'client-order-detail' && view !== 'cart') {
       setActiveOrderId(null);
     }
+    setShowFavoritesOverlay(false);
+    setShowSeeAllOverlay(false);
   }, [view]);
 
   // Initialize recommendation session when authenticated & register auto-sync
@@ -283,6 +286,7 @@ function App() {
             <ClientOrderDetailView
               key="client-order-detail"
               orderId={activeOrderId || undefined}
+              userId={currentUser.id}
               onBack={() => setView('home')}
               onNavigateToWallet={() => setView('client-wallet')}
               onDetailToggle={setIsOrderDetailOpen}
@@ -293,6 +297,7 @@ function App() {
               key="client-wallet"
               userId={currentUser.id}
               onBack={() => setView('profile')}
+              onModalToggle={setIsWalletModalOpen}
             />
           )}
           {view === 'product-detail' && (
@@ -358,7 +363,7 @@ function App() {
 
       {/* Floating Bottom Nav */}
       <AnimatePresence>
-        {view !== 'search' && !selectedProduct && !showFavoritesOverlay && !showSeeAllOverlay && !isOrderDetailOpen && (
+        {view !== 'search' && !selectedProduct && !showFavoritesOverlay && !showSeeAllOverlay && !isOrderDetailOpen && !isWalletModalOpen && (
           <motion.div
             key="bottom-nav"
             initial={{ opacity: 0, y: 20 }}

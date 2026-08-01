@@ -10,6 +10,7 @@ router.get("/pay", (req, res) => {
   const intentId = String(req.query.intent_id ?? "");
   const amount = String(req.query.amount ?? "");
   const orderId = String(req.query.order_id ?? "");
+  console.log(`\n[VORK-CMI] 🖥️ Simulation Page Loaded - IntentID: ${intentId}, Amount: ${amount} MAD`);
   res.send(`
     <html><body style="font-family:sans-serif;max-width:400px;margin:60px auto">
       <h3>Simulateur CMI (dev)</h3>
@@ -52,9 +53,11 @@ router.get("/pay", (req, res) => {
 
 router.post("/simulate", async (req, res) => {
   const { intent_id: intentId, amount, resultat } = req.body;
+  console.log(`\n[VORK-CMI] 🔔 Webhook Simulation Triggered - IntentID: ${intentId}, Status: ${resultat}`);
   const signed = MockCmiProvider.buildSignedCallback(intentId, Number(amount), resultat === "succes");
   const result = provider.verifierCallback(signed);
   const intent = await processCallback(db, result, "mock_cmi_webhook");
+  console.log(`[VORK-CMI] ✅ Webhook Callback Processed successfully (IntentID: ${intent.id}, Status: ${intent.statut})`);
   res.json({ resultat, paymentIntentId: intent.id, statut: intent.statut });
 });
 

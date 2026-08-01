@@ -100,7 +100,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
       recSession.trackAction('ORDER', tags);
       console.log(`[DETAIL] 🛒 ORDER action queued on tags [${tags.join(', ')}]`);
 
-      const clientRef = "client-me";
+      const clientRef = currentUser?.id || "client-me";
       const artisanRef = product.artisanId || "artisan-default";
       const artisanName = product.artisanName || "Maâlem Abdelkader";
       const productImage = product.image || getFallbackImage(product.category);
