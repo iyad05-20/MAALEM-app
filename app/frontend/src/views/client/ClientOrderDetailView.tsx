@@ -105,13 +105,25 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
   const [showCmiModal, setShowCmiModal] = useState(false);
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [showDisputeModal, setShowDisputeModal] = useState(false);
+  const [showExtendModal, setShowExtendModal] = useState(false);
   const [cgvAccepted, setCgvAccepted] = useState(false);
   const [showCgvTextModal, setShowCgvTextModal] = useState(false);
 
   // Formulaires & Sécurité
-  const [returnMode, setReturnMode] = useState<"cathedis" | "propres_moyens">("cathedis");
+  const [returnMode, setReturnMode] = useState<"cathedis" | "propres_moyens">("propres_moyens");
+  const [trackingNumber, setTrackingNumber] = useState("");
+  const [extendHours, setExtendHours] = useState<24 | 48 | 72>(24);
+  const [disputeReasonCategory, setDisputeReasonCategory] = useState("Défaut de structure / assemblage (fissure interne, collage défaillant)");
   const [disputeReason, setDisputeReason] = useState("");
   const [disputePhotoUrl, setDisputePhotoUrl] = useState("");
+
+  const VICE_CACHE_REASONS = [
+    "Défaut de structure / assemblage (fissure interne, collage défaillant)",
+    "Défaut de matière ou de matériau (cuir/bois non traité, vice de fabrication)",
+    "Usure anormale ou dégradation précoce après utilisation normale",
+    "Non-conformité grave non apparente lors de la livraison initiale",
+    "Autre vice caché grave",
+  ];
 
   const loadData = async () => {
     setLoading(true);
@@ -245,17 +257,39 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
     } finally { setLoading(false); }
   };
 
+  const handleCancelReturn = async () => {
+    if (!selectedOrder || loading) return;
+    if (!window.confirm("Voulez-vous annuler votre demande de retour et conserver l'article ?")) return;
+    setLoading(true); setMessage(null);
+    try {
+      await clientWalletAPI.cancelReturnRequest(selectedOrder.id);
+      setMessage({ type: "success", text: "Demande de retour annulée (Art. 9.5 bis). La commande reprend son cours." });
+      await loadData();
+    } catch (e: unknown) {
+      setMessage({ type: "error", text: (e as Error).message });
+    } finally { setLoading(false); }
+  };
+
+  const handleExtendSubmit = async () => {
+    if (!selectedOrder || loading) return;
+    setLoading(true); setMessage(null);
+    try {
+      await clientWalletAPI.extendSellerDeadline(selectedOrder.id, extendHours);
+      setShowExtendModal(false);
+      setMessage({ type: "success", text: `Délai accordé au Maâlem prolongé de ${extendHours}h avec succès.` });
+      await loadData();
+    } catch (e: unknown) {
+      setMessage({ type: "error", text: (e as Error).message });
+    } finally { setLoading(false); }
+  };
+
   const handleDisputeSubmit = async () => {
     if (!selectedOrder) return;
-    const cleanReason = disputeReason.trim().slice(0, 500);
-    if (!cleanReason) {
-      alert("Veuillez décrire le vice caché constaté.");
-      return;
-    }
+    const fullReason = `[${disputeReasonCategory}] ${disputeReason.trim()}`.slice(0, 500);
     if (loading) return;
     setLoading(true); setMessage(null);
     try {
-      await clientWalletAPI.createDispute(selectedOrder.id, cleanReason, disputePhotoUrl ? [disputePhotoUrl.trim()] : []);
+      await clientWalletAPI.createDispute(selectedOrder.id, fullReason, disputePhotoUrl ? [disputePhotoUrl.trim()] : []);
       setShowDisputeModal(false);
       setMessage({ type: "success", text: "Réclamation transmise à Vork. L'escrow est gelé pour arbitrage." });
       await loadData();
@@ -628,6 +662,45 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
                 <div style={{ marginBottom: 12 }}>
                   <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, color: "var(--primary)", marginBottom: 10 }}>Actions disponibles</p>
 
+                  {/* Notification In-App J+2 (10h00 - 11h00) : Relance Maâlem */}
+                  {["acompte_verse", "payee_integralement", "en_attente_paiement"].includes(selectedOrder.status) && (
+                    <div style={{ background: "rgba(212,175,55,0.12)", border: "1px solid rgba(212,175,55,0.35)", borderRadius: 16, padding: "14px 16px", marginBottom: 14 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                        <Bell size={16} color="#8B6914" />
+                        <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, color: "#8B6914" }}>
+                          Relance Maâlem J+2 (10h00)
+                        </span>
+                      </div>
+                      <p style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text-secondary)", margin: "0 0 10px" }}>
+                        Le Maâlem n'a pas encore validé votre commande. Sans réponse d'ici 11h00, la commande sera automatiquement annulée et remboursée à 100%.
+                      </p>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <button onClick={handleCancel} disabled={loading} style={{ flex: 1, padding: "9px", borderRadius: 10, border: "1px solid #C0392B", background: "rgba(192,57,43,0.06)", color: "#C0392B", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 11, cursor: "pointer" }}>
+                          Annuler maintenant
+                        </button>
+                        <button onClick={() => setShowExtendModal(true)} disabled={loading} style={{ flex: 1, padding: "9px", borderRadius: 10, border: "none", background: "var(--primary)", color: "#fff", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 11, cursor: "pointer" }}>
+                          Prolonger le Maâlem
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Annulation de demande de retour (Art 9.5 bis) */}
+                  {selectedOrder.status === "retour_initie" && (
+                    <div style={{ marginBottom: 12 }}>
+                      <motion.button whileTap={{ scale: 0.98 }} onClick={handleCancelReturn} disabled={loading} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 16px", borderRadius: 14, background: "rgba(45,106,79,0.08)", color: "#2D6A4F", border: "1px solid rgba(45,106,79,0.25)", cursor: "pointer", width: "100%" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <RotateCcw size={18} />
+                          <div style={{ textAlign: "left" }}>
+                            <p style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 13, margin: 0 }}>Annuler ma demande de retour (Art. 9.5 bis)</p>
+                            <p style={{ fontFamily: "var(--font-body)", fontSize: 11, opacity: 0.75, margin: 0 }}>Conserver l'article et clôturer le retour</p>
+                          </div>
+                        </div>
+                        <ChevronRight size={16} opacity={0.6} />
+                      </motion.button>
+                    </div>
+                  )}
+
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {/* 1. [Payer en ligne via CMI] */}
                     {(selectedOrder.status === "en_attente_paiement" || selectedOrder.status === "paiement_echoue") && (
@@ -791,50 +864,87 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
         )}
       </AnimatePresence>
 
-      {/* ── MODALE MOBILE : Demande de Retour (7j) ───────────────── */}
+      {/* ── MODALE MOBILE : Demande de Prolongation Maâlem (J+2 - Art 4.3) ── */}
       <AnimatePresence>
-        {showReturnModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: "fixed", inset: 0, background: "rgba(26,42,58,0.65)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 90 }}>
+        {showExtendModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: "fixed", inset: 0, background: "rgba(26,42,58,0.65)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 110 }}>
             <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 26, stiffness: 220 }} style={{ background: "#FCFBF9", borderRadius: "24px 24px 0 0", padding: "20px 20px 32px", width: "100%", maxWidth: 640, borderTop: "1.5px solid rgba(196, 169, 106, 0.2)", boxShadow: "0 -10px 30px rgba(0,0,0,0.15)" }}>
               <div style={{ width: 36, height: 4, background: "rgba(0,0,0,0.1)", borderRadius: 2, margin: "0 auto 16px" }} />
-              <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 17, color: "var(--primary)", marginBottom: 6 }}>Rétractation (7 jours)</h3>
-              <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "var(--text-secondary)", marginBottom: 16 }}>Choisissez votre mode d'expédition pour le retour.</p>
+              <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 17, color: "var(--primary)", marginBottom: 4 }}>Prolonger le délai du Maâlem</h3>
+              <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "var(--text-secondary)", marginBottom: 16 }}>Accordez un délai supplémentaire au Maâlem pour valider votre fabrication (Article 4.3 CGV).</p>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 18 }}>
-                {(["cathedis", "propres_moyens"] as const).map((mode) => (
-                  <label key={mode} onClick={() => setReturnMode(mode)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderRadius: 12, border: returnMode === mode ? "2px solid var(--primary)" : "1px solid var(--border)", background: returnMode === mode ? "rgba(26,42,58,0.04)" : "var(--surface)", cursor: "pointer" }}>
-                    <div style={{ width: 16, height: 16, borderRadius: "50%", border: `2px solid ${returnMode === mode ? "var(--primary)" : "var(--border)"}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      {returnMode === mode && <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--primary)" }} />}
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 20 }}>
+                {([24, 48, 72] as const).map((h) => (
+                  <label key={h} onClick={() => setExtendHours(h)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px", borderRadius: 14, border: extendHours === h ? "2px solid var(--primary)" : "1px solid var(--border)", background: extendHours === h ? "rgba(26,42,58,0.04)" : "var(--surface)", cursor: "pointer" }}>
+                    <div style={{ width: 18, height: 18, borderRadius: "50%", border: `2px solid ${extendHours === h ? "var(--primary)" : "var(--border)"}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      {extendHours === h && <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--primary)" }} />}
                     </div>
                     <div>
-                      <p style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 13, color: "var(--primary)", margin: 0 }}>{mode === "cathedis" ? "Retour Cathedis (35 MAD)" : "Mes propres moyens"}</p>
-                      <p style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text-secondary)", margin: 0 }}>{mode === "cathedis" ? "Frais déduits du remboursement" : "Remboursement 100% sur Wallet"}</p>
+                      <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14, color: "var(--primary)", margin: 0 }}>Prolongation de +{h} heures</p>
+                      <p style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text-secondary)", margin: 0 }}>Nouveau délai accordé jusqu'à J+{(h / 24) + 2} à 10h00 du matin</p>
                     </div>
                   </label>
                 ))}
               </div>
 
               <div style={{ display: "flex", gap: 10 }}>
-                <button onClick={() => setShowReturnModal(false)} style={{ flex: 1, padding: "12px", borderRadius: 14, border: "1px solid var(--border)", background: "none", fontFamily: "var(--font-body)", fontWeight: 600, fontSize: 13, color: "var(--text-secondary)", cursor: "pointer" }}>Fermer</button>
-                <button onClick={handleReturnSubmit} disabled={loading} style={{ flex: 2, padding: "12px", borderRadius: 14, border: "none", background: "var(--primary)", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, color: "#fff", cursor: "pointer" }}>{loading ? "Envoi…" : "Valider le retour"}</button>
+                <button onClick={() => setShowExtendModal(false)} style={{ flex: 1, padding: "12px", borderRadius: 14, border: "1px solid var(--border)", background: "none", fontFamily: "var(--font-body)", fontWeight: 600, fontSize: 13, color: "var(--text-secondary)", cursor: "pointer" }}>Fermer</button>
+                <button onClick={handleExtendSubmit} disabled={loading} style={{ flex: 2, padding: "12px", borderRadius: 14, border: "none", background: "var(--primary)", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, color: "#fff", cursor: "pointer" }}>{loading ? "Envoi…" : "Valider la prolongation"}</button>
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ── MODALE MOBILE : Vice Caché (15j) ────────────────────── */}
+      {/* ── MODALE MOBILE : Demande de Retour (7j - Art. 9.3 & 9.4) ── */}
       <AnimatePresence>
-        {showDisputeModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: "fixed", inset: 0, background: "rgba(26,42,58,0.65)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 90 }}>
+        {showReturnModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: "fixed", inset: 0, background: "rgba(26,42,58,0.65)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 110 }}>
             <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 26, stiffness: 220 }} style={{ background: "#FCFBF9", borderRadius: "24px 24px 0 0", padding: "20px 20px 32px", width: "100%", maxWidth: 640, borderTop: "1.5px solid rgba(196, 169, 106, 0.2)", boxShadow: "0 -10px 30px rgba(0,0,0,0.15)" }}>
               <div style={{ width: 36, height: 4, background: "rgba(0,0,0,0.1)", borderRadius: 2, margin: "0 auto 16px" }} />
-              <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 17, color: "var(--primary)", marginBottom: 4 }}>Signaler un Vice Caché</h3>
-              <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "var(--text-secondary)", marginBottom: 14 }}>Décrivez le défaut. L'escrow sera gelé pour arbitrage.</p>
+              <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 17, color: "var(--primary)", marginBottom: 4 }}>Rétractation (7 jours)</h3>
+              <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "var(--text-secondary)", marginBottom: 14 }}>Organisez l'expédition de votre retour d'article.</p>
+
+              {/* Note Cathedis Restriction (Art 9.3 A) */}
+              <div style={{ background: "rgba(212,175,55,0.08)", border: "1px solid rgba(212,175,55,0.25)", borderRadius: 12, padding: "10px 12px", marginBottom: 14, fontFamily: "var(--font-body)", fontSize: 11, color: "#8B6914" }}>
+                ℹ️ <strong>Règle Art. 9.3 A :</strong> La livraison initiale ayant été effectuée par transporteur, l'organisation du retour doit s'effectuer par vos propres moyens.
+              </div>
+
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text-secondary)", display: "block", marginBottom: 4 }}>Numéro de suivi / Preuve de transport (Art 9.4) *</label>
+                <input type="text" placeholder="Ex: N° de récépissé, code de suivi transporteur…" value={trackingNumber} onChange={(e) => setTrackingNumber(e.target.value)} style={{ width: "100%", padding: "10px 12px", borderRadius: 12, border: "1px solid var(--border)", background: "var(--bg-primary)", fontFamily: "var(--font-body)", fontSize: 13, color: "var(--primary)", outline: "none" }} />
+              </div>
+
+              <div style={{ display: "flex", gap: 10 }}>
+                <button onClick={() => setShowReturnModal(false)} style={{ flex: 1, padding: "12px", borderRadius: 14, border: "1px solid var(--border)", background: "none", fontFamily: "var(--font-body)", fontWeight: 600, fontSize: 13, color: "var(--text-secondary)", cursor: "pointer" }}>Fermer</button>
+                <button onClick={handleReturnSubmit} disabled={loading} style={{ flex: 2, padding: "12px", borderRadius: 14, border: "none", background: "var(--primary)", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, color: "#fff", cursor: "pointer" }}>{loading ? "Envoi…" : "Valider le retour (100% remboursé)"}</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── MODALE MOBILE : Vice Caché (15j - Art. 10) ────────────────── */}
+      <AnimatePresence>
+        {showDisputeModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: "fixed", inset: 0, background: "rgba(26,42,58,0.65)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 110 }}>
+            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 26, stiffness: 220 }} style={{ background: "#FCFBF9", borderRadius: "24px 24px 0 0", padding: "20px 20px 32px", width: "100%", maxWidth: 640, borderTop: "1.5px solid rgba(196, 169, 106, 0.2)", boxShadow: "0 -10px 30px rgba(0,0,0,0.15)" }}>
+              <div style={{ width: 36, height: 4, background: "rgba(0,0,0,0.1)", borderRadius: 2, margin: "0 auto 16px" }} />
+              <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 17, color: "var(--primary)", marginBottom: 4 }}>Signaler un Vice Caché (Art. 10)</h3>
+              <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "var(--text-secondary)", marginBottom: 14 }}>Sélectionnez le motif. L'escrow sera immédiatement gelé pour arbitrage Vork.</p>
 
               <div style={{ marginBottom: 12 }}>
-                <label style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text-secondary)", display: "block", marginBottom: 4 }}>Description du vice *</label>
-                <textarea rows={3} maxLength={500} placeholder="Ex: Fissure interne, défaut de fabrication…" value={disputeReason} onChange={(e) => setDisputeReason(e.target.value)} style={{ width: "100%", padding: "10px 12px", borderRadius: 12, border: "1px solid var(--border)", background: "var(--bg-primary)", fontFamily: "var(--font-body)", fontSize: 13, color: "var(--primary)", resize: "none", outline: "none" }} />
+                <label style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text-secondary)", display: "block", marginBottom: 4 }}>Motif du vice caché *</label>
+                <select value={disputeReasonCategory} onChange={(e) => setDisputeReasonCategory(e.target.value)} style={{ width: "100%", padding: "10px 12px", borderRadius: 12, border: "1px solid var(--border)", background: "var(--bg-primary)", fontFamily: "var(--font-body)", fontSize: 12, fontWeight: 600, color: "var(--primary)", outline: "none", marginBottom: 10 }}>
+                  {VICE_CACHE_REASONS.map((r, i) => (
+                    <option key={i} value={r}>{r}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text-secondary)", display: "block", marginBottom: 4 }}>Détails complémentaires (optionnel)</label>
+                <textarea rows={3} maxLength={500} placeholder="Précisez le problème constaté…" value={disputeReason} onChange={(e) => setDisputeReason(e.target.value)} style={{ width: "100%", padding: "10px 12px", borderRadius: 12, border: "1px solid var(--border)", background: "var(--bg-primary)", fontFamily: "var(--font-body)", fontSize: 13, color: "var(--primary)", resize: "none", outline: "none" }} />
               </div>
               <div style={{ marginBottom: 16 }}>
                 <label style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text-secondary)", display: "block", marginBottom: 4 }}>URL photo de preuve (optionnel)</label>

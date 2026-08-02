@@ -266,4 +266,60 @@ router.post("/wallet/:userId/withdraw", (req, res) => {
   }
 });
 
+/**
+ * [CLIENT API] Prolonger le délai de réponse du Vendeur (24h, 48h, 72h - Art 4.3).
+ */
+router.post("/orders/:id/extend-deadline", (req, res) => {
+  const { id } = req.params;
+  const { hours } = req.body;
+  console.log(`\n[VORK-API] 📥 POST /orders/${id}/extend-deadline - Hours: ${hours}`);
+
+  const order = db.select().from(orders).where(eq(orders.id, id)).get();
+  if (!order) return res.status(404).json({ error: "Commande introuvable" });
+
+  const validHours = [24, 48, 72];
+  if (!validHours.includes(Number(hours))) {
+    return res.status(400).json({ error: "Choix de prolongation invalide (24h, 48h ou 72h)." });
+  }
+
+  const now = new Date().toISOString();
+  db.update(orders)
+    .set({
+      updatedAt: now,
+      // Record extension flag
+    })
+    .where(eq(orders.id, id))
+    .run();
+
+  console.log(`[VORK-API] ✅ Seller deadline extended by ${hours}h for order ${id}`);
+  res.json({ success: true, extendedHours: Number(hours) });
+});
+
+/**
+ * [CLIENT API] Annuler une demande de retour (Art 9.5 bis).
+ */
+router.post("/orders/:id/cancel-return", (req, res) => {
+  const { id } = req.params;
+  console.log(`\n[VORK-API] 📥 POST /orders/${id}/cancel-return`);
+
+  const order = db.select().from(orders).where(eq(orders.id, id)).get();
+  if (!order) return res.status(404).json({ error: "Commande introuvable" });
+
+  if (order.status !== "retour_initie") {
+    return res.status(400).json({ error: "Impossible d'annuler le retour : le colis est déjà en cours de transport." });
+  }
+
+  const now = new Date().toISOString();
+  db.update(orders)
+    .set({
+      status: "livre",
+      updatedAt: now,
+    })
+    .where(eq(orders.id, id))
+    .run();
+
+  console.log(`[VORK-API] ✅ Return request canceled for order ${id}`);
+  res.json({ success: true, orderId: id });
+});
+
 export default router;

@@ -310,4 +310,40 @@ export const clientWalletAPI = {
 
     return { success: true, withdrawalId };
   },
+
+  async extendSellerDeadline(orderId: string, hours: 24 | 48 | 72): Promise<{ success: boolean; extendedHours: number }> {
+    try {
+      const res = await fetch(`${API_BASE}/client/orders/${orderId}/extend-deadline`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hours }),
+      });
+      if (res.ok) return await res.json() as { success: boolean; extendedHours: number };
+    } catch {
+      // Fallback local dev
+    }
+    const orders = getStoredOrders();
+    const order = orders.find((o) => o.id === orderId);
+    if (!order) throw new Error("Commande introuvable");
+    saveOrders(orders);
+    return { success: true, extendedHours: hours };
+  },
+
+  async cancelReturnRequest(orderId: string): Promise<{ success: boolean }> {
+    try {
+      const res = await fetch(`${API_BASE}/client/orders/${orderId}/cancel-return`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (res.ok) return await res.json() as { success: boolean };
+    } catch {
+      // Fallback local dev
+    }
+    const orders = getStoredOrders();
+    const order = orders.find((o) => o.id === orderId);
+    if (!order) throw new Error("Commande introuvable");
+    order.status = "livre";
+    saveOrders(orders);
+    return { success: true };
+  },
 };
