@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { eq } from "drizzle-orm";
 import { db } from "../db/index.js";
-import { paymentIntents } from "../db/schema.js";
+import { paymentIntents, orders } from "../db/schema.js";
 import { MockCmiProvider } from "./MockCmiProvider.js";
 import { processCallback } from "../../client/services/clientPaymentService.js";
 
@@ -73,13 +73,37 @@ router.get("/pay", (req, res) => {
 });
 
 router.post("/simulate", async (req, res) => {
-  const { intent_id: intentId, amount, resultat } = req.body;
-  console.log(`\n[VORK-CMI] 🔔 Webhook Simulation Triggered - IntentID: ${intentId}, Status: ${resultat}`);
-  const signed = MockCmiProvider.buildSignedCallback(intentId, Number(amount), resultat === "succes");
-  const result = provider.verifierCallback(signed);
-  const intent = await processCallback(db, result, "mock_cmi_webhook");
-  console.log(`[VORK-CMI] ✅ Webhook Callback Processed successfully (IntentID: ${intent.id}, Status: ${intent.statut})`);
-  res.json({ resultat, paymentIntentId: intent.id, statut: intent.statut });
+  try {
+    const { intent_id: intentId, amount, resultat } = req.body;
+    console.log(`\n[VORK-CMI] 🔔 Webhook Simulation Triggered - IntentID: ${intentId}, Status: ${resultat}`);
+
+    // If it's a fallback mock intent, process direct status update
+    if (intentId && intentId.startsWith("mock-intent-")) {
+      const orderId = intentId.replace("mock-intent-", "");
+      console.log(`[VORK-CMI] ℹ️ Mock intent detected. Simulating order state change for OrderID: ${orderId}`);
+      try {
+        db.update(orders)
+          .set({ 
+            status: resultat === "succes" ? "payee_integralement" : "paiement_echoue", 
+            updatedAt: new Date().toISOString() 
+          })
+          .where(eq(orders.id, orderId))
+          .run();
+      } catch (dbErr) {
+        console.warn("[VORK-CMI] Non-fatal: Failed to update mock order status in DB:", dbErr.message);
+      }
+      return res.json({ resultat, paymentIntentId: intentId, statut: resultat === "succes" ? "confirme" : "echoue" });
+    }
+
+    const signed = MockCmiProvider.buildSignedCallback(intentId, Number(amount), resultat === "succes");
+    const result = provider.verifierCallback(signed);
+    const intent = await processCallback(db, result, "mock_cmi_webhook");
+    console.log(`[VORK-CMI] ✅ Webhook Callback Processed successfully (IntentID: ${intent.id}, Status: ${intent.statut})`);
+    res.json({ resultat, paymentIntentId: intent.id, statut: intent.statut });
+  } catch (error) {
+    console.error("[VORK-CMI] ❌ Simulation failed:", error.message);
+    res.status(400).json({ error: error.message });
+  }
 });
 
 export default router;
