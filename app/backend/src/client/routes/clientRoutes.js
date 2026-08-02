@@ -105,11 +105,16 @@ router.post("/orders/:id/pay", (req, res) => {
     .where(eq(orders.id, order.id))
     .run();
 
-  const hostHeader = req.get("host") || "localhost";
-  const hostName = hostHeader.split(":")[0];
+  const hostHeader = req.get("host") || "localhost:3001";
+  const protocol = req.protocol === "https" || req.get("x-forwarded-proto") === "https" ? "https" : "http";
+  
+  // URL publique du serveur backend (Heroku ou Docker Local)
+  const backendPublicUrl = process.env.PUBLIC_BACKEND_URL 
+    || `${protocol}://${hostHeader}`;
+
   const requete = provider.construireRequete(
     { id: intentId, montant },
-    `http://${hostName}:3000/mock-cmi`
+    `${backendPublicUrl}/mock-cmi`
   );
 
   console.log(`[VORK-API] ✅ Payment intent created (IntentID: ${intentId}, Amount: ${montant} MAD, Tranche: ${tranche})`);
