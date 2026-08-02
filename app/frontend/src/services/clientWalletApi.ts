@@ -1,6 +1,7 @@
 import type { ClientOrder, ClientWallet, WalletTransaction } from "../types/clientPayment";
 
 const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001/api';
+const BACKEND_ROOT = API_BASE.replace(/\/api\/?$/, '');
 
 const LOCAL_STORAGE_KEY_ORDERS = "vork_client_orders_v2";
 const LOCAL_STORAGE_KEY_WALLET = "vork_client_wallet_v2";
@@ -177,7 +178,7 @@ export const clientWalletAPI = {
     order.tranche = tranche as "total_100" | "acompte_50";
     saveOrders(orders);
 
-    return { success: true, redirectUrl: `/mock-cmi/pay?intent_id=mock-intent-${orderId}&amount=${amount}`, amount, tranche };
+    return { success: true, redirectUrl: `${BACKEND_ROOT}/mock-cmi/pay?intent_id=mock-intent-${orderId}&amount=${amount}`, amount, tranche };
   },
 
   async cancelOrder(orderId: string): Promise<{ success: boolean; refundAmount: number }> {

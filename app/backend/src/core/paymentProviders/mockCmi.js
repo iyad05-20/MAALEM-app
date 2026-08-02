@@ -22,18 +22,24 @@ router.get("/pay", (req, res) => {
     console.error("Failed to query payment intent during CMI simulation page load:", err.message);
   }
 
-  console.log(`\n[VORK-CMI] 🖥️ Simulation Page Loaded - IntentID: ${intentId}, OrderID: ${orderId}, Amount: ${amount} MAD`);
-  
-  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+  // Origine de l'application frontend (Vercel ou Local)
+  const referer = req.get("referer");
+  let clientOrigin = process.env.FRONTEND_URL;
+  if (!clientOrigin && referer) {
+    try { clientOrigin = new URL(referer).origin; } catch {}
+  }
+  if (!clientOrigin) clientOrigin = "http://localhost:3000";
+
+  console.log(`\n[VORK-CMI] 🖥️ Simulation Page Loaded - IntentID: ${intentId}, OrderID: ${orderId}, Amount: ${amount} MAD, ClientTarget: ${clientOrigin}`);
   
   res.send(`
-    <html><body style="font-family:sans-serif;max-width:400px;margin:60px auto">
-      <h3>Simulateur CMI (dev)</h3>
-      <p>Commande : ${orderId || intentId}</p>
-      <p>Montant : ${amount} MAD</p>
-      <p id="erreur" style="color:red;display:none;"></p>
-      <button id="succes">Simuler paiement réussi</button>
-      <button id="echec">Simuler paiement échoué</button>
+    <html><body style="font-family:sans-serif;max-width:400px;margin:60px auto;padding:20px;box-shadow:0 4px 20px rgba(0,0,0,0.1);border-radius:16px;">
+      <h3 style="color:#1A2A3A;margin-top:0;">Simulateur CMI (3D Secure 2.0)</h3>
+      <p style="font-size:14px;color:#64748B;">Commande ID : <strong>${orderId || intentId}</strong></p>
+      <p style="font-size:16px;color:#2D6A4F;">Montant à régler : <strong>${amount} MAD</strong></p>
+      <p id="erreur" style="color:red;display:none;font-size:13px;"></p>
+      <button id="succes" style="width:100%;padding:12px;background:#2D6A4F;color:#fff;border:none;border-radius:12px;font-weight:700;cursor:pointer;margin-bottom:10px;">Simuler paiement réussi</button>
+      <button id="echec" style="width:100%;padding:12px;background:#DC3545;color:#fff;border:none;border-radius:12px;font-weight:700;cursor:pointer;">Simuler paiement échoué</button>
       <script>
         async function simuler(resultat) {
           const btnSucces = document.getElementById('succes');
@@ -51,7 +57,7 @@ router.get("/pay", (req, res) => {
               }),
             });
             if (!res.ok) throw new Error("HTTP " + res.status);
-            window.location.href = '${frontendUrl}/?order_id=${orderId}';
+            window.location.href = '${clientOrigin}/?order_id=${orderId}';
           } catch (e) {
             err.textContent = e.message;
             err.style.display = 'block';
