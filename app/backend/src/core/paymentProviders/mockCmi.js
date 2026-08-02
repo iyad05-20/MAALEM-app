@@ -1,5 +1,7 @@
 import { Router } from "express";
+import { eq } from "drizzle-orm";
 import { db } from "../db/index.js";
+import { paymentIntents } from "../db/schema.js";
 import { MockCmiProvider } from "./MockCmiProvider.js";
 import { processCallback } from "../../client/services/clientPaymentService.js";
 
@@ -9,8 +11,21 @@ const provider = new MockCmiProvider();
 router.get("/pay", (req, res) => {
   const intentId = String(req.query.intent_id ?? "");
   const amount = String(req.query.amount ?? "");
-  const orderId = String(req.query.order_id ?? "");
-  console.log(`\n[VORK-CMI] 🖥️ Simulation Page Loaded - IntentID: ${intentId}, Amount: ${amount} MAD`);
+  
+  let orderId = "";
+  try {
+    const payment = db.select().from(paymentIntents).where(eq(paymentIntents.id, intentId)).get();
+    if (payment) {
+      orderId = payment.orderId;
+    }
+  } catch (err) {
+    console.error("Failed to query payment intent during CMI simulation page load:", err.message);
+  }
+
+  console.log(`\n[VORK-CMI] 🖥️ Simulation Page Loaded - IntentID: ${intentId}, OrderID: ${orderId}, Amount: ${amount} MAD`);
+  
+  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+  
   res.send(`
     <html><body style="font-family:sans-serif;max-width:400px;margin:60px auto">
       <h3>Simulateur CMI (dev)</h3>
@@ -36,7 +51,7 @@ router.get("/pay", (req, res) => {
               }),
             });
             if (!res.ok) throw new Error("HTTP " + res.status);
-            window.location.href = '/?order_id=${orderId}';
+            window.location.href = '${frontendUrl}/?order_id=${orderId}';
           } catch (e) {
             err.textContent = e.message;
             err.style.display = 'block';

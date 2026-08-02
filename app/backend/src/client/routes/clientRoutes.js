@@ -106,10 +106,11 @@ router.post("/orders/:id/pay", (req, res) => {
     .run();
 
   const hostHeader = req.get("host") || "localhost";
-  const hostName = hostHeader.split(":")[0];
+  const protocol = req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
+  const redirectBase = `${protocol}://${hostHeader}/mock-cmi`;
   const requete = provider.construireRequete(
     { id: intentId, montant },
-    `http://${hostName}:3000/mock-cmi`
+    redirectBase
   );
 
   console.log(`[VORK-API] ✅ Payment intent created (IntentID: ${intentId}, Amount: ${montant} MAD, Tranche: ${tranche})`);
