@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Lock,
   X,
+  Bell,
 } from "lucide-react";
 import type { ClientOrder } from "../../types/clientPayment";
 import { clientWalletAPI } from "../../services/clientWalletApi";
@@ -905,10 +906,26 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
               <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 17, color: "var(--primary)", marginBottom: 4 }}>Rétractation (7 jours)</h3>
               <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "var(--text-secondary)", marginBottom: 14 }}>Organisez l'expédition de votre retour d'article.</p>
 
-              {/* Note Cathedis Restriction (Art 9.3 A) */}
-              <div style={{ background: "rgba(212,175,55,0.08)", border: "1px solid rgba(212,175,55,0.25)", borderRadius: 12, padding: "10px 12px", marginBottom: 14, fontFamily: "var(--font-body)", fontSize: 11, color: "#8B6914" }}>
-                ℹ️ <strong>Règle Art. 9.3 A :</strong> La livraison initiale ayant été effectuée par transporteur, l'organisation du retour doit s'effectuer par vos propres moyens.
-              </div>
+              {/* Choix du mode de retour selon l'Art. 9.3 A & B */}
+              {selectedOrder?.carrierChoice === "cathedis" ? (
+                <div style={{ background: "rgba(212,175,55,0.08)", border: "1px solid rgba(212,175,55,0.25)", borderRadius: 12, padding: "10px 12px", marginBottom: 14, fontFamily: "var(--font-body)", fontSize: 11, color: "#8B6914" }}>
+                  ℹ️ <strong>Règle Art. 9.3 A :</strong> La livraison initiale ayant été effectuée par Cathedis, l'organisation du retour s'effectue obligatoirement par vos propres moyens.
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
+                  {(["cathedis", "propres_moyens"] as const).map((mode) => (
+                    <label key={mode} onClick={() => setReturnMode(mode)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 12, border: returnMode === mode ? "2px solid var(--primary)" : "1px solid var(--border)", background: returnMode === mode ? "rgba(26,42,58,0.04)" : "var(--surface)", cursor: "pointer" }}>
+                      <div style={{ width: 14, height: 14, borderRadius: "50%", border: `2px solid ${returnMode === mode ? "var(--primary)" : "var(--border)"}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        {returnMode === mode && <div style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--primary)" }} />}
+                      </div>
+                      <div>
+                        <p style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 12, color: "var(--primary)", margin: 0 }}>{mode === "cathedis" ? "Service Retour Vendeur (35 MAD)" : "Mes propres moyens"}</p>
+                        <p style={{ fontFamily: "var(--font-body)", fontSize: 10, color: "var(--text-secondary)", margin: 0 }}>{mode === "cathedis" ? "Frais déduits du remboursement" : "Remboursement 100% sur Wallet"}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
 
               <div style={{ marginBottom: 14 }}>
                 <label style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text-secondary)", display: "block", marginBottom: 4 }}>Numéro de suivi / Preuve de transport (Art 9.4) *</label>
