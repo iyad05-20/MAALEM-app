@@ -14,8 +14,9 @@ import { BottomNav } from './components/Shared/BottomNav';
 import { MAALEM_DATA } from './data/mockData';
 import { recSession } from './services/recommendationSession';
 import { authService, type UserProfile } from './services/authService';
-import { favoritesService } from './services/favoritesService';
-import { AnimatePresence, motion } from 'framer-motion';
+import { NotificationsView } from './views/client/NotificationsView';
+import { clientWalletAPI } from './services/clientWalletApi';
+import type { ClientOrder } from './types/clientPayment';
 import './styles/global.css';
 
 // ─── Resolve products by ID ──────────────────────────────────────────────────
@@ -64,6 +65,24 @@ function App() {
   const [dbProducts, setDbProducts] = useState<Product[]>([]);
   const [isOrderDetailOpen, setIsOrderDetailOpen] = useState(false);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+  const [showNotificationsOverlay, setShowNotificationsOverlay] = useState(false);
+  const [clientOrdersList, setClientOrdersList] = useState<ClientOrder[]>([]);
+
+  useEffect(() => {
+    if (currentUser?.id) {
+      clientWalletAPI.fetchOrders(currentUser.id).then((orders) => {
+        setClientOrdersList(orders);
+      }).catch(() => {});
+    }
+  }, [currentUser, view, showNotificationsOverlay]);
+
+  const hasUnreadNotifications = clientOrdersList.some((o) => {
+    if (["acompte_verse", "payee_integralement"].includes(o.status)) {
+      const diffHours = (Date.now() - new Date(o.createdAt).getTime()) / (1000 * 60 * 60);
+      return diffHours >= 48;
+    }
+    return false;
+  });
 
   const trending = resolve(MAALEM_DATA.collections.trending);
   const fallbackAiPicks = resolve(MAALEM_DATA.collections.aiPicks);
@@ -262,6 +281,8 @@ function App() {
               favoritesList={favoritesList}
               onToggleFavorite={handleToggleFavorite}
               onSeeAllRecs={() => setShowSeeAllOverlay(true)}
+              onOpenNotifications={() => setShowNotificationsOverlay(true)}
+              hasUnreadNotifications={hasUnreadNotifications}
             />
           )}
           {view === 'atelier' && (
@@ -305,6 +326,21 @@ function App() {
           )}
         </AnimatePresence>
       </main>
+
+      {/* Notifications Overlay */}
+      <AnimatePresence>
+        {showNotificationsOverlay && (
+          <NotificationsView
+            key="notifications-overlay"
+            orders={clientOrdersList}
+            onClose={() => setShowNotificationsOverlay(false)}
+            onSelectOrder={(orderId) => {
+              setActiveOrderId(orderId);
+              setView('cart');
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Search Overlay */}
       <AnimatePresence>

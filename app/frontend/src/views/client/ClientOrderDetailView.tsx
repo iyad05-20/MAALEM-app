@@ -663,8 +663,9 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
                 <div style={{ marginBottom: 12 }}>
                   <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, color: "var(--primary)", marginBottom: 10 }}>Actions disponibles</p>
 
-                  {/* Notification In-App J+2 (10h00 - 11h00) : Relance Maâlem */}
-                  {["acompte_verse", "payee_integralement", "en_attente_paiement"].includes(selectedOrder.status) && (
+                  {/* Notification In-App J+2 (10h00 - 11h00) : Relance Maâlem (Uniquement après paiement et après dépassement du délai de 48h) */}
+                  {["acompte_verse", "payee_integralement"].includes(selectedOrder.status) &&
+                    (Date.now() - new Date(selectedOrder.createdAt).getTime()) / (1000 * 60 * 60) >= 48 && (
                     <div style={{ background: "rgba(212,175,55,0.12)", border: "1px solid rgba(212,175,55,0.35)", borderRadius: 16, padding: "14px 16px", marginBottom: 14 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                         <Bell size={16} color="#8B6914" />
@@ -673,7 +674,7 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
                         </span>
                       </div>
                       <p style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text-secondary)", margin: "0 0 10px" }}>
-                        Le Maâlem n'a pas encore validé votre commande. Sans réponse d'ici 11h00, la commande sera automatiquement annulée et remboursée à 100%.
+                        Le Maâlem n'a pas encore validé votre commande payée. Sans réponse d'ici 11h00, la commande sera automatiquement annulée et remboursée à 100%.
                       </p>
                       <div style={{ display: "flex", gap: 8 }}>
                         <button onClick={handleCancel} disabled={loading} style={{ flex: 1, padding: "9px", borderRadius: 10, border: "1px solid #C0392B", background: "rgba(192,57,43,0.06)", color: "#C0392B", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 11, cursor: "pointer" }}>

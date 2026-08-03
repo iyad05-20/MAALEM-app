@@ -32,6 +32,8 @@ interface HomeViewProps {
   favoritesList?: string[];
   onToggleFavorite?: (product: Product) => void;
   onSeeAllRecs?: () => void;
+  onOpenNotifications?: () => void;
+  hasUnreadNotifications?: boolean;
 }
 
 // ─── Horizontal Product Row with Focus Scaling ─────────────────────────────
@@ -202,12 +204,15 @@ export const HomeView: React.FC<HomeViewProps> = ({
       <header className="app-header">
         <h1 className="brand-logo">MAALEM</h1>
         <div className="header-actions">
-          <button className="icon-btn" aria-label="Notifications">
+          <button className="icon-btn" aria-label="Notifications" onClick={onOpenNotifications} style={{ position: "relative" }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
               <path d="M13.73 21a2 2 0 0 1-3.46 0" />
             </svg>
+            {hasUnreadNotifications && (
+              <span style={{ position: "absolute", top: 4, right: 4, width: 8, height: 8, borderRadius: "50%", background: "#DC3545", border: "2px solid #fff" }} />
+            )}
           </button>
           <img
             src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop"
