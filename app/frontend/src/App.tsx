@@ -14,9 +14,11 @@ import { BottomNav } from './components/Shared/BottomNav';
 import { MAALEM_DATA } from './data/mockData';
 import { recSession } from './services/recommendationSession';
 import { authService, type UserProfile } from './services/authService';
+import { favoritesService } from './services/favoritesService';
 import { NotificationsView } from './views/client/NotificationsView';
 import { clientWalletAPI } from './services/clientWalletApi';
 import type { ClientOrder } from './types/clientPayment';
+import { AnimatePresence, motion } from 'framer-motion';
 import './styles/global.css';
 
 // ─── Resolve products by ID ──────────────────────────────────────────────────

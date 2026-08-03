@@ -127,6 +127,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
   favoritesList = [],
   onToggleFavorite,
   onSeeAllRecs,
+  onOpenNotifications,
+  hasUnreadNotifications = false,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrollY, setScrollY] = useState(0);

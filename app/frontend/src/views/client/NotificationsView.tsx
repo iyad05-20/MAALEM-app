@@ -115,7 +115,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ orders, on
               height: 34,
               display: "flex",
               alignItems: "center",
-              justify: "center",
+              justifyContent: "center",
               cursor: "pointer",
             }}
           >
