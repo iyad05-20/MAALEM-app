@@ -41,28 +41,16 @@ export async function initSearchIndex() {
 }
 
 async function seedProducts() {
-  let stats = null;
+  // 1. Ensure index exists
   try {
-    stats = await productsIndex.getStats();
-    if (stats.numberOfDocuments > 0) {
-      console.log(`✅ Meilisearch: 'products' index already populated with ${stats.numberOfDocuments} items. Skipping seed.`);
-      return;
-    }
-  } catch (error) {
-    // If stats check fails for ANY reason (index missing, network blip, etc), attempt index creation
-    console.log("⚙️ Index 'products' not found or stats failed. Attempting creation...");
-    try {
-      await client.createIndex('products', { primaryKey: 'id' });
-    } catch (createError) {
-      // Ignore if index was created concurrently by another process
-      if (createError.code !== 'index_already_exists') {
-        console.error('❌ Failed to create "products" index:', createError.message);
-        throw createError;
-      }
+    await client.createIndex('products', { primaryKey: 'id' });
+  } catch (createError) {
+    if (createError.code !== 'index_already_exists') {
+      console.log(`Index check/create warning: ${createError.message}`);
     }
   }
 
-  // Configure settings
+  // 2. Configure settings (always update to keep in sync)
   await productsIndex.updateSettings({
     searchableAttributes: ['title', 'search_keywords', 'artisanName'],
     filterableAttributes: [
@@ -75,8 +63,20 @@ async function seedProducts() {
       'price',
       'in_stock',
     ],
-    displayedAttributes: ['id', 'imageUrl', 'title', 'price', 'artisanName', 'category', 'category_group'],
+    displayedAttributes: ['id', 'imageUrl', 'image_url', 'title', 'price', 'artisanName', 'category', 'category_group', 'rec_tags', 'facets'],
   });
+
+  // 3. Add documents only if empty
+  let stats = null;
+  try {
+    stats = await productsIndex.getStats();
+    if (stats.numberOfDocuments > 0) {
+      console.log(`✅ Meilisearch: 'products' index already populated with ${stats.numberOfDocuments} items. Skipping document seed.`);
+      return;
+    }
+  } catch (error) {
+    console.error('❌ Stats check failed:', error.message);
+  }
 
   const products = recommendationService.getProducts();
   if (products && products.length > 0) {

@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Search, ArrowUpRight } from 'lucide-react';
+import { X, Search, ArrowUpRight, SlidersHorizontal, Check } from 'lucide-react';
 import { SearchProductCard } from '../../components/Shared/SearchProductCard';
 import { MAALEM_DATA } from '../../data/mockData';
 import type { View } from '../../types';
@@ -37,6 +37,17 @@ const COLLECTIONS = [
 ];
 
 
+const formatCategoryName = (cat: string) => {
+  if (!cat) return '';
+  const formatted = cat.charAt(0).toUpperCase() + cat.slice(1);
+  if (formatted === 'Ceramique') return 'Céramique';
+  if (formatted === 'Bijouterie') return 'Bijouterie';
+  if (formatted === 'Dinanderie') return 'Dinanderie';
+  if (formatted === 'Broderie') return 'Broderie';
+  if (formatted === 'Tissage') return 'Tissage';
+  return formatted;
+};
+
 let cachedSearchKey: string | null = null;
 async function getSearchKey(): Promise<string> {
   if (cachedSearchKey) return cachedSearchKey;
@@ -53,6 +64,26 @@ export const SearchView: React.FC<SearchViewProps> = ({ onNavigate, onSelectProd
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [results, setResults] = useState<any[] | null>(null);
   const [isSearching, setIsSearching] = useState(false);
+
+  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
+  const [availableStyles, setAvailableStyles] = useState<string[]>([]);
+  const [availableMaterials, setAvailableMaterials] = useState<string[]>([]);
+  const [availableColorVibes, setAvailableColorVibes] = useState<string[]>([]);
+  const [availableContexts, setAvailableContexts] = useState<string[]>([]);
+
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
+  const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
+  const [selectedColorVibes, setSelectedColorVibes] = useState<string[]>([]);
+  const [selectedContexts, setSelectedContexts] = useState<string[]>([]);
+
+  const [appliedCategories, setAppliedCategories] = useState<string[]>([]);
+  const [appliedStyles, setAppliedStyles] = useState<string[]>([]);
+  const [appliedMaterials, setAppliedMaterials] = useState<string[]>([]);
+  const [appliedColorVibes, setAppliedColorVibes] = useState<string[]>([]);
+  const [appliedContexts, setAppliedContexts] = useState<string[]>([]);
+
+  const [showFiltersPanel, setShowFiltersPanel] = useState(false);
 
   // Auto-focus
   useEffect(() => {
@@ -101,7 +132,16 @@ export const SearchView: React.FC<SearchViewProps> = ({ onNavigate, onSelectProd
     fetchSuggestions(q);
   };
 
-  const performSearch = useCallback(async (q: string) => {
+  const performSearch = useCallback(async (
+    q: string,
+    filters?: {
+      categories?: string[];
+      styles?: string[];
+      materials?: string[];
+      vibes?: string[];
+      contexts?: string[];
+    }
+  ) => {
     if (!q.trim()) return;
     setIsSearching(true);
     setSuggestions([]);
@@ -117,6 +157,29 @@ export const SearchView: React.FC<SearchViewProps> = ({ onNavigate, onSelectProd
         facets: ['category_group', 'rec_tags.style', 'rec_tags.material', 'rec_tags.color_vibe', 'price']
       };
 
+      const filterParts: string[] = [];
+      if (filters) {
+        if (filters.categories && filters.categories.length > 0) {
+          filterParts.push(`category IN [${filters.categories.map(c => `"${c}"`).join(', ')}]`);
+        }
+        if (filters.styles && filters.styles.length > 0) {
+          filterParts.push(`rec_tags.style IN [${filters.styles.map(s => `"${s}"`).join(', ')}]`);
+        }
+        if (filters.materials && filters.materials.length > 0) {
+          filterParts.push(`rec_tags.material IN [${filters.materials.map(m => `"${m}"`).join(', ')}]`);
+        }
+        if (filters.vibes && filters.vibes.length > 0) {
+          filterParts.push(`rec_tags.color_vibe IN [${filters.vibes.map(v => `"${v}"`).join(', ')}]`);
+        }
+        if (filters.contexts && filters.contexts.length > 0) {
+          filterParts.push(`facets.placement_context IN [${filters.contexts.map(c => `"${c}"`).join(', ')}]`);
+        }
+      }
+
+      if (filterParts.length > 0) {
+        searchOptions.filter = filterParts.join(' AND ');
+      }
+
       // 1. Direct Search
       let res = await fetch(`${meiliHost}/indexes/products/search`, {
         method: 'POST',
@@ -129,8 +192,16 @@ export const SearchView: React.FC<SearchViewProps> = ({ onNavigate, onSelectProd
       let data = await res.json();
       let foundItems = data.hits || [];
 
-      // 2. Intent fallback if direct hits are empty
-      if (foundItems.length === 0) {
+      // 2. Intent fallback if direct hits are empty AND no active filters
+      const hasActiveFilters = filters && (
+        (filters.categories && filters.categories.length > 0) ||
+        (filters.styles && filters.styles.length > 0) ||
+        (filters.materials && filters.materials.length > 0) ||
+        (filters.vibes && filters.vibes.length > 0) ||
+        (filters.contexts && filters.contexts.length > 0)
+      );
+
+      if (foundItems.length === 0 && !hasActiveFilters) {
         const intentRes = await fetch(`${meiliHost}/indexes/search_intents/search`, {
           method: 'POST',
           headers: {
@@ -143,21 +214,21 @@ export const SearchView: React.FC<SearchViewProps> = ({ onNavigate, onSelectProd
         
         if (intentData.hits && intentData.hits.length > 0) {
           const intent = intentData.hits[0];
-          const filterParts = [];
+          const intentFilterParts = [];
           
           if (intent.category_groups) {
-            filterParts.push(`category_group = "${intent.category_groups}"`);
+            intentFilterParts.push(`category_group = "${intent.category_groups}"`);
           } else if (intent.tags && intent.tags.length > 0) {
             const validStyleTags = ['traditionnel', 'berbere', 'luxe', 'artisanal', 'marocain', 'moderne', 'rustique'];
             const matchingTags = intent.tags.filter((t: string) => validStyleTags.includes(t));
             if (matchingTags.length > 0) {
               const tagList = matchingTags.map((t: string) => `"${t}"`).join(', ');
-              filterParts.push(`rec_tags.style IN [${tagList}]`);
+              intentFilterParts.push(`rec_tags.style IN [${tagList}]`);
             }
           }
 
-          if (filterParts.length > 0) {
-            searchOptions.filter = filterParts.join(' AND ');
+          if (intentFilterParts.length > 0) {
+            searchOptions.filter = intentFilterParts.join(' AND ');
           }
 
           const refinedRes = await fetch(`${meiliHost}/indexes/products/search`, {
@@ -174,6 +245,55 @@ export const SearchView: React.FC<SearchViewProps> = ({ onNavigate, onSelectProd
       }
 
       setResults(foundItems);
+
+      // If primary query, extract and set all available filter choices from direct un-filtered hits
+      if (filters === undefined) {
+        const cats = new Set<string>();
+        const styles = new Set<string>();
+        const materials = new Set<string>();
+        const vibes = new Set<string>();
+        const contexts = new Set<string>();
+
+        foundItems.forEach((hit: any) => {
+          if (hit.category) cats.add(hit.category);
+          if (hit.rec_tags) {
+            if (Array.isArray(hit.rec_tags.style)) hit.rec_tags.style.forEach((s: any) => styles.add(s));
+            if (Array.isArray(hit.rec_tags.material)) hit.rec_tags.material.forEach((m: any) => materials.add(m));
+            if (Array.isArray(hit.rec_tags.color_vibe)) hit.rec_tags.color_vibe.forEach((v: any) => vibes.add(v));
+          }
+          if (hit.facets) {
+            if (Array.isArray(hit.facets.placement_context)) {
+              hit.facets.placement_context.forEach((c: any) => contexts.add(c));
+            }
+          }
+        });
+
+        setAvailableCategories(Array.from(cats).filter(Boolean));
+        setAvailableStyles(Array.from(styles).filter(Boolean));
+        setAvailableMaterials(Array.from(materials).filter(Boolean));
+        setAvailableColorVibes(Array.from(vibes).filter(Boolean));
+        setAvailableContexts(Array.from(contexts).filter(Boolean));
+
+        setSelectedCategories([]);
+        setSelectedStyles([]);
+        setSelectedMaterials([]);
+        setSelectedColorVibes([]);
+        setSelectedContexts([]);
+
+        setAppliedCategories([]);
+        setAppliedStyles([]);
+        setAppliedMaterials([]);
+        setAppliedColorVibes([]);
+        setAppliedContexts([]);
+
+        setShowFiltersPanel(false);
+      } else {
+        setAppliedCategories(filters.categories || []);
+        setAppliedStyles(filters.styles || []);
+        setAppliedMaterials(filters.materials || []);
+        setAppliedColorVibes(filters.vibes || []);
+        setAppliedContexts(filters.contexts || []);
+      }
 
       // Track search interaction tags in profile
       if (foundItems.length > 0) {
@@ -212,6 +332,26 @@ export const SearchView: React.FC<SearchViewProps> = ({ onNavigate, onSelectProd
     setQuery('');
     setSuggestions([]);
     setResults(null);
+
+    setAvailableCategories([]);
+    setAvailableStyles([]);
+    setAvailableMaterials([]);
+    setAvailableColorVibes([]);
+    setAvailableContexts([]);
+
+    setSelectedCategories([]);
+    setSelectedStyles([]);
+    setSelectedMaterials([]);
+    setSelectedColorVibes([]);
+    setSelectedContexts([]);
+
+    setAppliedCategories([]);
+    setAppliedStyles([]);
+    setAppliedMaterials([]);
+    setAppliedColorVibes([]);
+    setAppliedContexts([]);
+
+    setShowFiltersPanel(false);
   };
 
   const searchState = results !== null ? 'results' : query.length > 0 ? 'typing' : 'empty';
@@ -440,10 +580,326 @@ export const SearchView: React.FC<SearchViewProps> = ({ onNavigate, onSelectProd
                   </div>
                 ) : results && results.length > 0 ? (
                   <>
-                    <div className="results-meta">
-                      <span className="results-count">{results.length} résultats</span>
-                      <span className="results-query">pour « {query} »</span>
-                    </div>
+                    {(() => {
+                      const totalAppliedFilters = appliedCategories.length + appliedStyles.length + appliedMaterials.length + appliedColorVibes.length + appliedContexts.length;
+                      const totalAvailableOptionsCount = availableCategories.length + availableStyles.length + availableMaterials.length + availableColorVibes.length + availableContexts.length;
+
+                      return (
+                        <>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                            <div className="results-meta" style={{ margin: 0 }}>
+                              <span className="results-count">{results.length} résultats </span>
+                              <span className="results-query">pour « {query} »</span>
+                            </div>
+                            
+                            {/* Filter Button */}
+                            {totalAvailableOptionsCount > 1 && (
+                              <button
+                                onClick={() => setShowFiltersPanel(!showFiltersPanel)}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 6,
+                                  padding: '6px 12px',
+                                  background: showFiltersPanel || totalAppliedFilters > 0 ? 'rgba(212,175,55,0.08)' : 'var(--surface)',
+                                  border: `1.5px solid ${showFiltersPanel || totalAppliedFilters > 0 ? 'var(--primary)' : 'rgba(0,0,0,0.06)'}`,
+                                  borderRadius: 16,
+                                  fontFamily: 'var(--font-display)',
+                                  fontWeight: 700,
+                                  fontSize: 12,
+                                  color: showFiltersPanel || totalAppliedFilters > 0 ? 'var(--primary)' : 'var(--text-secondary)',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s ease',
+                                  boxShadow: 'var(--shadow-sm)'
+                                }}
+                              >
+                                <SlidersHorizontal size={14} />
+                                <span>Filtres</span>
+                                {totalAppliedFilters > 0 && (
+                                  <span style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    width: 16,
+                                    height: 16,
+                                    borderRadius: '50%',
+                                    background: 'var(--primary)',
+                                    color: '#fff',
+                                    fontSize: 9,
+                                    fontWeight: 800,
+                                    marginLeft: 2
+                                  }}>
+                                    {totalAppliedFilters}
+                                  </span>
+                                )}
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Collapsible Filter Panel */}
+                          <AnimatePresence>
+                            {showFiltersPanel && totalAvailableOptionsCount > 1 && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                                style={{
+                                  overflow: 'hidden',
+                                  background: '#FFFEFC',
+                                  border: '1px solid rgba(196, 169, 106, 0.15)',
+                                  borderRadius: 16,
+                                  padding: '16px',
+                                  marginBottom: 20,
+                                  boxShadow: '0 4px 16px rgba(26, 42, 58, 0.03)',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: 14
+                                }}
+                              >
+                                {/* Categories Filter */}
+                                {availableCategories.length > 0 && (
+                                  <div>
+                                    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 6 }}>Catégories</span>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                      {availableCategories.map(cat => {
+                                        const isSelected = selectedCategories.includes(cat);
+                                        return (
+                                          <button
+                                            key={cat}
+                                            onClick={() => {
+                                              setSelectedCategories(isSelected ? selectedCategories.filter(c => c !== cat) : [...selectedCategories, cat]);
+                                            }}
+                                            style={{
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              gap: 4,
+                                              padding: '6px 12px',
+                                              background: isSelected ? 'rgba(212,175,55,0.08)' : '#FCFBF9',
+                                              border: `1.2px solid ${isSelected ? 'var(--primary)' : 'rgba(196,169,106,0.12)'}`,
+                                              borderRadius: 12,
+                                              fontFamily: 'var(--font-body)',
+                                              fontSize: 11,
+                                              fontWeight: isSelected ? 700 : 500,
+                                              color: isSelected ? 'var(--primary)' : 'var(--text-secondary)',
+                                              cursor: 'pointer'
+                                            }}
+                                          >
+                                            {isSelected && <Check size={10} strokeWidth={3} />}
+                                            <span>{formatCategoryName(cat)}</span>
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Styles Filter */}
+                                {availableStyles.length > 0 && (
+                                  <div>
+                                    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 6 }}>Styles</span>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                      {availableStyles.map(style => {
+                                        const isSelected = selectedStyles.includes(style);
+                                        return (
+                                          <button
+                                            key={style}
+                                            onClick={() => {
+                                              setSelectedStyles(isSelected ? selectedStyles.filter(s => s !== style) : [...selectedStyles, style]);
+                                            }}
+                                            style={{
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              gap: 4,
+                                              padding: '6px 12px',
+                                              background: isSelected ? 'rgba(212,175,55,0.08)' : '#FCFBF9',
+                                              border: `1.2px solid ${isSelected ? 'var(--primary)' : 'rgba(196,169,106,0.12)'}`,
+                                              borderRadius: 12,
+                                              fontFamily: 'var(--font-body)',
+                                              fontSize: 11,
+                                              fontWeight: isSelected ? 700 : 500,
+                                              color: isSelected ? 'var(--primary)' : 'var(--text-secondary)',
+                                              cursor: 'pointer'
+                                            }}
+                                          >
+                                            {isSelected && <Check size={10} strokeWidth={3} />}
+                                            <span>{style.charAt(0).toUpperCase() + style.slice(1)}</span>
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Materials Filter */}
+                                {availableMaterials.length > 0 && (
+                                  <div>
+                                    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 6 }}>Matériaux</span>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                      {availableMaterials.map(mat => {
+                                        const isSelected = selectedMaterials.includes(mat);
+                                        return (
+                                          <button
+                                            key={mat}
+                                            onClick={() => {
+                                              setSelectedMaterials(isSelected ? selectedMaterials.filter(m => m !== mat) : [...selectedMaterials, mat]);
+                                            }}
+                                            style={{
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              gap: 4,
+                                              padding: '6px 12px',
+                                              background: isSelected ? 'rgba(212,175,55,0.08)' : '#FCFBF9',
+                                              border: `1.2px solid ${isSelected ? 'var(--primary)' : 'rgba(196,169,106,0.12)'}`,
+                                              borderRadius: 12,
+                                              fontFamily: 'var(--font-body)',
+                                              fontSize: 11,
+                                              fontWeight: isSelected ? 700 : 500,
+                                              color: isSelected ? 'var(--primary)' : 'var(--text-secondary)',
+                                              cursor: 'pointer'
+                                            }}
+                                          >
+                                            {isSelected && <Check size={10} strokeWidth={3} />}
+                                            <span>{mat.charAt(0).toUpperCase() + mat.slice(1)}</span>
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Color Vibes Filter */}
+                                {availableColorVibes.length > 0 && (
+                                  <div>
+                                    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 6 }}>Ambiance & Couleurs</span>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                      {availableColorVibes.map(vibe => {
+                                        const isSelected = selectedColorVibes.includes(vibe);
+                                        return (
+                                          <button
+                                            key={vibe}
+                                            onClick={() => {
+                                              setSelectedColorVibes(isSelected ? selectedColorVibes.filter(v => v !== vibe) : [...selectedColorVibes, vibe]);
+                                            }}
+                                            style={{
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              gap: 4,
+                                              padding: '6px 12px',
+                                              background: isSelected ? 'rgba(212,175,55,0.08)' : '#FCFBF9',
+                                              border: `1.2px solid ${isSelected ? 'var(--primary)' : 'rgba(196,169,106,0.12)'}`,
+                                              borderRadius: 12,
+                                              fontFamily: 'var(--font-body)',
+                                              fontSize: 11,
+                                              fontWeight: isSelected ? 700 : 500,
+                                              color: isSelected ? 'var(--primary)' : 'var(--text-secondary)',
+                                              cursor: 'pointer'
+                                            }}
+                                          >
+                                            {isSelected && <Check size={10} strokeWidth={3} />}
+                                            <span>{vibe.charAt(0).toUpperCase() + vibe.slice(1)}</span>
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Context Filter */}
+                                {availableContexts.length > 0 && (
+                                  <div>
+                                    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 6 }}>Usage & Univers</span>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                      {availableContexts.map(ctx => {
+                                        const isSelected = selectedContexts.includes(ctx);
+                                        return (
+                                          <button
+                                            key={ctx}
+                                            onClick={() => {
+                                              setSelectedContexts(isSelected ? selectedContexts.filter(c => c !== ctx) : [...selectedContexts, ctx]);
+                                            }}
+                                            style={{
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              gap: 4,
+                                              padding: '6px 12px',
+                                              background: isSelected ? 'rgba(212,175,55,0.08)' : '#FCFBF9',
+                                              border: `1.2px solid ${isSelected ? 'var(--primary)' : 'rgba(196,169,106,0.12)'}`,
+                                              borderRadius: 12,
+                                              fontFamily: 'var(--font-body)',
+                                              fontSize: 11,
+                                              fontWeight: isSelected ? 700 : 500,
+                                              color: isSelected ? 'var(--primary)' : 'var(--text-secondary)',
+                                              cursor: 'pointer'
+                                            }}
+                                          >
+                                            {isSelected && <Check size={10} strokeWidth={3} />}
+                                            <span>{ctx.charAt(0).toUpperCase() + ctx.slice(1)}</span>
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Actions */}
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 14, borderTop: '1px solid rgba(0,0,0,0.04)', paddingTop: 12, marginTop: 4 }}>
+                                  <button
+                                    onClick={() => {
+                                      setSelectedCategories([]);
+                                      setSelectedStyles([]);
+                                      setSelectedMaterials([]);
+                                      setSelectedColorVibes([]);
+                                      setSelectedContexts([]);
+                                      performSearch(query, {});
+                                      setShowFiltersPanel(false);
+                                    }}
+                                    style={{
+                                      background: 'none',
+                                      border: 'none',
+                                      fontFamily: 'var(--font-body)',
+                                      fontWeight: 600,
+                                      fontSize: 12,
+                                      color: 'var(--text-secondary)',
+                                      cursor: 'pointer',
+                                      padding: '4px 8px'
+                                    }}
+                                  >
+                                    Réinitialiser
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      performSearch(query, {
+                                        categories: selectedCategories,
+                                        styles: selectedStyles,
+                                        materials: selectedMaterials,
+                                        vibes: selectedColorVibes,
+                                        contexts: selectedContexts
+                                      });
+                                      setShowFiltersPanel(false);
+                                    }}
+                                    style={{
+                                      background: 'var(--primary)',
+                                      border: 'none',
+                                      borderRadius: 10,
+                                      padding: '8px 16px',
+                                      fontFamily: 'var(--font-display)',
+                                      fontWeight: 700,
+                                      fontSize: 12,
+                                      color: '#fff',
+                                      cursor: 'pointer',
+                                      boxShadow: 'var(--shadow-sm)'
+                                    }}
+                                  >
+                                    Appliquer
+                                  </button>
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </>
+                      );
+                    })()}
                     <div className="results-grid">
                       {results.map(p => (
                         <SearchProductCard
