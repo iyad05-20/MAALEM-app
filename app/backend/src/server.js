@@ -13,6 +13,9 @@ import mockCmiRouter        from './core/paymentProviders/mockCmi.js';
 import { loadProducts }       from './services/recommendation.service.js';
 import { initSearchIndex }  from './services/search/meilisearch.service.js';
 import { initSchema }       from './core/db/index.js';
+import { senditWebhookHandler } from './services/sendit/senditWebhookHandler.js';
+import { senditClient } from './services/sendit/senditClient.js';
+import { shipOrder } from './client/services/artisanOrderService.js';
 
 dotenv.config();
 
@@ -69,6 +72,42 @@ app.use('/api/favorites',       favoritesRoutes);
 app.use('/api/reviews',         reviewsRoutes);
 app.use('/api/client',          clientRoutes);
 app.use('/mock-cmi',            mockCmiRouter);
+
+// Sendit Webhooks
+app.post('/api/webhooks/sendit', senditWebhookHandler);
+
+// Districts API
+app.get('/api/districts', async (req, res) => {
+  try {
+    const querystring = req.query.querystring;
+    const result = await senditClient.getDistricts(querystring);
+    res.json(result);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Artisan Ship Route
+app.post('/api/artisan/orders/:id/ship', async (req, res) => {
+  try {
+    const senditDeliveryCode = await shipOrder(req.params.id, req.body);
+    res.json({ success: true, status: "en_cours_de_transport", senditDeliveryCode });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+// Artisan Label Route
+app.get('/api/artisan/orders/:id/label', async (req, res) => {
+  try {
+    // Note: in a real environment we would load the order to get the delivery code
+    // But since this might be a simple database read, let's import db and orders here or use a helper
+    const result = await senditClient.getLabels(req.query.code || "");
+    res.json(result);
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
 
 // ─── 404 ──────────────────────────────────────────────────────────────────────
 app.use((req, res) => {

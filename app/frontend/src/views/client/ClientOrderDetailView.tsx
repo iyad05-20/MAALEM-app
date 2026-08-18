@@ -122,6 +122,16 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
   const [disputeReason, setDisputeReason] = useState("");
   const [disputePhotoUrl, setDisputePhotoUrl] = useState("");
 
+  // Sendit Shipping and Webhook simulation states
+  const [districts, setDistricts] = useState<{ id: number; name: string }[]>([]);
+  const [pickupDistrictId, setPickupDistrictId] = useState<number>(1);
+  const [deliveryDistrictId, setDeliveryDistrictId] = useState<number>(2);
+  const artisanNameInput = "Maâlem Abdelkader";
+  const artisanPhoneInput = "0612345678";
+  const [artisanAddressInput, setArtisanAddressInput] = useState<string>("Ahl Fes, N° 12, Fès");
+  const [webhookStatus, setWebhookStatus] = useState<string>("DELIVERED");
+  const [webhookProofImage, setWebhookProofImage] = useState<string>("https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=600&auto=format&fit=crop");
+
   const VICE_CACHE_REASONS = [
     "Défaut de structure / assemblage (fissure interne, collage défaillant)",
     "Défaut de matière ou de matériau (cuir/bois non traité, vice de fabrication)",
@@ -154,6 +164,14 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
   };
 
   useEffect(() => { loadData(); }, [orderId]);
+
+  useEffect(() => {
+    clientWalletAPI.getDistricts().then((res) => {
+      if (res && res.success && Array.isArray(res.data)) {
+        setDistricts(res.data);
+      }
+    });
+  }, []);
 
   useEffect(() => {
     if (onDetailToggle) {
@@ -369,6 +387,73 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
     } catch (e: unknown) {
       setMessage({ type: "error", text: (e as Error).message });
     } finally { setLoading(false); }
+  };
+
+  const handleSimulateShipping = async () => {
+    if (!selectedOrder) return;
+    setLoading(true);
+    try {
+      const res = await clientWalletAPI.shipOrder(selectedOrder.id, {
+        pickup_district_id: pickupDistrictId,
+        district_id: deliveryDistrictId,
+        name: artisanNameInput,
+        phone: artisanPhoneInput,
+        address: artisanAddressInput,
+      });
+      if (res.success) {
+        setMessage({ type: "success", text: `Colis créé avec succès ! Code Sendit : ${res.senditDeliveryCode}` });
+        await loadData();
+      }
+    } catch (e: any) {
+      setMessage({ type: "error", text: e.message || "Erreur lors de la création du colis." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDownloadLabel = async () => {
+    if (!selectedOrder || !selectedOrder.senditDeliveryCode) return;
+    setLoading(true);
+    try {
+      const res = await clientWalletAPI.getOrderLabel(selectedOrder.id, selectedOrder.senditDeliveryCode);
+      if (res && res.labelUrl) {
+        window.open(res.labelUrl, "_blank");
+        setMessage({ type: "success", text: "Étiquette PDF ouverte dans un nouvel onglet." });
+      } else {
+        setMessage({ type: "error", text: "Impossible de récupérer l'étiquette." });
+      }
+    } catch (e: any) {
+      setMessage({ type: "error", text: e.message || "Erreur étiquette." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSimulateWebhook = async () => {
+    if (!selectedOrder || !selectedOrder.senditDeliveryCode) return;
+    setLoading(true);
+    try {
+      const payload = {
+        event: "delivery.status.update",
+        code: selectedOrder.senditDeliveryCode,
+        oldStatus: "TRANSIT",
+        newStatus: webhookStatus,
+        proofImage: webhookStatus === "DELIVERED" ? webhookProofImage : undefined,
+        counterUnreachable: webhookStatus === "UNREACHABLE" ? (selectedOrder.counterUnreachable || 0) + 1 : undefined,
+        lastActionAt: new Date().toISOString()
+      };
+      const res = await clientWalletAPI.simulateWebhook(payload);
+      if (res.success) {
+        setMessage({ type: "success", text: `Événement ${webhookStatus} simulé avec succès !` });
+        await loadData();
+      } else {
+        setMessage({ type: "error", text: `Erreur webhook : ${res.error || "Inconnu"}` });
+      }
+    } catch (e: any) {
+      setMessage({ type: "error", text: e.message || "Erreur lors de l'envoi du webhook." });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const visibleOrders = activeTab === "active"
@@ -891,6 +976,82 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
                       </motion.button>
                     )}
                   </div>
+                </div>
+
+                {/* ── SECTION D'INTEGRATION & SIMULATION SENDIT ── */}
+                <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px dashed var(--border)" }}>
+                  <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, color: "var(--primary)", margin: "0 0 10px", display: "flex", alignItems: "center", gap: 6 }}>
+                    📦 Outils d'Intégration & Simulation Sendit
+                  </h4>
+
+                  {/* 1. Simulation Expédition (Artisan) */}
+                  {selectedOrder.status === "en_preparation" && (
+                    <div style={{ background: "rgba(26,42,58,0.03)", border: "1px solid var(--border)", borderRadius: 14, padding: 12, marginBottom: 12 }}>
+                      <p style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 11, margin: "0 0 8px", color: "var(--primary)" }}>Simuler l'expédition par le Maâlem</p>
+                      
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <div style={{ flex: 1 }}>
+                            <label style={{ fontFamily: "var(--font-body)", fontSize: 9, color: "var(--text-secondary)", display: "block", marginBottom: 2 }}>Ville Ramassage</label>
+                            <select value={pickupDistrictId} onChange={(e) => setPickupDistrictId(Number(e.target.value))} style={{ width: "100%", padding: 6, borderRadius: 6, border: "1px solid var(--border)", fontSize: 11, background: "var(--surface)" }}>
+                              {districts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                            </select>
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <label style={{ fontFamily: "var(--font-body)", fontSize: 9, color: "var(--text-secondary)", display: "block", marginBottom: 2 }}>Ville Livraison</label>
+                            <select value={deliveryDistrictId} onChange={(e) => setDeliveryDistrictId(Number(e.target.value))} style={{ width: "100%", padding: 6, borderRadius: 6, border: "1px solid var(--border)", fontSize: 11, background: "var(--surface)" }}>
+                              {districts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                            </select>
+                          </div>
+                        </div>
+                        <div>
+                          <label style={{ fontFamily: "var(--font-body)", fontSize: 9, color: "var(--text-secondary)", display: "block", marginBottom: 2 }}>Adresse de Livraison</label>
+                          <input type="text" value={artisanAddressInput} onChange={(e) => setArtisanAddressInput(e.target.value)} style={{ width: "100%", padding: "6px 8px", borderRadius: 6, border: "1px solid var(--border)", fontSize: 11, background: "var(--surface)" }} />
+                        </div>
+                        <button onClick={handleSimulateShipping} disabled={loading} style={{ width: "100%", padding: 8, borderRadius: 8, border: "none", background: "var(--primary)", color: "#fff", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 11, cursor: "pointer", marginTop: 4 }}>
+                          {loading ? "Création du colis..." : "Simuler la création du colis chez Sendit"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 2. Étiquette Sendit */}
+                  {selectedOrder.senditDeliveryCode && (
+                    <div style={{ background: "rgba(45,106,79,0.03)", border: "1px solid rgba(45,106,79,0.15)", borderRadius: 14, padding: 12, marginBottom: 12 }}>
+                      <p style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 11, margin: "0 0 2px", color: "var(--primary)" }}>Code de suivi Sendit : <code style={{ color: "#2D6A4F" }}>{selectedOrder.senditDeliveryCode}</code></p>
+                      <p style={{ fontFamily: "var(--font-body)", fontSize: 10, color: "var(--text-secondary)", margin: "0 0 8px" }}>Le colis a été informatiquement enregistré.</p>
+                      <button onClick={handleDownloadLabel} disabled={loading} style={{ width: "100%", padding: 8, borderRadius: 8, border: "1px solid #2D6A4F", background: "rgba(45,106,79,0.05)", color: "#2D6A4F", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 11, cursor: "pointer" }}>
+                        Imprimer l'étiquette Sendit (PDF)
+                      </button>
+                    </div>
+                  )}
+
+                  {/* 3. Simulation Webhook Sendit */}
+                  {selectedOrder.status === "en_cours_de_transport" && selectedOrder.senditDeliveryCode && (
+                    <div style={{ background: "rgba(220,53,69,0.03)", border: "1px solid rgba(220,53,69,0.15)", borderRadius: 14, padding: 12 }}>
+                      <p style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 11, margin: "0 0 8px", color: "var(--primary)" }}>Simuler Notification Webhook (Sendit)</p>
+                      
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        <div>
+                          <label style={{ fontFamily: "var(--font-body)", fontSize: 9, color: "var(--text-secondary)", display: "block", marginBottom: 2 }}>Nouvel état du colis</label>
+                          <select value={webhookStatus} onChange={(e) => setWebhookStatus(e.target.value)} style={{ width: "100%", padding: 6, borderRadius: 6, border: "1px solid var(--border)", fontSize: 11, background: "var(--surface)" }}>
+                            <option value="DELIVERED">DELIVERED (Livré)</option>
+                            <option value="UNREACHABLE">UNREACHABLE (Client injoignable)</option>
+                            <option value="REJECTED">REJECTED (Colis refusé)</option>
+                          </select>
+                        </div>
+                        {webhookStatus === "DELIVERED" && (
+                          <div>
+                            <label style={{ fontFamily: "var(--font-body)", fontSize: 9, color: "var(--text-secondary)", display: "block", marginBottom: 2 }}>URL de preuve de livraison</label>
+                            <input type="text" value={webhookProofImage} onChange={(e) => setWebhookProofImage(e.target.value)} style={{ width: "100%", padding: "6px 8px", borderRadius: 6, border: "1px solid var(--border)", fontSize: 11, background: "var(--surface)" }} />
+                          </div>
+                        )}
+                        <button onClick={handleSimulateWebhook} disabled={loading} style={{ width: "100%", padding: 8, borderRadius: 8, border: "none", background: "#DC3545", color: "#fff", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 11, cursor: "pointer", marginTop: 4 }}>
+                          {loading ? "Envoi du Webhook..." : "Déclencher l'événement Webhook"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
               </div>

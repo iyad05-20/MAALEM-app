@@ -112,7 +112,7 @@ export async function shipOrder(
   // 2. Mettre à jour le statut et enregistrer le code de suivi Sendit
   db.update(orders)
     .set({
-      status: "expediee",
+      status: "en_cours_de_transport",
       senditDeliveryCode: senditDeliveryCode,
       pickupDistrictId: deliveryData.pickup_district_id,
       deliveryDistrictId: deliveryData.district_id,

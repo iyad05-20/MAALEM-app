@@ -1,15 +1,14 @@
 import crypto from "crypto";
-import type { Request, Response } from "express";
 import { eq } from "drizzle-orm";
-import { db } from "../../core/db";
-import { orders } from "../../core/db/schema";
+import { db } from "../../core/db/index.js";
+import { orders } from "../../core/db/schema.js";
 
 const SENDIT_SECRET_KEY = process.env.SENDIT_SECRET_KEY || "";
 
 /**
  * Express Middleware/Handler to process Sendit Webhook notifications.
  */
-export async function senditWebhookHandler(req: Request, res: Response) {
+export async function senditWebhookHandler(req, res) {
   const signature = req.headers["x-sendit-signature"];
   if (!signature) {
     return res.status(401).json({ success: false, error: "Missing signature header" });
@@ -40,17 +39,7 @@ export async function senditWebhookHandler(req: Request, res: Response) {
     return res.status(401).json({ success: false, error: "Invalid signature" });
   }
 
-  const payload = req.body as {
-    event: string;
-    code: string;
-    oldStatus: string;
-    newStatus: string;
-    lastActionAt: string;
-    message?: string;
-    proofImage?: string;
-    deliverBy?: string;
-    counterUnreachable?: number;
-  };
+  const payload = req.body;
 
   if (payload.event !== "delivery.status.update") {
     return res.status(200).json({ success: true, message: "Ignored unhandled event type" });
@@ -100,7 +89,7 @@ export async function senditWebhookHandler(req: Request, res: Response) {
       .run();
 
     return res.status(200).json({ success: true, message: "Webhook processed successfully" });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error processing Sendit webhook:", error);
     return res.status(500).json({ success: false, error: error.message });
   }

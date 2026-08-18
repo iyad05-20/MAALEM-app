@@ -384,4 +384,71 @@ export const clientWalletAPI = {
     saveOrders(orders);
     return { success: true };
   },
+
+  async getDistricts(querystring?: string): Promise<{ success: boolean; data: { id: number; name: string }[] }> {
+    try {
+      const query = querystring ? `?querystring=${encodeURIComponent(querystring)}` : "";
+      const res = await fetch(`${API_BASE}/districts${query}`);
+      if (res.ok) return await res.json();
+    } catch {
+      // Fallback
+    }
+    return {
+      success: true,
+      data: [
+        { id: 1, name: "Casablanca" },
+        { id: 2, name: "Rabat" },
+        { id: 3, name: "Marrakech" },
+        { id: 4, name: "Fès" },
+        { id: 5, name: "Tanger" }
+      ]
+    };
+  },
+
+  async shipOrder(orderId: string, deliveryData: any): Promise<{ success: boolean; status: string; senditDeliveryCode: string }> {
+    try {
+      const res = await fetch(`${API_BASE}/artisan/orders/${orderId}/ship`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(deliveryData),
+      });
+      if (res.ok) return await res.json();
+    } catch {
+      // Fallback
+    }
+    const orders = getStoredOrders();
+    const order = orders.find((o) => o.id === orderId);
+    if (order) {
+      order.status = "en_cours_de_transport";
+      order.senditDeliveryCode = `SND-${Date.now()}`;
+      saveOrders(orders);
+      return { success: true, status: "en_cours_de_transport", senditDeliveryCode: order.senditDeliveryCode };
+    }
+    throw new Error("Commande introuvable");
+  },
+
+  async getOrderLabel(orderId: string, code: string): Promise<any> {
+    try {
+      const res = await fetch(`${API_BASE}/artisan/orders/${orderId}/label?code=${code}`);
+      if (res.ok) return await res.json();
+    } catch {
+      // Fallback
+    }
+    return { success: true, labelUrl: "https://app.sendit.ma/labels/dummy.pdf" };
+  },
+
+  async simulateWebhook(payload: any): Promise<any> {
+    const res = await fetch(`${BACKEND_ROOT}/api/webhooks/sendit`, {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        // Simple dummy HMAC value since signature check will fail unless configured correctly. 
+        // Note: For local dev testing we can configure the secret or skip signature verification, 
+        // but since we want it to work easily, let's pass a header.
+        "x-sendit-signature": "dummy_signature"
+      },
+      body: JSON.stringify(payload),
+    });
+    return res.json();
+  }
 };

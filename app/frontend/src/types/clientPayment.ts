@@ -42,6 +42,13 @@ export interface ClientOrder {
   returnStatus?: "initie" | "valide" | "refuse" | null;
   disputeReason?: string | null;
   disputeStatus?: "ouvert" | "resolu" | null;
+  senditDeliveryCode?: string | null;
+  pickupDistrictId?: number | null;
+  deliveryDistrictId?: number | null;
+  allowOpen?: number | null;
+  allowTry?: number | null;
+  counterUnreachable?: number | null;
+  proofImage?: string | null;
 }
 
 export interface WalletTransaction {
