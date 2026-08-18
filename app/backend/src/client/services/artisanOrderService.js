@@ -3,6 +3,28 @@ import { db } from "../../core/db/index.js";
 import { orders } from "../../core/db/schema.js";
 import { senditClient } from "../../services/sendit/senditClient.js";
 
+export async function acceptOrder(orderId) {
+  return db.transaction((tx) => {
+    const order = tx.select().from(orders).where(eq(orders.id, orderId)).get();
+    if (!order) {
+      throw new Error("commande_introuvable");
+    }
+    if (!["payee_integralement", "acompte_verse"].includes(order.status)) {
+      throw new Error(`statut_incompatible_pour_acceptation:${order.status}`);
+    }
+
+    const now = new Date().toISOString();
+    tx.update(orders)
+      .set({
+        status: "en_preparation",
+        acceptedAt: now,
+        updatedAt: now,
+      })
+      .where(eq(orders.id, orderId))
+      .run();
+  });
+}
+
 export async function shipOrder(orderId, deliveryData) {
   const order = db.select().from(orders).where(eq(orders.id, orderId)).get();
   if (!order) {

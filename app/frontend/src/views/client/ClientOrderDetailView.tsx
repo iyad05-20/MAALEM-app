@@ -390,6 +390,22 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
     } finally { setLoading(false); }
   };
 
+  const handleSimulateAccept = async () => {
+    if (!selectedOrder) return;
+    setLoading(true);
+    try {
+      const res = await clientWalletAPI.acceptOrder(selectedOrder.id);
+      if (res.success) {
+        setMessage({ type: "success", text: "Commande acceptée par le Maâlem ! Entrée en fabrication." });
+        await loadData();
+      }
+    } catch (e: any) {
+      setMessage({ type: "error", text: e.message || "Erreur d'acceptation." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSimulateShipping = async () => {
     if (!selectedOrder) return;
     setLoading(true);
@@ -985,7 +1001,20 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
                     📦 Outils d'Intégration & Simulation Sendit
                   </h4>
 
-                  {/* 1. Simulation Expédition (Artisan) */}
+                  {/* 1. Simulation Acceptation par le Maâlem */}
+                  {["acompte_verse", "payee_integralement"].includes(selectedOrder.status) && (
+                    <div style={{ background: "rgba(212,175,55,0.04)", border: "1px solid rgba(212,175,55,0.25)", borderRadius: 14, padding: 12, marginBottom: 12 }}>
+                      <p style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 11, margin: "0 0 6px", color: "var(--primary)" }}>Simuler l'acceptation par le Maâlem</p>
+                      <p style={{ fontFamily: "var(--font-body)", fontSize: 10, color: "var(--text-secondary)", margin: "0 0 8px" }}>
+                        Une fois payée, la commande doit être acceptée par l'artisan pour passer en fabrication.
+                      </p>
+                      <button onClick={handleSimulateAccept} disabled={loading} style={{ width: "100%", padding: 8, borderRadius: 8, border: "none", background: "#8B6914", color: "#fff", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 11, cursor: "pointer" }}>
+                        {loading ? "Acceptation en cours..." : "Simuler l'acceptation et lancer la fabrication"}
+                      </button>
+                    </div>
+                  )}
+
+                  {/* 2. Simulation Expédition (Artisan) */}
                   {selectedOrder.status === "en_preparation" && (
                     <div style={{ background: "rgba(26,42,58,0.03)", border: "1px solid var(--border)", borderRadius: 14, padding: 12, marginBottom: 12 }}>
                       <p style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 11, margin: "0 0 8px", color: "var(--primary)" }}>Simuler l'expédition par le Maâlem</p>

@@ -431,6 +431,27 @@ export const clientWalletAPI = {
     throw new Error("Commande introuvable");
   },
 
+  async acceptOrder(orderId: string): Promise<{ success: boolean; status: string }> {
+    try {
+      const res = await fetch(`${API_BASE}/artisan/orders/${orderId}/accept`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (res.ok) return await res.json() as { success: boolean; status: string };
+    } catch {
+      // Fallback
+    }
+    const orders = getStoredOrders();
+    const order = orders.find((o) => o.id === orderId);
+    if (order) {
+      order.status = "en_preparation";
+      order.acceptedAt = new Date().toISOString();
+      saveOrders(orders);
+      return { success: true, status: "en_preparation" };
+    }
+    throw new Error("Commande introuvable");
+  },
+
   async getOrderLabel(orderId: string, code: string): Promise<any> {
     try {
       const res = await fetch(`${API_BASE}/artisan/orders/${orderId}/label?code=${code}`);

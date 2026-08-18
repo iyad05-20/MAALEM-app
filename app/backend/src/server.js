@@ -15,7 +15,7 @@ import { initSearchIndex }  from './services/search/meilisearch.service.js';
 import { initSchema }       from './core/db/index.js';
 import { senditWebhookHandler } from './services/sendit/senditWebhookHandler.js';
 import { senditClient } from './services/sendit/senditClient.js';
-import { shipOrder } from './client/services/artisanOrderService.js';
+import { shipOrder, acceptOrder } from './client/services/artisanOrderService.js';
 
 dotenv.config();
 
@@ -92,6 +92,16 @@ app.post('/api/artisan/orders/:id/ship', async (req, res) => {
   try {
     const senditDeliveryCode = await shipOrder(req.params.id, req.body);
     res.json({ success: true, status: "en_cours_de_transport", senditDeliveryCode });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+// Artisan Accept Route
+app.post('/api/artisan/orders/:id/accept', async (req, res) => {
+  try {
+    await acceptOrder(req.params.id);
+    res.json({ success: true, status: "en_preparation" });
   } catch (e) {
     res.status(400).json({ error: e.message });
   }
