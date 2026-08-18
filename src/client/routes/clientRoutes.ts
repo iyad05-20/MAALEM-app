@@ -19,7 +19,7 @@ const createOrderSchema = z.object({
 });
 
 const returnSchema = z.object({
-  mode: z.enum(["cathedis", "propres_moyens"]),
+  mode: z.enum(["sendit", "propres_moyens"]),
   returnShippingFee: z.number().nonnegative().optional(),
 });
 

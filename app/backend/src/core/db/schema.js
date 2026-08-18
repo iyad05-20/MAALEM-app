@@ -13,6 +13,16 @@ export const orders = sqliteTable("orders", {
   shippedAt: text("shipped_at"),
   deliveredAt: text("delivered_at"),
   updatedAt: text("updated_at").notNull(),
+
+  // Sendit delivery integrations
+  senditDeliveryCode: text("sendit_delivery_code"),
+  senditPickupCode: text("sendit_pickup_code"),
+  pickupDistrictId: real("pickup_district_id"),
+  deliveryDistrictId: real("delivery_district_id"),
+  allowOpen: real("allow_open").default(1),
+  allowTry: real("allow_try").default(0),
+  counterUnreachable: real("counter_unreachable").default(0),
+  proofImage: text("proof_image"),
 });
 
 export const withdrawalRequests = sqliteTable("withdrawal_requests", {

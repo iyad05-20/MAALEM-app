@@ -32,9 +32,11 @@ const STATUS_LABELS: Record<string, string> = {
   acompte_verse: "Acompte versé (50%)",
   payee_integralement: "Payée intégralement",
   en_preparation: "En fabrication chez le Maâlem",
-  en_cours_de_transport: "En cours de livraison Cathedis",
+  en_cours_de_transport: "En cours de livraison Sendit",
   livre: "Livrée à domicile",
+  auto_valide: "Réception validée automatiquement",
   en_reclamation: "Litige ouvert (Escrow gelé)",
+  litige_post_liberation: "Litige post-libération (Remb. Vendeur)",
   retour_initie: "Retour produit initié",
   complete: "Terminée",
   annulee: "Annulée",
@@ -48,7 +50,9 @@ const STATUS_COLORS: Record<string, string> = {
   en_preparation: "#D4AF37",
   en_cours_de_transport: "#1A2A3A",
   livre: "#2D6A4F",
+  auto_valide: "#4A7C59",
   en_reclamation: "#DC3545",
+  litige_post_liberation: "#CC7755",
   retour_initie: "#CC7755",
   complete: "#2D6A4F",
   annulee: "#6B7280",
@@ -111,7 +115,7 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
   const [showCgvTextModal, setShowCgvTextModal] = useState(false);
 
   // Formulaires & Sécurité
-  const [returnMode, setReturnMode] = useState<"cathedis" | "propres_moyens">("propres_moyens");
+  const [returnMode, setReturnMode] = useState<"sendit" | "propres_moyens">("propres_moyens");
   const [trackingNumber, setTrackingNumber] = useState("");
   const [extendHours, setExtendHours] = useState<24 | 48 | 72>(24);
   const [disputeReasonCategory, setDisputeReasonCategory] = useState("Défaut de structure / assemblage (fissure interne, collage défaillant)");
@@ -207,12 +211,49 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
   const isCustomLocked = selectedOrder ? !!(isCustom && selectedOrder.acceptedAt && diffMinutes > 60) : false;
 
   let daysSinceDelivery = 0;
+  let hoursSinceDelivery = 0;
   if (selectedOrder && selectedOrder.deliveredAt) {
-    daysSinceDelivery = (Date.now() - new Date(selectedOrder.deliveredAt).getTime()) / (1000 * 60 * 60 * 24);
+    hoursSinceDelivery = (Date.now() - new Date(selectedOrder.deliveredAt).getTime()) / (1000 * 60 * 60);
+    daysSinceDelivery = hoursSinceDelivery / 24;
   }
-  const canReturn7d = selectedOrder ? (!isCustom && selectedOrder.status === "livre" && daysSinceDelivery <= 7) : false;
-  const canDispute15d = selectedOrder ? ((selectedOrder.status === "livre" || selectedOrder.status === "livre_reserve_bloquee") && daysSinceDelivery <= 15) : false;
-  const canCancel = selectedOrder ? (!["en_cours_de_transport", "livre", "complete", "annulee"].includes(selectedOrder.status)) : false;
+
+  // Tâche 5 : Suivi retour (borné à 10j + 7j extra - Art. 10.2)
+  // let daysReturnInitiated = 0;
+  // if (selectedOrder?.returnInitiatedAt) {
+  //   daysReturnInitiated = (Date.now() - new Date(selectedOrder.returnInitiatedAt).getTime()) / (1000 * 60 * 60 * 24);
+  // }
+  // const returnDeadlineDays = 10;
+  // const returnDaysLeft = Math.max(0, returnDeadlineDays - daysReturnInitiated);
+
+  // Tâche 2 : Relance J+2 (heures 34h→48h = 10h00 à minuit J+2 - Art. 5.1 & 5.2)
+  let hoursSinceCreation = 0;
+  if (selectedOrder?.createdAt) {
+    hoursSinceCreation = (Date.now() - new Date(selectedOrder.createdAt).getTime()) / (1000 * 60 * 60);
+  }
+  // Commence à ~34h (J+2 à 10h00) et se termine à 48h exactement (minuit J+2)
+  const showJ2Relance = ["acompte_verse", "payee_integralement"].includes(selectedOrder?.status || "")
+    && hoursSinceCreation >= 34
+    && hoursSinceCreation < 48;
+
+  // Tâche 3 : Bannière validation réception 24h (Art. 4.3 C)
+  const showValidateDeliveryBanner = selectedOrder?.status === "livre" && hoursSinceDelivery < 24;
+  const showValidateReminder18h = showValidateDeliveryBanner && hoursSinceDelivery >= 18;
+  const hoursLeftToValidate = Math.max(0, 24 - hoursSinceDelivery);
+
+  // Tâche 4 : Déclaration non-réception 24h après validation automatique (Art. 4.3 D)
+  let hoursAfterAutoValidation = 0;
+  if (selectedOrder?.autoValidatedAt) {
+    hoursAfterAutoValidation = (Date.now() - new Date(selectedOrder.autoValidatedAt).getTime()) / (1000 * 60 * 60);
+  }
+  const canDeclareNotReceived = selectedOrder?.status === "auto_valide" && hoursAfterAutoValidation < 24;
+
+  const canReturn7d = selectedOrder ? (!isCustom && ["livre", "auto_valide"].includes(selectedOrder.status) && daysSinceDelivery <= 7) : false;
+  // Tâche 1 : Vice caché étendu à 90 jours (Art. 11.2)
+  const canDispute90d = selectedOrder ? (
+    ["livre", "auto_valide", "complete"].includes(selectedOrder.status) && daysSinceDelivery <= 90
+  ) : false;
+  const isDisputePostEscrow = selectedOrder ? (canDispute90d && daysSinceDelivery > 15) : false;
+  const canCancel = selectedOrder ? (!["en_cours_de_transport", "livre", "auto_valide", "complete", "annulee"].includes(selectedOrder.status)) : false;
 
   // Actions sécurisées
   const handlePay = async () => {
@@ -292,7 +333,38 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
     try {
       await clientWalletAPI.createDispute(selectedOrder.id, fullReason, disputePhotoUrl ? [disputePhotoUrl.trim()] : []);
       setShowDisputeModal(false);
-      setMessage({ type: "success", text: "Réclamation transmise à Vork. L'escrow est gelé pour arbitrage." });
+      const msg = isDisputePostEscrow
+        ? "Réclamation transmise (Art. 11.6). Les fonds étant déjà libérés, le Vendeur dispose de 15 jours pour vous rembourser directement."
+        : "Réclamation transmise à Vork. L'escrow est gelé pour arbitrage.";
+      setMessage({ type: "success", text: msg });
+      await loadData();
+    } catch (e: unknown) {
+      setMessage({ type: "error", text: (e as Error).message });
+    } finally { setLoading(false); }
+  };
+
+  // Tâche 3 : Validation manuelle de la réception (Art. 4.3 C)
+  const handleValidateDelivery = async () => {
+    if (!selectedOrder || loading) return;
+    if (!window.confirm("Confirmez-vous la bonne réception de votre commande ?")) return;
+    setLoading(true); setMessage(null);
+    try {
+      await clientWalletAPI.validateDelivery(selectedOrder.id);
+      setMessage({ type: "success", text: "Réception confirmée. Le séquestre sera libéré à l'artisan dans 15 jours." });
+      await loadData();
+    } catch (e: unknown) {
+      setMessage({ type: "error", text: (e as Error).message });
+    } finally { setLoading(false); }
+  };
+
+  // Tâche 4 : Déclaration de non-réception 24h post-auto-validation (Art. 4.3 D)
+  const handleDeclareNotReceived = async () => {
+    if (!selectedOrder || loading) return;
+    if (!window.confirm("Confirmer que vous n'avez pas reçu ce colis ? Cette déclaration gèle temporairement les fonds en attente d'enquête Admin.")) return;
+    setLoading(true); setMessage(null);
+    try {
+      await clientWalletAPI.declareNotReceived(selectedOrder.id);
+      setMessage({ type: "success", text: "Déclaration de non-réception transmise à Vork. L'escrow est gelé pour enquête." });
       await loadData();
     } catch (e: unknown) {
       setMessage({ type: "error", text: (e as Error).message });
@@ -663,18 +735,17 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
                 <div style={{ marginBottom: 12 }}>
                   <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, color: "var(--primary)", marginBottom: 10 }}>Actions disponibles</p>
 
-                  {/* Notification In-App J+2 (10h00 - 11h00) : Relance Maâlem (Uniquement après paiement et après dépassement du délai de 48h) */}
-                  {["acompte_verse", "payee_integralement"].includes(selectedOrder.status) &&
-                    (Date.now() - new Date(selectedOrder.createdAt).getTime()) / (1000 * 60 * 60) >= 48 && (
+                  {/* ── Tâche 2 : Relance Maâlem J+2 (10h00 → Minuit - Art. 5.1 & 5.2) ── */}
+                  {showJ2Relance && (
                     <div style={{ background: "rgba(212,175,55,0.12)", border: "1px solid rgba(212,175,55,0.35)", borderRadius: 16, padding: "14px 16px", marginBottom: 14 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                         <Bell size={16} color="#8B6914" />
                         <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, color: "#8B6914" }}>
-                          Relance Maâlem J+2 (10h00)
+                          Relance Maâlem J+2 — Fenêtre 10h00 à Minuit
                         </span>
                       </div>
                       <p style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text-secondary)", margin: "0 0 10px" }}>
-                        Le Maâlem n'a pas encore validé votre commande payée. Sans réponse d'ici 11h00, la commande sera automatiquement annulée et remboursée à 100%.
+                        Le Maâlem n'a pas encore validé votre commande payée. Sans action de votre part avant <strong>minuit (00h00)</strong>, la commande sera automatiquement annulée et remboursée à 100%.
                       </p>
                       <div style={{ display: "flex", gap: 8 }}>
                         <button onClick={handleCancel} disabled={loading} style={{ flex: 1, padding: "9px", borderRadius: 10, border: "1px solid #C0392B", background: "rgba(192,57,43,0.06)", color: "#C0392B", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 11, cursor: "pointer" }}>
@@ -684,6 +755,50 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
                           Prolonger le Maâlem
                         </button>
                       </div>
+                    </div>
+                  )}
+
+                  {/* ── Tâche 3 : Bannière Validation Réception 24h (Art. 4.3 C) ── */}
+                  {showValidateDeliveryBanner && (
+                    <div style={{ background: showValidateReminder18h ? "rgba(220,53,69,0.08)" : "rgba(45,106,79,0.08)", border: `1px solid ${showValidateReminder18h ? "rgba(220,53,69,0.3)" : "rgba(45,106,79,0.3)"}`, borderRadius: 16, padding: "14px 16px", marginBottom: 14 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                        <CheckCircle size={16} color={showValidateReminder18h ? "#DC3545" : "#2D6A4F"} />
+                        <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, color: showValidateReminder18h ? "#DC3545" : "#2D6A4F" }}>
+                          {showValidateReminder18h ? "⚠️ Validation automatique imminente" : "✅ Confirmez la réception"}
+                        </span>
+                      </div>
+                      <p style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text-secondary)", margin: "0 0 10px" }}>
+                        {showValidateReminder18h
+                          ? `Il vous reste environ ${Math.ceil(hoursLeftToValidate)}h pour valider. Sans action, la réception sera validée automatiquement à minuit (Art. 4.3 C).`
+                          : `Votre colis a été livré. Vous disposez de 24h pour confirmer la réception ou signaler un défaut apparent. (Encore ~${Math.ceil(hoursLeftToValidate)}h)`
+                        }
+                      </p>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <button onClick={() => setShowDisputeModal(true)} disabled={loading} style={{ flex: 1, padding: "9px", borderRadius: 10, border: "1px solid rgba(212,175,55,0.4)", background: "rgba(212,175,55,0.08)", color: "#8B6914", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 11, cursor: "pointer" }}>
+                          Signaler un défaut
+                        </button>
+                        <button onClick={handleValidateDelivery} disabled={loading} style={{ flex: 1, padding: "9px", borderRadius: 10, border: "none", background: "#2D6A4F", color: "#fff", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 11, cursor: "pointer" }}>
+                          {loading ? "…" : "Confirmer la réception"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── Tâche 4 : Déclaration Non-Réception 24h post-auto (Art. 4.3 D) ── */}
+                  {canDeclareNotReceived && (
+                    <div style={{ background: "rgba(220,53,69,0.07)", border: "1px solid rgba(220,53,69,0.25)", borderRadius: 16, padding: "14px 16px", marginBottom: 14 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                        <AlertTriangle size={16} color="#DC3545" />
+                        <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, color: "#DC3545" }}>
+                          Colis non reçu ? Déclarez-le maintenant
+                        </span>
+                      </div>
+                      <p style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text-secondary)", margin: "0 0 10px" }}>
+                        La réception a été validée automatiquement, mais vous n'avez pas reçu le colis ? Vous disposez de <strong>24h</strong> pour le déclarer (Art. 4.3 D). Encore ~{Math.ceil(24 - hoursAfterAutoValidation)}h.
+                      </p>
+                      <button onClick={handleDeclareNotReceived} disabled={loading} style={{ width: "100%", padding: "10px", borderRadius: 10, border: "none", background: "#DC3545", color: "#fff", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 11, cursor: "pointer" }}>
+                        {loading ? "Envoi…" : "Déclarer colis non reçu (Art. 4.3 D)"}
+                      </button>
                     </div>
                   )}
 
@@ -753,21 +868,23 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
                           <RotateCcw size={18} />
                           <div style={{ textAlign: "left" }}>
                             <p style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 13, margin: 0 }}>Demander un Retour (7j)</p>
-                            <p style={{ fontFamily: "var(--font-body)", fontSize: 11, opacity: 0.6, margin: 0 }}>Cathedis ou propres moyens</p>
+                            <p style={{ fontFamily: "var(--font-body)", fontSize: 11, opacity: 0.6, margin: 0 }}>Sendit ou propres moyens</p>
                           </div>
                         </div>
                         <ChevronRight size={16} opacity={0.5} />
                       </motion.button>
                     )}
 
-                    {/* 4. [Signaler un Vice Caché 15j] */}
-                    {canDispute15d && (
-                      <motion.button whileTap={{ scale: 0.98 }} onClick={() => setShowDisputeModal(true)} disabled={loading} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 16px", borderRadius: 14, background: "rgba(212,175,55,0.08)", color: "#8B6914", border: "1px solid rgba(212,175,55,0.30)", cursor: "pointer", width: "100%" }}>
+                    {/* ── Tâche 1 : Signaler un Vice Caché (3 mois / 90j - Art. 11.2) ── */}
+                    {canDispute90d && (
+                      <motion.button whileTap={{ scale: 0.98 }} onClick={() => setShowDisputeModal(true)} disabled={loading} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 16px", borderRadius: 14, background: isDisputePostEscrow ? "rgba(220,53,69,0.07)" : "rgba(212,175,55,0.08)", color: isDisputePostEscrow ? "#C0392B" : "#8B6914", border: `1px solid ${isDisputePostEscrow ? "rgba(220,53,69,0.25)" : "rgba(212,175,55,0.30)"}`, cursor: "pointer", width: "100%" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           <ShieldAlert size={18} />
                           <div style={{ textAlign: "left" }}>
-                            <p style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 13, margin: 0 }}>Signaler un Vice Caché (15j)</p>
-                            <p style={{ fontFamily: "var(--font-body)", fontSize: 11, opacity: 0.7, margin: 0 }}>Gel de l'escrow · Arbitrage Vork</p>
+                            <p style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 13, margin: 0 }}>Signaler un Vice Caché (3 mois)</p>
+                            <p style={{ fontFamily: "var(--font-body)", fontSize: 11, opacity: 0.7, margin: 0 }}>
+                              {isDisputePostEscrow ? "⚠️ Fonds libérés — Remboursement direct Vendeur (Art. 11.6)" : "Gel de l'escrow · Arbitrage Vork"}
+                            </p>
                           </div>
                         </div>
                         <ChevronRight size={16} opacity={0.6} />
@@ -851,7 +968,7 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
               <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, color: "var(--primary)", marginBottom: 12, borderBottom: "1px solid var(--border)", paddingBottom: 8 }}>Conditions Générales Vork</h3>
               <div style={{ flex: 1, overflowY: "auto", fontFamily: "var(--font-body)", fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: "1.5", display: "flex", flexDirection: "column", gap: 10, paddingRight: 6, scrollbarWidth: "none" }}>
                 <p><strong>1. Modèle Séquestre (Escrow 15j) :</strong> Afin de protéger l'acheteur et l'artisan, 100% des fonds réglés par CMI sont séquestrés et conservés par la plateforme Vork pendant 15 jours révolus après la livraison de la commande.</p>
-                <p><strong>2. Rétractation légale (7 jours) :</strong> Pour tout produit standard, l'acheteur dispose d'un droit de rétractation de 7 jours après la livraison. Les frais de retour Cathedis de 35 MAD sont déduits du remboursement.</p>
+                <p><strong>2. Rétractation légale (7 jours) :</strong> Pour tout produit standard, l'acheteur dispose d'un droit de rétractation de 7 jours après la livraison. Les frais de retour Sendit de 35 MAD sont déduits du remboursement.</p>
                 <p><strong>3. Produits Sur-Mesure / Personnalisés :</strong> Conformément à l'article 36 de la Loi 31-08, le droit de rétractation ne s'applique pas aux produits confectionnés sur commande. L'acheteur dispose d'une période de grâce de 60 minutes après acceptation par le Maâlem pour annuler sans frais.</p>
                 <p><strong>4. Signalement Vice Caché (15 jours) :</strong> Pendant les 15 jours de séquestre, en cas de défaut de fabrication ou vice caché grave, l'acheteur peut geler le séquestre pour examen par l'arbitrage Vork.</p>
               </div>
@@ -907,23 +1024,47 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
               <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 17, color: "var(--primary)", marginBottom: 4 }}>Rétractation (7 jours)</h3>
               <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "var(--text-secondary)", marginBottom: 14 }}>Organisez l'expédition de votre retour d'article.</p>
 
-              {/* Choix du mode de retour selon l'Art. 9.3 A & B */}
-              {selectedOrder?.carrierChoice === "cathedis" ? (
-                <div style={{ background: "rgba(212,175,55,0.08)", border: "1px solid rgba(212,175,55,0.25)", borderRadius: 12, padding: "10px 12px", marginBottom: 14, fontFamily: "var(--font-body)", fontSize: 11, color: "#8B6914" }}>
-                  ℹ️ <strong>Règle Art. 9.3 A :</strong> La livraison initiale ayant été effectuée par Cathedis, l'organisation du retour s'effectue obligatoirement par vos propres moyens.
+              {selectedOrder?.carrierChoice === "sendit" ? (
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 10, background: "rgba(220,53,69,0.06)", border: "1px solid rgba(220,53,69,0.15)", borderRadius: 12, padding: 12 }}>
+                  ℹ️ <strong>Règle Art. 9.3 A :</strong> La livraison initiale ayant été effectuée par Sendit, l'organisation du retour s'effectue obligatoirement par vos propres moyens.
                 </div>
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
-                  {(["cathedis", "propres_moyens"] as const).map((mode) => (
-                    <label key={mode} onClick={() => setReturnMode(mode)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 12, border: returnMode === mode ? "2px solid var(--primary)" : "1px solid var(--border)", background: returnMode === mode ? "rgba(26,42,58,0.04)" : "var(--surface)", cursor: "pointer" }}>
-                      <div style={{ width: 14, height: 14, borderRadius: "50%", border: `2px solid ${returnMode === mode ? "var(--primary)" : "var(--border)"}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                        {returnMode === mode && <div style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--primary)" }} />}
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {(["sendit", "propres_moyens"] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      onClick={() => setReturnMode(mode)}
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "flex-start",
+                        padding: "12px 16px",
+                        borderRadius: 14,
+                        border: returnMode === mode ? "2px solid var(--primary)" : "1px solid var(--border)",
+                        background: returnMode === mode ? "linear-gradient(135deg, rgba(196,169,106,0.06), rgba(26,42,58,0.02))" : "none",
+                        cursor: "pointer",
+                        textAlign: "left",
+                        width: "100%",
+                        transition: "all 0.2s ease"
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
+                        <p style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 12, color: "var(--primary)", margin: 0 }}>{mode === "sendit" ? "Service Retour Vendeur (35 MAD)" : "Mes propres moyens"}</p>
+                        <span style={{
+                          width: 14,
+                          height: 14,
+                          borderRadius: "50%",
+                          border: "1px solid var(--primary)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          padding: 2
+                        }}>
+                          {returnMode === mode && <div style={{ width: "100%", height: "100%", borderRadius: "50%", background: "var(--primary)" }} />}
+                        </span>
                       </div>
-                      <div>
-                        <p style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 12, color: "var(--primary)", margin: 0 }}>{mode === "cathedis" ? "Service Retour Vendeur (35 MAD)" : "Mes propres moyens"}</p>
-                        <p style={{ fontFamily: "var(--font-body)", fontSize: 10, color: "var(--text-secondary)", margin: 0 }}>{mode === "cathedis" ? "Frais déduits du remboursement" : "Remboursement 100% sur Wallet"}</p>
-                      </div>
-                    </label>
+                      <p style={{ fontFamily: "var(--font-body)", fontSize: 10, color: "var(--text-secondary)", margin: 0 }}>{mode === "sendit" ? "Frais déduits du remboursement" : "Remboursement 100% sur Wallet"}</p>
+                    </button>
                   ))}
                 </div>
               )}

@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../../core/db";
 import { orders } from "../../core/db/schema";
-import { acceptOrder, refuseOrder } from "../services/artisanOrderService";
+import { acceptOrder, refuseOrder, shipOrder } from "../services/artisanOrderService";
 import { getWalletBalance, requestWithdrawal } from "../services/artisanWalletService";
 
 const router = Router();
@@ -44,6 +44,31 @@ router.post("/orders/:id/refuse", (req, res) => {
   try {
     refuseOrder(db, req.params.id);
     res.json({ success: true, status: "annulee" });
+  } catch (e: any) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+const shipSchema = z.object({
+  pickup_district_id: z.number(),
+  district_id: z.number(),
+  name: z.string(),
+  phone: z.string(),
+  address: z.string(),
+});
+
+/**
+ * [ARTISAN APP] Expédier une commande (Créer un colis sur Sendit).
+ */
+router.post("/orders/:id/ship", async (req, res) => {
+  const parsed = shipSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(422).json({ error: parsed.error.flatten() });
+  }
+
+  try {
+    const senditDeliveryCode = await shipOrder(db, req.params.id, parsed.data);
+    res.json({ success: true, status: "expediee", senditDeliveryCode });
   } catch (e: any) {
     res.status(400).json({ error: e.message });
   }

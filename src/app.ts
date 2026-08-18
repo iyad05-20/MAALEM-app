@@ -8,12 +8,15 @@ import mockCmiRouter from "./core/paymentProviders/mockCmi";
 import ordersRouter from "./routes/orders";
 import walletRouter from "./routes/wallet";
 import paymentsRouter from "./routes/payments";
+import { senditWebhookHandler } from "./services/sendit/senditWebhookHandler";
 
 export function createApp(): Express {
   initSchema();
 
   const app = express();
   app.use(express.json());
+
+  app.post("/api/webhooks/sendit", senditWebhookHandler);
 
   // Modules découplés pour l'App Client, App Artisan et Back-Office Admin
   app.use("/api/client", clientRoutes);

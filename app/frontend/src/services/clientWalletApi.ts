@@ -224,7 +224,7 @@ export const clientWalletAPI = {
     return { success: true, refundAmount };
   },
 
-  async requestReturn(orderId: string, mode: "cathedis" | "propres_moyens", returnShippingFee = 35): Promise<{ success: boolean; returnId: string }> {
+  async requestReturn(orderId: string, mode: "sendit" | "propres_moyens", returnShippingFee = 35): Promise<{ success: boolean; returnId: string }> {
     try {
       const res = await fetch(`${API_BASE}/client/orders/${orderId}/return`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode, returnShippingFee }) });
       if (res.ok) return await res.json() as { success: boolean; returnId: string };
@@ -239,7 +239,7 @@ export const clientWalletAPI = {
 
     order.status = "retour_initie";
     order.carrierChoice = mode;
-    order.returnShippingFee = mode === "cathedis" ? returnShippingFee : 0;
+    order.returnShippingFee = mode === "sendit" ? returnShippingFee : 0;
     order.returnStatus = "initie";
     saveOrders(orders);
 
@@ -343,6 +343,44 @@ export const clientWalletAPI = {
     const order = orders.find((o) => o.id === orderId);
     if (!order) throw new Error("Commande introuvable");
     order.status = "livre";
+    saveOrders(orders);
+    return { success: true };
+  },
+
+  // Tâche 3 : Validation manuelle de la réception par le client (Art. 4.3 C)
+  async validateDelivery(orderId: string): Promise<{ success: boolean }> {
+    try {
+      const res = await fetch(`${API_BASE}/client/orders/${orderId}/validate-delivery`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (res.ok) return await res.json() as { success: boolean };
+    } catch {
+      // Fallback local dev
+    }
+    const orders = getStoredOrders();
+    const order = orders.find((o) => o.id === orderId);
+    if (!order) throw new Error("Commande introuvable");
+    order.status = "complete";
+    saveOrders(orders);
+    return { success: true };
+  },
+
+  // Tâche 4 : Déclaration de non-réception 24h post-validation automatique (Art. 4.3 D)
+  async declareNotReceived(orderId: string): Promise<{ success: boolean }> {
+    try {
+      const res = await fetch(`${API_BASE}/client/orders/${orderId}/declare-not-received`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (res.ok) return await res.json() as { success: boolean };
+    } catch {
+      // Fallback local dev
+    }
+    const orders = getStoredOrders();
+    const order = orders.find((o) => o.id === orderId);
+    if (!order) throw new Error("Commande introuvable");
+    order.status = "en_reclamation";
     saveOrders(orders);
     return { success: true };
   },

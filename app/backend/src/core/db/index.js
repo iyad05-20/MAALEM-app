@@ -98,7 +98,15 @@ export function initSchema() {
     "ALTER TABLE orders ADD COLUMN accepted_at TEXT",
     "ALTER TABLE orders ADD COLUMN ready_to_ship_at TEXT",
     "ALTER TABLE orders ADD COLUMN shipped_at TEXT",
-    "ALTER TABLE orders ADD COLUMN delivered_at TEXT"
+    "ALTER TABLE orders ADD COLUMN delivered_at TEXT",
+    "ALTER TABLE orders ADD COLUMN sendit_delivery_code TEXT",
+    "ALTER TABLE orders ADD COLUMN sendit_pickup_code TEXT",
+    "ALTER TABLE orders ADD COLUMN pickup_district_id REAL",
+    "ALTER TABLE orders ADD COLUMN delivery_district_id REAL",
+    "ALTER TABLE orders ADD COLUMN allow_open REAL DEFAULT 1",
+    "ALTER TABLE orders ADD COLUMN allow_try REAL DEFAULT 0",
+    "ALTER TABLE orders ADD COLUMN counter_unreachable REAL DEFAULT 0",
+    "ALTER TABLE orders ADD COLUMN proof_image TEXT"
   ];
   for (const sql of alterColumns) {
     try {

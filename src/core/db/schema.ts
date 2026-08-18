@@ -16,6 +16,16 @@ export const orders = sqliteTable("orders", {
   shippedAt: text("shipped_at"),
   deliveredAt: text("delivered_at"),
   updatedAt: text("updated_at").notNull(),
+
+  // Sendit delivery integrations
+  senditDeliveryCode: text("sendit_delivery_code"),
+  senditPickupCode: text("sendit_pickup_code"),
+  pickupDistrictId: real("pickup_district_id"), // district IDs can be represented as numbers
+  deliveryDistrictId: real("delivery_district_id"),
+  allowOpen: real("allow_open").default(1),
+  allowTry: real("allow_try").default(0),
+  counterUnreachable: real("counter_unreachable").default(0),
+  proofImage: text("proof_image"),
 });
 
 export const withdrawalRequests = sqliteTable("withdrawal_requests", {
@@ -67,7 +77,7 @@ export const paymentsReceived = sqliteTable("payments_received", {
 export const returnRequests = sqliteTable("return_requests", {
   id: text("id").primaryKey(),
   orderId: text("order_id").notNull(),
-  mode: text("mode").notNull(), // 'cathedis' | 'propres_moyens'
+  mode: text("mode").notNull(), // 'sendit' | 'propres_moyens'
   returnShippingFee: real("return_shipping_fee").notNull().default(0),
   status: text("status").notNull().default("initie"), // 'initie' | 'valide' | 'refuse'
   createdAt: text("created_at").notNull(),
@@ -78,7 +88,7 @@ export const disputes = sqliteTable("disputes", {
   id: text("id").primaryKey(),
   orderId: text("order_id").notNull(),
   reason: text("reason").notNull(),
-  resolution: text("resolution"), // 'faute_vendeur' | 'faute_cathedis' | 'faute_client'
+  resolution: text("resolution"), // 'faute_vendeur' | 'faute_sendit' | 'faute_client'
   status: text("status").notNull().default("ouvert"), // 'ouvert' | 'resolu'
   createdAt: text("created_at").notNull(),
   resolvedAt: text("resolved_at"),

@@ -10,8 +10,10 @@ export type OrderStatus =
   | "pret_a_expedier"
   | "en_cours_de_transport"
   | "livre"
+  | "auto_valide"
   | "livre_reserve_bloquee"
   | "en_reclamation"
+  | "litige_post_liberation"
   | "retour_initie"
   | "complete"
   | "annulee";
@@ -30,9 +32,11 @@ export interface ClientOrder {
   acceptedAt?: string | null;
   shippedAt?: string | null;
   deliveredAt?: string | null;
+  autoValidatedAt?: string | null;
+  returnInitiatedAt?: string | null;
   depositAmount?: number;
   tranche?: "total_100" | "acompte_50";
-  carrierChoice?: "cathedis" | "propres_moyens" | null;
+  carrierChoice?: "sendit" | "propres_moyens" | null;
   trackingNumber?: string | null;
   returnShippingFee?: number;
   returnStatus?: "initie" | "valide" | "refuse" | null;

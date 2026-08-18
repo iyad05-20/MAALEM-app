@@ -22,7 +22,7 @@ export function requestReturn(db, orderId, mode, returnShippingFee = 0) {
         id: returnId,
         orderId,
         mode,
-        returnShippingFee: mode === "cathedis" ? returnShippingFee : 0,
+        returnShippingFee: mode === "sendit" ? returnShippingFee : 0,
         status: "initie",
         createdAt: now,
       })
@@ -79,7 +79,7 @@ export function processReturnRefund(db, returnId, action) {
     const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
 
     let refundCash = totalPaid;
-    if (req.mode === "cathedis" && req.returnShippingFee > 0) {
+    if (req.mode === "sendit" && req.returnShippingFee > 0) {
       refundCash = Math.max(0, Math.round((totalPaid - req.returnShippingFee) * 100) / 100);
     }
 
@@ -98,16 +98,16 @@ export function processReturnRefund(db, returnId, action) {
         .run();
     }
 
-    if (req.mode === "cathedis" && req.returnShippingFee > 0) {
+    if (req.mode === "sendit" && req.returnShippingFee > 0) {
       const feeAmount = Math.min(totalPaid, req.returnShippingFee);
       tx.insert(ledgerEntries)
         .values({
           id: crypto.randomUUID(),
           orderId: order.id,
           compteDebit: `escrow[${order.id}]`,
-          compteCredit: "cathedis_revenue",
+          compteCredit: "sendit_revenue",
           montant: feeAmount,
-          type: "retour_frais_cathedis",
+          type: "retour_frais_sendit",
           createdAt: now,
         })
         .run();
