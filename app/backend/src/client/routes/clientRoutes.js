@@ -295,32 +295,6 @@ router.post("/orders/:id/extend-deadline", (req, res) => {
   res.json({ success: true, extendedHours: Number(hours) });
 });
 
-/**
- * [CLIENT API] Annuler une demande de retour (Art 9.5 bis).
- */
-router.post("/orders/:id/cancel-return", (req, res) => {
-  const { id } = req.params;
-  console.log(`\n[VORK-API] 📥 POST /orders/${id}/cancel-return`);
-
-  const order = db.select().from(orders).where(eq(orders.id, id)).get();
-  if (!order) return res.status(404).json({ error: "Commande introuvable" });
-
-  if (order.status !== "retour_initie") {
-    return res.status(400).json({ error: "Impossible d'annuler le retour : le colis est déjà en cours de transport." });
-  }
-
-  const now = new Date().toISOString();
-  db.update(orders)
-    .set({
-      status: "livre",
-  res.json({
-    success: true,
-    paymentIntentId: intentId,
-    redirectUrl: requete.redirectUrl,
-    amount: montant,
-    tranche,
-  });
-});
 
 /**
  * [CLIENT API] Annulation de la commande par le client.
