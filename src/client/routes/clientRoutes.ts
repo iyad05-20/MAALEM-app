@@ -65,7 +65,14 @@ router.post("/orders/:id/initiate-payment", (req, res) => {
       .json({ error: `commande dans un état incompatible: ${order.status}` });
   }
 
-  const { montant, tranche } = montantAPayer(order.totalPrice);
+  const choice = req.body?.choice || "deposit"; // "deposit" or "total"
+  let montant = order.totalPrice;
+  let tranche = "total_100";
+
+  if (order.totalPrice >= 1000 && choice === "deposit") {
+    montant = Math.round(order.totalPrice * 0.5 * 100) / 100;
+    tranche = "acompte_50";
+  }
   const now = new Date().toISOString();
   const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
   const intentId = crypto.randomUUID();

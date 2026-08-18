@@ -123,6 +123,7 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
   const [disputePhotoUrl, setDisputePhotoUrl] = useState("");
 
   // Sendit Shipping and Webhook simulation states
+  const [paymentChoice, setPaymentChoice] = useState<"deposit" | "total">("deposit");
   const [districts, setDistricts] = useState<{ id: number; name: string }[]>([]);
   const [pickupDistrictId, setPickupDistrictId] = useState<number>(1);
   const [deliveryDistrictId, setDeliveryDistrictId] = useState<number>(2);
@@ -278,7 +279,7 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
     if (!selectedOrder || loading) return;
     setLoading(true); setMessage(null);
     try {
-      const res = await clientWalletAPI.payOrder(selectedOrder.id);
+      const res = await clientWalletAPI.payOrder(selectedOrder.id, paymentChoice);
       setShowCmiModal(false);
       if (res.redirectUrl) {
         window.location.href = res.redirectUrl;
@@ -1067,9 +1068,79 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
             <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 26, stiffness: 220 }} style={{ background: "#FCFBF9", borderRadius: "24px 24px 0 0", padding: "20px 20px 32px", width: "100%", maxWidth: 640, borderTop: "1.5px solid rgba(196, 169, 106, 0.2)", boxShadow: "0 -10px 30px rgba(0,0,0,0.15)" }}>
               <div style={{ width: 36, height: 4, background: "rgba(0,0,0,0.1)", borderRadius: 2, margin: "0 auto 16px" }} />
               <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 17, color: "var(--primary)", marginBottom: 6 }}>Paiement CMI 3D Secure</h3>
-              <p style={{ fontFamily: "var(--font-body)", fontSize: 13, color: "var(--text-secondary)", marginBottom: 16 }}>
-                Montant à régler : <strong style={{ color: "var(--primary)" }}>{depositAmount} MAD</strong> {isHighAmount ? "(Acompte 50%)" : "(Paiement 100%)"}.
-              </p>
+              {isHighAmount ? (
+                <div style={{ marginBottom: 16 }}>
+                  {/* Note explaining the payment structure */}
+                  <div style={{ background: "rgba(212,175,55,0.06)", border: "1px solid rgba(212,175,55,0.25)", borderRadius: 12, padding: "10px 12px", marginBottom: 14, fontFamily: "var(--font-body)", fontSize: "0.72rem", color: "var(--text-secondary)", lineHeight: "1.4" }}>
+                    ℹ️ <strong>Règle de commande supérieure à 1 000 MAD :</strong> Vous pouvez choisir de ne régler qu'un acompte de 50% aujourd'hui. Le solde restant (50%) sera perçu en espèces par le transporteur (Sendit) lors de la livraison à votre domicile. Voir les détails dans les{" "}
+                    <span 
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowCgvTextModal(true); }}
+                      style={{ textDecoration: "underline", fontWeight: 700, color: "#8B6914", cursor: "pointer" }}
+                    >
+                      CGV Clients Vork
+                    </span>.
+                  </div>
+
+                  {/* Payment Choice Selection */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentChoice("deposit")}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        padding: "12px 16px",
+                        borderRadius: 14,
+                        border: paymentChoice === "deposit" ? "2px solid var(--primary)" : "1px solid var(--border)",
+                        background: paymentChoice === "deposit" ? "linear-gradient(135deg, rgba(196,169,106,0.06), rgba(26,42,58,0.02))" : "none",
+                        cursor: "pointer",
+                        width: "100%",
+                        textAlign: "left",
+                        transition: "all 0.2s ease"
+                      }}
+                    >
+                      <div>
+                        <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, color: "var(--primary)", margin: 0 }}>Payer l'acompte (50%)</p>
+                        <p style={{ fontFamily: "var(--font-body)", fontSize: 10, color: "var(--text-secondary)", margin: 0 }}>Reste à payer à la livraison : {selectedOrder ? Math.round(selectedOrder.totalPrice * 0.5) : 0} MAD</p>
+                      </div>
+                      <div style={{ width: 16, height: 16, borderRadius: "50%", border: "1px solid var(--primary)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        {paymentChoice === "deposit" && <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--primary)" }} />}
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setPaymentChoice("total")}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        padding: "12px 16px",
+                        borderRadius: 14,
+                        border: paymentChoice === "total" ? "2px solid var(--primary)" : "1px solid var(--border)",
+                        background: paymentChoice === "total" ? "linear-gradient(135deg, rgba(196,169,106,0.06), rgba(26,42,58,0.02))" : "none",
+                        cursor: "pointer",
+                        width: "100%",
+                        textAlign: "left",
+                        transition: "all 0.2s ease"
+                      }}
+                    >
+                      <div>
+                        <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, color: "var(--primary)", margin: 0 }}>Payer la totalité (100%)</p>
+                        <p style={{ fontFamily: "var(--font-body)", fontSize: 10, color: "var(--text-secondary)", margin: 0 }}>Règlement intégral sécurisé en ligne</p>
+                      </div>
+                      <div style={{ width: 16, height: 16, borderRadius: "50%", border: "1px solid var(--primary)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        {paymentChoice === "total" && <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--primary)" }} />}
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p style={{ fontFamily: "var(--font-body)", fontSize: 13, color: "var(--text-secondary)", marginBottom: 16 }}>
+                  Montant à régler : <strong style={{ color: "var(--primary)" }}>{selectedOrder?.totalPrice} MAD</strong>.
+                </p>
+              )}
               
               {/* CGV Checkbox */}
               <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 16, background: "rgba(26,42,58,0.02)", border: "1px dashed var(--border)", padding: "12px", borderRadius: 12 }}>
@@ -1113,7 +1184,7 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
                     cursor: cgvAccepted ? "pointer" : "not-allowed" 
                   }}
                 >
-                  {loading ? "Traitement…" : `Payer ${depositAmount} MAD`}
+                  {loading ? "Traitement…" : `Payer ${paymentChoice === "deposit" && isHighAmount ? Math.round((selectedOrder?.totalPrice || 0) * 0.5) : (selectedOrder?.totalPrice || 0)} MAD`}
                 </button>
               </div>
             </motion.div>

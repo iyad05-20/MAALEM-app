@@ -158,9 +158,13 @@ export const clientWalletAPI = {
     return newOrder;
   },
 
-  async payOrder(orderId: string): Promise<{ success: boolean; redirectUrl: string; amount: number; tranche: string }> {
+  async payOrder(orderId: string, choice: "deposit" | "total" = "deposit"): Promise<{ success: boolean; redirectUrl: string; amount: number; tranche: string }> {
     try {
-      const res = await fetch(`${API_BASE}/client/orders/${orderId}/pay`, { method: "POST", headers: { "Content-Type": "application/json" } });
+      const res = await fetch(`${API_BASE}/client/orders/${orderId}/pay`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ choice }),
+      });
       if (res.ok) return await res.json() as { success: boolean; redirectUrl: string; amount: number; tranche: string };
     } catch {
       // Fallback local dev
@@ -170,10 +174,10 @@ export const clientWalletAPI = {
     if (!order) throw new Error("Commande introuvable");
 
     const isGrosMontant = order.totalPrice >= 1000;
-    const amount = isGrosMontant ? Math.round(order.totalPrice * 0.5) : order.totalPrice;
-    const tranche = isGrosMontant ? "acompte_50" : "total_100";
+    const amount = (isGrosMontant && choice === "deposit") ? Math.round(order.totalPrice * 0.5) : order.totalPrice;
+    const tranche = (isGrosMontant && choice === "deposit") ? "acompte_50" : "total_100";
 
-    order.status = isGrosMontant ? "acompte_verse" : "payee_integralement";
+    order.status = (isGrosMontant && choice === "deposit") ? "acompte_verse" : "payee_integralement";
     order.depositAmount = amount;
     order.tranche = tranche as "total_100" | "acompte_50";
     saveOrders(orders);
