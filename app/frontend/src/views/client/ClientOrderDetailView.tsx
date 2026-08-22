@@ -25,6 +25,8 @@ interface ClientOrderDetailViewProps {
   onDetailToggle?: (isOpen: boolean) => void;
 }
 
+const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001/api';
+
 const STATUS_LABELS: Record<string, string> = {
   en_attente_paiement: "En attente de paiement",
   paiement_initie: "Paiement initié",
@@ -1050,9 +1052,14 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
                     <div style={{ background: "rgba(45,106,79,0.03)", border: "1px solid rgba(45,106,79,0.15)", borderRadius: 14, padding: 12, marginBottom: 12 }}>
                       <p style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 11, margin: "0 0 2px", color: "var(--primary)" }}>Code de suivi Sendit : <code style={{ color: "#2D6A4F" }}>{selectedOrder.senditDeliveryCode}</code></p>
                       <p style={{ fontFamily: "var(--font-body)", fontSize: 10, color: "var(--text-secondary)", margin: "0 0 8px" }}>Le colis a été informatiquement enregistré.</p>
-                      <button onClick={handleDownloadLabel} disabled={loading} style={{ width: "100%", padding: 8, borderRadius: 8, border: "1px solid #2D6A4F", background: "rgba(45,106,79,0.05)", color: "#2D6A4F", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 11, cursor: "pointer" }}>
-                        Imprimer l'étiquette Sendit (PDF)
-                      </button>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        <button onClick={handleDownloadLabel} disabled={loading} style={{ width: "100%", padding: 8, borderRadius: 8, border: "1px solid #2D6A4F", background: "rgba(45,106,79,0.05)", color: "#2D6A4F", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 11, cursor: "pointer" }}>
+                          Imprimer l'étiquette Sendit (PDF)
+                        </button>
+                        <a href={`${API_BASE}/artisan/orders/${selectedOrder.id}/label?code=${selectedOrder.senditDeliveryCode}`} target="_blank" rel="noopener noreferrer" style={{ display: "block", textAlign: "center", textDecoration: "underline", fontSize: 10, color: "#2D6A4F", fontFamily: "var(--font-body)", fontWeight: 500 }}>
+                          Lien direct vers l'étiquette (si popup bloqué)
+                        </a>
+                      </div>
                     </div>
                   )}
 
