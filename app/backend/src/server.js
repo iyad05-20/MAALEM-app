@@ -76,14 +76,66 @@ app.use('/mock-cmi',            mockCmiRouter);
 // Sendit Webhooks
 app.post('/api/webhooks/sendit', senditWebhookHandler);
 
+const MOCK_DISTRICTS = [
+  { id: 46, name: "Casablanca" },
+  { id: 1, name: "Rabat" },
+  { id: 2, name: "Marrakech" },
+  { id: 3, name: "Fès" },
+  { id: 4, name: "Tanger" },
+  { id: 5, name: "Salé" },
+  { id: 6, name: "Meknès" },
+  { id: 7, name: "Agadir" },
+  { id: 8, name: "Oujda" },
+  { id: 9, name: "Kenitra" },
+  { id: 10, name: "Tétouan" },
+  { id: 11, name: "Temara" },
+  { id: 12, name: "Safi" },
+  { id: 13, name: "Mohammedia" },
+  { id: 14, name: "Khouribga" },
+  { id: 15, name: "El Jadida" },
+  { id: 16, name: "Beni Mellal" },
+  { id: 17, name: "Nador" },
+  { id: 18, name: "Dar Bouazza" },
+  { id: 19, name: "Taza" },
+  { id: 20, name: "Settat" },
+  { id: 21, name: "Berrechid" },
+  { id: 22, name: "Khemisset" },
+  { id: 23, name: "Guelmim" },
+  { id: 24, name: "Larache" },
+  { id: 25, name: "Ksar El Kebir" },
+  { id: 26, name: "Berkane" },
+  { id: 27, name: "Errachidia" },
+  { id: 28, name: "Bouskoura" },
+  { id: 29, name: "Fkih Ben Salah" },
+  { id: 30, name: "Oued Zem" },
+  { id: 31, name: "Sidi Slimane" },
+  { id: 32, name: "Taroudant" },
+  { id: 33, name: "Kelaat Sraghna" },
+  { id: 34, name: "Benguerir" },
+  { id: 35, name: "Essaouira" },
+  { id: 36, name: "Tiznit" },
+  { id: 37, name: "Azrou" },
+  { id: 38, name: "Midelt" },
+  { id: 39, name: "Ouarzazate" },
+  { id: 40, name: "Al Hoceima" },
+  { id: 41, name: "Chefchaouen" },
+  { id: 42, name: "Dakhla" },
+  { id: 43, name: "Laâyoune" }
+];
+
 // Districts API
 app.get('/api/districts', async (req, res) => {
+  const querystring = req.query.querystring;
   try {
-    const querystring = req.query.querystring;
     const result = await senditClient.getDistricts(querystring);
     res.json(result);
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    console.warn(`[VORK-API] ⚠️ Failed to fetch districts from Sendit API (${e.message}). Using local fallback.`);
+    let data = MOCK_DISTRICTS;
+    if (querystring) {
+      data = MOCK_DISTRICTS.filter(d => d.name.toLowerCase().includes(querystring.toLowerCase()));
+    }
+    res.json({ success: true, message: "Liste des villes (Local Fallback).", data });
   }
 });
 

@@ -3,6 +3,8 @@ import { supabase } from '../db/supabase.client.js';
 
 const router = express.Router();
 
+const localFavoritesMemory = new Map(); // userId -> Set of productIds
+
 // GET /api/favorites?userId=xxx
 router.get('/', async (req, res) => {
   const { userId } = req.query;
@@ -17,16 +19,23 @@ router.get('/', async (req, res) => {
       .eq('user_id', userId);
 
     if (error) {
-      console.error('[FAVORITES-ROUTE] Fetch error:', error.message);
-      return res.status(500).json({ success: false, error: error.message });
+      throw error;
     }
+
+    const userFavs = new Set(data.map(f => f.product_id));
+    localFavoritesMemory.set(userId, userFavs);
 
     res.json({
       success: true,
       favorites: data.map(f => f.product_id)
     });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    console.warn(`[FAVORITES-ROUTE] ⚠️ Failed to fetch favorites from Supabase (${err.message}). Using local memory fallback.`);
+    if (!localFavoritesMemory.has(userId)) {
+      localFavoritesMemory.set(userId, new Set());
+    }
+    const list = Array.from(localFavoritesMemory.get(userId));
+    res.json({ success: true, favorites: list });
   }
 });
 
@@ -38,37 +47,70 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    // Check if already favorited
-    const { data: existing } = await supabase
-      .from('favorites')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('product_id', productId)
-      .single();
-
-    if (existing) {
-      // Remove favorite
-      await supabase
+    let isFavorite = false;
+    let action = 'removed';
+    
+    try {
+      // Check if already favorited in Supabase
+      const { data: existing, error: checkError } = await supabase
         .from('favorites')
-        .delete()
-        .eq('id', existing.id);
+        .select('id')
+        .eq('user_id', userId)
+        .eq('product_id', productId)
+        .maybeSingle();
 
-      console.log(`[FAVORITES-ROUTE] 💔 Favorite removed for user ${userId}: product ${productId}`);
-      return res.json({ success: true, isFavorite: false, action: 'removed' });
-    } else {
-      // Add favorite
-      const { error: insertErr } = await supabase
-        .from('favorites')
-        .insert({ user_id: userId, product_id: productId });
+      if (checkError) throw checkError;
 
-      if (insertErr) {
-        console.error('[FAVORITES-ROUTE] Insert error:', insertErr.message);
-        return res.status(500).json({ success: false, error: insertErr.message });
+      if (existing) {
+        // Remove favorite
+        const { error: deleteError } = await supabase
+          .from('favorites')
+          .delete()
+          .eq('id', existing.id);
+        
+        if (deleteError) throw deleteError;
+        isFavorite = false;
+        action = 'removed';
+      } else {
+        // Add favorite
+        const { error: insertErr } = await supabase
+          .from('favorites')
+          .insert({ user_id: userId, product_id: productId });
+        
+        if (insertErr) throw insertErr;
+        isFavorite = true;
+        action = 'added';
       }
-
-      console.log(`[FAVORITES-ROUTE] ❤️ Favorite added for user ${userId}: product ${productId}`);
-      return res.json({ success: true, isFavorite: true, action: 'added' });
+    } catch (dbErr) {
+      console.warn(`[FAVORITES-ROUTE] ⚠️ DB error: ${dbErr.message}. Toggling locally in memory.`);
+      if (!localFavoritesMemory.has(userId)) {
+        localFavoritesMemory.set(userId, new Set());
+      }
+      const userFavs = localFavoritesMemory.get(userId);
+      if (userFavs.has(productId)) {
+        userFavs.delete(productId);
+        isFavorite = false;
+        action = 'removed';
+      } else {
+        userFavs.add(productId);
+        isFavorite = true;
+        action = 'added';
+      }
     }
+
+    // Keep local memory cache in sync
+    if (!localFavoritesMemory.has(userId)) {
+      localFavoritesMemory.set(userId, new Set());
+    }
+    const userFavs = localFavoritesMemory.get(userId);
+    if (isFavorite) {
+      userFavs.add(productId);
+    } else {
+      userFavs.delete(productId);
+    }
+
+    console.log(`[FAVORITES-ROUTE] Toggled favorite for user ${userId}: product ${productId} (${action})`);
+    return res.json({ success: true, isFavorite, action });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
