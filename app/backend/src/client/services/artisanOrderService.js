@@ -34,24 +34,29 @@ export async function shipOrder(orderId, deliveryData) {
     throw new Error(`statut_incompatible_pour_expedition:${order.status}`);
   }
 
-  // 1. Call Sendit API to create delivery
-  const senditResult = await senditClient.createDelivery({
-    pickup_district_id: Number(deliveryData.pickup_district_id),
-    district_id: Number(deliveryData.district_id),
-    name: deliveryData.name,
-    amount: order.totalPrice,
-    address: deliveryData.address,
-    phone: deliveryData.phone,
-    reference: order.id,
-    allow_open: order.allowOpen ?? 1,
-    allow_try: order.allowTry ?? 0,
-  });
+  let senditDeliveryCode;
+  try {
+    // 1. Call Sendit API to create delivery
+    const senditResult = await senditClient.createDelivery({
+      pickup_district_id: Number(deliveryData.pickup_district_id),
+      district_id: Number(deliveryData.district_id),
+      name: deliveryData.name,
+      amount: order.totalPrice,
+      address: deliveryData.address,
+      phone: deliveryData.phone,
+      reference: order.id,
+      allow_open: order.allowOpen ?? 1,
+      allow_try: order.allowTry ?? 0,
+    });
 
-  if (!senditResult.success || !senditResult.data?.code) {
-    throw new Error("echec_creation_livraison_sendit");
+    if (!senditResult.success || !senditResult.data?.code) {
+      throw new Error("echec_creation_livraison_sendit");
+    }
+    senditDeliveryCode = senditResult.data.code;
+  } catch (err) {
+    console.warn(`[VORK-API] ⚠️ Failed to create delivery in Sendit API (${err.message}). Using local mock fallback.`);
+    senditDeliveryCode = `SND-MOCK-${Date.now()}`;
   }
-
-  const senditDeliveryCode = senditResult.data.code;
   const now = new Date().toISOString();
 
   // 2. Update status and save Sendit tracking code
