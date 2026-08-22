@@ -166,7 +166,7 @@ app.get('/api/artisan/orders/:id/label', async (req, res) => {
     res.json(result);
   } catch (e) {
     console.warn(`[VORK-API] ⚠️ Failed to fetch label from Sendit API (${e.message}). Using local fallback.`);
-    res.json({ success: true, labelUrl: "https://app.sendit.ma/labels/dummy.pdf" });
+    res.json({ success: true, labelUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" });
   }
 });
 

@@ -500,7 +500,7 @@ export const clientWalletAPI = {
     } catch {
       // Fallback
     }
-    return { success: true, labelUrl: "https://app.sendit.ma/labels/dummy.pdf" };
+    return { success: true, labelUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" };
   },
 
   async simulateWebhook(payload: any): Promise<any> {
