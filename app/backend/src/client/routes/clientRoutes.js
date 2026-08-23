@@ -15,7 +15,9 @@ const createOrderSchema = z.object({
   clientRef: z.string().min(1),
   artisanRef: z.string().min(1).optional(),
   totalPrice: z.number().positive(),
-  productType: z.enum(["standard", "personnalise"]).optional(),
+  productType: z.enum(["standard", "personnalise", "sur_commande"]).optional(),
+  transportProvider: z.enum(["sendit", "vendeur"]).optional(),
+  clientSignature: z.string().optional(),
 });
 
 const returnSchema = z.object({
@@ -51,6 +53,9 @@ router.post("/orders", (req, res) => {
   }
   const now = new Date().toISOString();
   const id = crypto.randomUUID();
+  const productType = parsed.data.productType ?? "standard";
+  // Si Produit Personnalisé ou Sur Commande -> transport exclusivement Vendeur (Art. 8, 9, 10)
+  const transportProvider = productType === "standard" ? (parsed.data.transportProvider ?? "sendit") : "vendeur";
 
   db.insert(orders)
     .values({
@@ -58,7 +63,9 @@ router.post("/orders", (req, res) => {
       clientRef: parsed.data.clientRef,
       artisanRef: parsed.data.artisanRef ?? "artisan-1",
       totalPrice: parsed.data.totalPrice,
-      productType: parsed.data.productType ?? "standard",
+      productType,
+      transportProvider,
+      clientSignature: parsed.data.clientSignature || null,
       status: "en_attente_paiement",
       createdAt: now,
       updatedAt: now,
@@ -66,7 +73,7 @@ router.post("/orders", (req, res) => {
     .run();
 
   const order = db.select().from(orders).where(eq(orders.id, id)).get();
-  console.log(`[VORK-API] ✅ Order created successfully (ID: ${id}, Status: ${order.status})`);
+  console.log(`[VORK-API] ✅ Order created successfully (ID: ${id}, Type: ${productType}, Transport: ${transportProvider})`);
   res.json(order);
 });
 
@@ -338,14 +345,60 @@ router.post("/orders/:id/cancel", (req, res) => {
 router.post("/orders/:id/deliver", (req, res) => {
   console.log(`\n[VORK-API] 📥 POST /orders/${req.params.id}/deliver - Confirming receipt`);
   try {
-    const deliveryTime = req.body?.deliveryTime ? String(req.body.deliveryTime) : undefined;
-    deliverOrder(db, req.params.id, deliveryTime);
-    console.log(`[VORK-API] ✅ Order marked as delivered successfully.`);
-    res.json({ success: true });
+    const order = db.select().from(orders).where(eq(orders.id, req.params.id)).get();
+    if (!order) return res.status(404).json({ error: "Commande introuvable" });
+
+    const now = new Date().toISOString();
+    const isCustom = ["personnalise", "sur_commande"].includes(order.productType);
+    const withdrawalExpiresAt = isCustom
+      ? null
+      : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    const escrowReleasedAt = isCustom ? now : null;
+
+    db.update(orders)
+      .set({
+        status: "livre",
+        deliveredAt: now,
+        receptionValidatedBy: "client",
+        withdrawalExpiresAt,
+        escrowReleasedAt,
+        updatedAt: now,
+      })
+      .where(eq(orders.id, req.params.id))
+      .run();
+
+    console.log(`[VORK-API] ✅ Order marked as delivered by client (Type: ${order.productType}, Escrow released: ${!!escrowReleasedAt})`);
+    res.json({ success: true, escrowReleasedAt, withdrawalExpiresAt });
   } catch (e) {
     console.error(`[VORK-API] ❌ Receipt confirmation failed:`, e.message);
     res.status(400).json({ error: e.message });
   }
+});
+
+/**
+ * [CLIENT API] Déclaration de non-réception du colis (Art. 13.3).
+ */
+router.post("/orders/:id/claim-non-reception", (req, res) => {
+  const { id } = req.params;
+  const { reason } = req.body;
+  console.log(`\n[VORK-API] 📥 POST /orders/${id}/claim-non-reception - Reason: ${reason}`);
+
+  const order = db.select().from(orders).where(eq(orders.id, id)).get();
+  if (!order) return res.status(404).json({ error: "Commande introuvable" });
+
+  const now = new Date().toISOString();
+  db.update(orders)
+    .set({
+      status: "en_reclamation",
+      nonReceptionClaimedAt: now,
+      nonReceptionReason: reason || "Colis non reçu par le client",
+      updatedAt: now,
+    })
+    .where(eq(orders.id, id))
+    .run();
+
+  console.log(`[VORK-API] ⚠️ Non-reception dispute opened for order ${id}`);
+  res.json({ success: true, status: "en_reclamation" });
 });
 
 /**

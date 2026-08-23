@@ -5,7 +5,8 @@ export const orders = sqliteTable("orders", {
   clientRef: text("client_ref").notNull(),
   artisanRef: text("artisan_ref").notNull().default("artisan-1"),
   totalPrice: real("total_price").notNull(),
-  productType: text("product_type").notNull().default("standard"),
+  productType: text("product_type").notNull().default("standard"), // 'standard' | 'personnalise' | 'sur_commande'
+  transportProvider: text("transport_provider").notNull().default("sendit"), // 'sendit' | 'vendeur'
   status: text("status").notNull().default("en_attente_paiement"),
   createdAt: text("created_at").notNull(),
   acceptedAt: text("accepted_at"),
@@ -13,6 +14,22 @@ export const orders = sqliteTable("orders", {
   shippedAt: text("shipped_at"),
   deliveredAt: text("delivered_at"),
   updatedAt: text("updated_at").notNull(),
+
+  // Client signature at checkout
+  clientSignature: text("client_signature"),
+
+  // Preparation & delivery proof photos
+  prepPhotos: text("prep_photos"), // JSON array
+  senditWaybillUrl: text("sendit_waybill_url"),
+  senditWaybillPhoto: text("sendit_waybill_photo"),
+  vendeurDeliverySignaturePhoto: text("vendeur_delivery_signature_photo"),
+
+  // Escrow & validation lifecycle
+  escrowReleasedAt: text("escrow_released_at"),
+  withdrawalExpiresAt: text("withdrawal_expires_at"),
+  receptionValidatedBy: text("reception_validated_by"),
+  nonReceptionClaimedAt: text("non_reception_claimed_at"),
+  nonReceptionReason: text("non_reception_reason"),
 
   // Sendit delivery integrations
   senditDeliveryCode: text("sendit_delivery_code"),
@@ -87,4 +104,21 @@ export const disputes = sqliteTable("disputes", {
   status: text("status").notNull().default("ouvert"),
   createdAt: text("created_at").notNull(),
   resolvedAt: text("resolved_at"),
+});
+
+export const vendorWarnings = sqliteTable("vendor_warnings", {
+  id: text("id").primaryKey(),
+  vendorRef: text("vendor_ref").notNull(),
+  orderId: text("order_id"),
+  reason: text("reason").notNull(),
+  monthYear: text("month_year").notNull(), // e.g. "2026-08"
+  createdAt: text("created_at").notNull(),
+});
+
+export const vendorProfiles = sqliteTable("vendor_profiles", {
+  id: text("id").primaryKey(), // e.g. "artisan-1"
+  warningCountCurrentMonth: real("warning_count_current_month").default(0),
+  suspensionStatus: text("suspension_status").default("active"), // 'active' | 'paused' | 'suspended_7d' | 'suspended_14d' | 'blocked'
+  suspendedUntil: text("suspended_until"),
+  updatedAt: text("updated_at").notNull(),
 });

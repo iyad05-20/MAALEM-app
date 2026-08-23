@@ -18,6 +18,7 @@ export function initSchema() {
       artisan_ref TEXT NOT NULL DEFAULT 'artisan-1',
       total_price REAL NOT NULL,
       product_type TEXT NOT NULL DEFAULT 'standard',
+      transport_provider TEXT NOT NULL DEFAULT 'sendit',
       status TEXT NOT NULL DEFAULT 'en_attente_paiement',
       created_at TEXT NOT NULL,
       accepted_at TEXT,
@@ -90,15 +91,43 @@ export function initSchema() {
       created_at TEXT NOT NULL,
       resolved_at TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS vendor_warnings (
+      id TEXT PRIMARY KEY,
+      vendor_ref TEXT NOT NULL,
+      order_id TEXT,
+      reason TEXT NOT NULL,
+      month_year TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS vendor_profiles (
+      id TEXT PRIMARY KEY,
+      warning_count_current_month REAL DEFAULT 0,
+      suspension_status TEXT DEFAULT 'active',
+      suspended_until TEXT,
+      updated_at TEXT NOT NULL
+    );
   `);
 
   const alterColumns = [
     "ALTER TABLE orders ADD COLUMN artisan_ref TEXT NOT NULL DEFAULT 'artisan-1'",
     "ALTER TABLE orders ADD COLUMN product_type TEXT NOT NULL DEFAULT 'standard'",
+    "ALTER TABLE orders ADD COLUMN transport_provider TEXT NOT NULL DEFAULT 'sendit'",
     "ALTER TABLE orders ADD COLUMN accepted_at TEXT",
     "ALTER TABLE orders ADD COLUMN ready_to_ship_at TEXT",
     "ALTER TABLE orders ADD COLUMN shipped_at TEXT",
     "ALTER TABLE orders ADD COLUMN delivered_at TEXT",
+    "ALTER TABLE orders ADD COLUMN client_signature TEXT",
+    "ALTER TABLE orders ADD COLUMN prep_photos TEXT",
+    "ALTER TABLE orders ADD COLUMN sendit_waybill_url TEXT",
+    "ALTER TABLE orders ADD COLUMN sendit_waybill_photo TEXT",
+    "ALTER TABLE orders ADD COLUMN vendeur_delivery_signature_photo TEXT",
+    "ALTER TABLE orders ADD COLUMN escrow_released_at TEXT",
+    "ALTER TABLE orders ADD COLUMN withdrawal_expires_at TEXT",
+    "ALTER TABLE orders ADD COLUMN reception_validated_by TEXT",
+    "ALTER TABLE orders ADD COLUMN non_reception_claimed_at TEXT",
+    "ALTER TABLE orders ADD COLUMN non_reception_reason TEXT",
     "ALTER TABLE orders ADD COLUMN sendit_delivery_code TEXT",
     "ALTER TABLE orders ADD COLUMN sendit_pickup_code TEXT",
     "ALTER TABLE orders ADD COLUMN pickup_district_id REAL",

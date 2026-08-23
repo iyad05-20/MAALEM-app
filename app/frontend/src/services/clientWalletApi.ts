@@ -503,14 +503,158 @@ export const clientWalletAPI = {
     return { success: true, labelUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" };
   },
 
+  async shipSenditStep1(orderId: string, deliveryData: any): Promise<{ success: boolean; senditDeliveryCode: string; waybillUrl: string; message?: string }> {
+    try {
+      const res = await fetch(`${API_BASE}/artisan/orders/${orderId}/ship-sendit-step1`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(deliveryData),
+      });
+      if (res.ok) return await res.json();
+    } catch {
+      // Fallback
+    }
+    const orders = getStoredOrders();
+    const order = orders.find((o) => o.id === orderId);
+    if (order) {
+      order.senditDeliveryCode = `SND-MOCK-${Date.now()}`;
+      order.senditWaybillUrl = "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
+      saveOrders(orders);
+      return { success: true, senditDeliveryCode: order.senditDeliveryCode, waybillUrl: order.senditWaybillUrl };
+    }
+    throw new Error("Commande introuvable");
+  },
+
+  async shipSenditStep2(orderId: string, blAttachedPhoto: string): Promise<{ success: boolean; status: string; senditDeliveryCode: string }> {
+    try {
+      const res = await fetch(`${API_BASE}/artisan/orders/${orderId}/ship-sendit-step2`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ blAttachedPhoto }),
+      });
+      if (res.ok) return await res.json();
+    } catch {
+      // Fallback
+    }
+    const orders = getStoredOrders();
+    const order = orders.find((o) => o.id === orderId);
+    if (order) {
+      order.status = "en_cours_de_transport";
+      order.senditWaybillPhoto = blAttachedPhoto;
+      order.shippedAt = new Date().toISOString();
+      saveOrders(orders);
+      return { success: true, status: "en_cours_de_transport", senditDeliveryCode: order.senditDeliveryCode || `SND-${Date.now()}` };
+    }
+    throw new Error("Commande introuvable");
+  },
+
+  async shipVendeurSelf(orderId: string, { transportDurationDays = 7 }: { transportDurationDays?: number }): Promise<{ success: boolean; status: string; transportProvider: string }> {
+    try {
+      const res = await fetch(`${API_BASE}/artisan/orders/${orderId}/ship-vendeur`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transportDurationDays }),
+      });
+      if (res.ok) return await res.json();
+    } catch {
+      // Fallback
+    }
+    const orders = getStoredOrders();
+    const order = orders.find((o) => o.id === orderId);
+    if (order) {
+      order.status = "en_cours_de_transport";
+      order.transportProvider = "vendeur";
+      order.shippedAt = new Date().toISOString();
+      saveOrders(orders);
+      return { success: true, status: "en_cours_de_transport", transportProvider: "vendeur" };
+    }
+    throw new Error("Commande introuvable");
+  },
+
+  async completeVendeurDelivery(orderId: string, { signaturePhoto }: { signaturePhoto: string }): Promise<{ success: boolean; status: string; escrowReleasedAt?: string; withdrawalExpiresAt?: string }> {
+    try {
+      const res = await fetch(`${API_BASE}/artisan/orders/${orderId}/complete-vendeur-delivery`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ signaturePhoto }),
+      });
+      if (res.ok) return await res.json();
+    } catch {
+      // Fallback
+    }
+    const orders = getStoredOrders();
+    const order = orders.find((o) => o.id === orderId);
+    if (order) {
+      order.status = "livre";
+      order.deliveredAt = new Date().toISOString();
+      order.receptionValidatedBy = "vendeur";
+      order.vendeurDeliverySignaturePhoto = signaturePhoto;
+      saveOrders(orders);
+      return { success: true, status: "livre" };
+    }
+    throw new Error("Commande introuvable");
+  },
+
+  async uploadPrepPhotos(orderId: string, photos: string[]): Promise<{ success: boolean; count: number }> {
+    try {
+      const res = await fetch(`${API_BASE}/artisan/orders/${orderId}/prep-photos`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ photos }),
+      });
+      if (res.ok) return await res.json();
+    } catch {
+      // Fallback
+    }
+    return { success: true, count: photos.length };
+  },
+
+  async claimNonReception(orderId: string, reason: string): Promise<{ success: boolean; status: string }> {
+    try {
+      const res = await fetch(`${API_BASE}/client/orders/${orderId}/claim-non-reception`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason }),
+      });
+      if (res.ok) return await res.json();
+    } catch {
+      // Fallback
+    }
+    const orders = getStoredOrders();
+    const order = orders.find((o) => o.id === orderId);
+    if (order) {
+      order.status = "en_reclamation";
+      order.nonReceptionClaimedAt = new Date().toISOString();
+      saveOrders(orders);
+      return { success: true, status: "en_reclamation" };
+    }
+    throw new Error("Commande introuvable");
+  },
+
+  async getVendorProfile(vendorRef: string = "artisan-1"): Promise<any> {
+    try {
+      const res = await fetch(`${API_BASE}/artisan/vendor/${vendorRef}/profile`);
+      if (res.ok) return await res.json();
+    } catch {
+      // Fallback
+    }
+    return {
+      success: true,
+      profile: {
+        id: vendorRef,
+        warningCountCurrentMonth: 0,
+        suspensionStatus: "active",
+        suspendedUntil: null,
+      },
+      warnings: [],
+    };
+  },
+
   async simulateWebhook(payload: any): Promise<any> {
     const res = await fetch(`${BACKEND_ROOT}/api/webhooks/sendit`, {
       method: "POST",
       headers: { 
         "Content-Type": "application/json",
-        // Simple dummy HMAC value since signature check will fail unless configured correctly. 
-        // Note: For local dev testing we can configure the secret or skip signature verification, 
-        // but since we want it to work easily, let's pass a header.
         "x-sendit-signature": "dummy_signature"
       },
       body: JSON.stringify(payload),

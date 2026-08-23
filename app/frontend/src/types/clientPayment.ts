@@ -1,4 +1,4 @@
-export type ProductType = "standard" | "personnalise";
+export type ProductType = "standard" | "personnalise" | "sur_commande";
 
 export type OrderStatus =
   | "en_attente_paiement"
@@ -27,6 +27,7 @@ export interface ClientOrder {
   productImage?: string;
   totalPrice: number;
   productType: ProductType;
+  transportProvider?: "sendit" | "vendeur";
   status: OrderStatus;
   createdAt: string;
   acceptedAt?: string | null;
@@ -42,7 +43,23 @@ export interface ClientOrder {
   returnStatus?: "initie" | "valide" | "refuse" | null;
   disputeReason?: string | null;
   disputeStatus?: "ouvert" | "resolu" | null;
+
+  // E-Signature and photos
+  clientSignature?: string | null;
+  prepPhotos?: string | null;
+  senditWaybillUrl?: string | null;
+  senditWaybillPhoto?: string | null;
+  vendeurDeliverySignaturePhoto?: string | null;
+
+  // Escrow & validation lifecycle
+  escrowReleasedAt?: string | null;
+  withdrawalExpiresAt?: string | null;
+  receptionValidatedBy?: "client" | "vendeur" | "auto" | null;
+  nonReceptionClaimedAt?: string | null;
+
+  // Sendit delivery integrations
   senditDeliveryCode?: string | null;
+  senditPickupCode?: string | null;
   pickupDistrictId?: number | null;
   deliveryDistrictId?: number | null;
   allowOpen?: number | null;
@@ -58,7 +75,8 @@ export interface WalletTransaction {
   compteDebit: string;
   compteCredit: string;
   createdAt: string;
-  metadata?: string;
+  description?: string;
+  metadata?: any;
 }
 
 export interface ClientWallet {
@@ -66,4 +84,12 @@ export interface ClientWallet {
   balance: number;
   pendingWithdrawals: number;
   transactions: WalletTransaction[];
+  history?: WalletTransaction[];
+}
+
+export interface VendorProfileData {
+  id: string;
+  warningCountCurrentMonth: number;
+  suspensionStatus: "active" | "paused" | "suspended_7d" | "suspended_14d" | "blocked";
+  suspendedUntil?: string | null;
 }
