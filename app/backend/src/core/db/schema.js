@@ -31,6 +31,9 @@ export const orders = sqliteTable("orders", {
   nonReceptionClaimedAt: text("non_reception_claimed_at"),
   nonReceptionReason: text("non_reception_reason"),
 
+  // Cron & Automated Reminders
+  j2RelanceSentAt: text("j2_relance_sent_at"),
+
   // Sendit delivery integrations
   senditDeliveryCode: text("sendit_delivery_code"),
   senditPickupCode: text("sendit_pickup_code"),
@@ -40,6 +43,15 @@ export const orders = sqliteTable("orders", {
   allowTry: real("allow_try").default(0),
   counterUnreachable: real("counter_unreachable").default(0),
   proofImage: text("proof_image"),
+});
+
+export const cronExecutions = sqliteTable("cron_executions", {
+  id: text("id").primaryKey(),
+  jobName: text("job_name").notNull(),
+  status: text("status").notNull(), // 'success' | 'failed'
+  itemsProcessed: real("items_processed").default(0),
+  details: text("details"),
+  executedAt: text("executed_at").notNull(),
 });
 
 export const withdrawalRequests = sqliteTable("withdrawal_requests", {

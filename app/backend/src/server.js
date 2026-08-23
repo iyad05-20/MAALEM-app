@@ -10,6 +10,8 @@ import favoritesRoutes      from './routes/favorites.routes.js';
 import reviewsRoutes        from './routes/reviews.routes.js';
 import clientRoutes         from './client/routes/clientRoutes.js';
 import mockCmiRouter        from './core/paymentProviders/mockCmi.js';
+import { cronRouter }       from './routes/cronRoutes.js';
+import { startCronScheduler } from './services/cronService.js';
 import { loadProducts }       from './services/recommendation.service.js';
 import { initSearchIndex }  from './services/search/meilisearch.service.js';
 import { initSchema }       from './core/db/index.js';
@@ -83,7 +85,11 @@ app.use('/api/products',        productsRoutes);
 app.use('/api/favorites',       favoritesRoutes);
 app.use('/api/reviews',         reviewsRoutes);
 app.use('/api/client',          clientRoutes);
+app.use('/api/cron',            cronRouter);
 app.use('/mock-cmi',            mockCmiRouter);
+
+// Start Cron Scheduler (every 60 minutes)
+startCronScheduler(60);
 
 // Sendit Webhooks
 app.post('/api/webhooks/sendit', senditWebhookHandler);

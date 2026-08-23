@@ -582,6 +582,23 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
     }
   };
 
+  const handleRunCron = async (jobName: string = "run-all") => {
+    setLoading(true);
+    try {
+      const res = await clientWalletAPI.triggerCronJob(jobName);
+      if (res.success) {
+        setMessage({ type: "success", text: `Cron Job "${jobName}" exécuté avec succès !` });
+        await loadData();
+      } else {
+        setMessage({ type: "error", text: res.error || "Erreur exécution Cron." });
+      }
+    } catch (e: any) {
+      setMessage({ type: "error", text: e.message || "Erreur réseau Cron." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const visibleOrders = activeTab === "active"
     ? orders.filter(o => !["complete", "annulee"].includes(o.status))
     : orders.filter(o => ["complete", "annulee"].includes(o.status));
@@ -1248,7 +1265,7 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
 
                   {/* 5. Simulation Webhook Sendit */}
                   {selectedOrder.status === "en_cours_de_transport" && selectedOrder.senditDeliveryCode && (
-                    <div style={{ background: "rgba(220,53,69,0.03)", border: "1px solid rgba(220,53,69,0.15)", borderRadius: 14, padding: 12 }}>
+                    <div style={{ background: "rgba(220,53,69,0.03)", border: "1px solid rgba(220,53,69,0.15)", borderRadius: 14, padding: 12, marginBottom: 12 }}>
                       <p style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 11, margin: "0 0 8px", color: "var(--primary)" }}>Simuler Événement Sendit (Webhook)</p>
                       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                         <select value={webhookStatus} onChange={(e) => setWebhookStatus(e.target.value)} style={{ width: "100%", padding: 6, borderRadius: 6, border: "1px solid var(--border)", fontSize: 11, background: "var(--surface)" }}>
@@ -1268,6 +1285,53 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
                       </div>
                     </div>
                   )}
+
+                  {/* 6. Moteur Automatisé : Déclencheur des Cron Jobs CGV */}
+                  <div style={{ background: "rgba(26,42,58,0.03)", border: "1px solid var(--border)", borderRadius: 14, padding: 12 }}>
+                    <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 11, margin: "0 0 4px", color: "var(--primary)" }}>
+                      ⏰ Moteur de Cron Jobs CGV (Automatisations)
+                    </p>
+                    <p style={{ fontSize: 9, color: "var(--text-secondary)", margin: "0 0 8px" }}>
+                      Déclenchez manuellement les tâches planifiées de gestion des délais légaux :
+                    </p>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+                      <button
+                        onClick={() => handleRunCron("auto-validation")}
+                        disabled={loading}
+                        style={{ padding: "6px 8px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 9.5, cursor: "pointer", color: "var(--primary)", textAlign: "center" }}
+                      >
+                        Auto-Validation 24h
+                      </button>
+                      <button
+                        onClick={() => handleRunCron("release-escrow")}
+                        disabled={loading}
+                        style={{ padding: "6px 8px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 9.5, cursor: "pointer", color: "var(--primary)", textAlign: "center" }}
+                      >
+                        Libération Séquestre J+7
+                      </button>
+                      <button
+                        onClick={() => handleRunCron("relance-j2")}
+                        disabled={loading}
+                        style={{ padding: "6px 8px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 9.5, cursor: "pointer", color: "var(--primary)", textAlign: "center" }}
+                      >
+                        Relance Maâlem J+2
+                      </button>
+                      <button
+                        onClick={() => handleRunCron("reset-warnings")}
+                        disabled={loading}
+                        style={{ padding: "6px 8px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 9.5, cursor: "pointer", color: "var(--primary)", textAlign: "center" }}
+                      >
+                        Reset Avertissements
+                      </button>
+                    </div>
+                    <button
+                      onClick={() => handleRunCron("run-all")}
+                      disabled={loading}
+                      style={{ width: "100%", padding: 7, borderRadius: 8, border: "none", background: "var(--primary)", color: "#fff", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 10, cursor: "pointer", marginTop: 8 }}
+                    >
+                      {loading ? "Exécution..." : "🚀 Exécuter tous les Cron Jobs"}
+                    </button>
+                  </div>
                 </div>
 
               </div>

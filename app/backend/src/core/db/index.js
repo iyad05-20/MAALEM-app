@@ -108,6 +108,15 @@ export function initSchema() {
       suspended_until TEXT,
       updated_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS cron_executions (
+      id TEXT PRIMARY KEY,
+      job_name TEXT NOT NULL,
+      status TEXT NOT NULL,
+      items_processed REAL DEFAULT 0,
+      details TEXT,
+      executed_at TEXT NOT NULL
+    );
   `);
 
   const alterColumns = [
@@ -128,6 +137,7 @@ export function initSchema() {
     "ALTER TABLE orders ADD COLUMN reception_validated_by TEXT",
     "ALTER TABLE orders ADD COLUMN non_reception_claimed_at TEXT",
     "ALTER TABLE orders ADD COLUMN non_reception_reason TEXT",
+    "ALTER TABLE orders ADD COLUMN j2_relance_sent_at TEXT",
     "ALTER TABLE orders ADD COLUMN sendit_delivery_code TEXT",
     "ALTER TABLE orders ADD COLUMN sendit_pickup_code TEXT",
     "ALTER TABLE orders ADD COLUMN pickup_district_id REAL",

@@ -660,5 +660,17 @@ export const clientWalletAPI = {
       body: JSON.stringify(payload),
     });
     return res.json();
+  },
+
+  // ⏰ Déclencheur et monitoring des Cron Jobs
+  async triggerCronJob(jobName: string = "run-all"): Promise<any> {
+    const endpoint = jobName === "run-all" ? `${BACKEND_ROOT}/api/cron/run-all` : `${BACKEND_ROOT}/api/cron/run/${jobName}`;
+    const res = await fetch(endpoint, { method: "POST" });
+    return res.json();
+  },
+
+  async getCronStatus(): Promise<any> {
+    const res = await fetch(`${BACKEND_ROOT}/api/cron/status`);
+    return res.json();
   }
 };
