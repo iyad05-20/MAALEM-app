@@ -250,9 +250,13 @@ export const clientWalletAPI = {
     return { success: true, returnId: `ret-${Date.now()}` };
   },
 
-  async createDispute(orderId: string, reason: string, photos: string[]): Promise<{ success: boolean; disputeId: string }> {
+  async createDispute(orderId: string, reason: string, photos: string[], type: string = "vice_cache_3mois"): Promise<{ success: boolean; disputeId: string }> {
     try {
-      const res = await fetch(`${API_BASE}/admin/orders/${orderId}/disputes`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reason, photos }) });
+      const res = await fetch(`${API_BASE}/client/orders/${orderId}/dispute`, { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json" }, 
+        body: JSON.stringify({ type, reason, clientEvidencePhotos: photos }) 
+      });
       if (res.ok) return await res.json() as { success: boolean; disputeId: string };
     } catch {
       // Fallback local dev

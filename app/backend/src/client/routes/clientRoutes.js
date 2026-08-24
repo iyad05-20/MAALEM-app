@@ -2,7 +2,7 @@ import { Router } from "express";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../../core/db/index.js";
-import { orders, paymentIntents, withdrawalRequests, ledgerEntries } from "../../core/db/schema.js";
+import { orders, paymentIntents, withdrawalRequests, ledgerEntries, disputes } from "../../core/db/schema.js";
 import { montantAPayer } from "../../core/types.js";
 import { MockCmiProvider } from "../../core/paymentProviders/MockCmiProvider.js";
 import { cancelOrder, deliverOrder } from "../services/clientPaymentService.js";
@@ -387,18 +387,88 @@ router.post("/orders/:id/claim-non-reception", (req, res) => {
   if (!order) return res.status(404).json({ error: "Commande introuvable" });
 
   const now = new Date().toISOString();
+  const disputeId = `dispute-${Date.now()}`;
+
   db.update(orders)
     .set({
       status: "en_reclamation",
       nonReceptionClaimedAt: now,
-      nonReceptionReason: reason || "Colis non reçu par le client",
+      nonReceptionReason: reason || "Colis non reçu par le client (Contestation de livraison)",
       updatedAt: now,
     })
     .where(eq(orders.id, id))
     .run();
 
-  console.log(`[VORK-API] ⚠️ Non-reception dispute opened for order ${id}`);
-  res.json({ success: true, status: "en_reclamation" });
+  try {
+    db.insert(disputes).values({
+      id: disputeId,
+      orderId: id,
+      type: "non_reception",
+      claimantRef: order.clientRef || "client-1",
+      reason: reason || "Contestation de réception de colis et signature à la livraison (Art. 11.6 & 13.3)",
+      clientEvidencePhotos: JSON.stringify([]),
+      artisanResponse: null,
+      artisanEvidencePhotos: JSON.stringify([]),
+      status: "en_arbitrage_admin",
+      escrowStatusAtDispute: order.escrowReleasedAt ? "already_released" : "locked",
+      arbitrationDecision: null,
+      arbitrationAmount: null,
+      arbitratedBy: "admin-vork",
+      createdAt: now,
+    }).run();
+  } catch (err) {
+    console.error(`[VORK-API] ⚠️ Error creating dispute record:`, err.message);
+  }
+
+  console.log(`[VORK-API] ⚠️ Non-reception dispute opened for order ${id} (DisputeID: ${disputeId})`);
+  res.json({ success: true, disputeId, status: "en_reclamation" });
+});
+
+/**
+ * [CLIENT API] Signaler un défaut / Vice caché / Non-conformité (Art. 12.5 & 16.9).
+ */
+router.post("/orders/:id/dispute", (req, res) => {
+  const { id } = req.params;
+  const { type = "vice_cache_3mois", reason, clientEvidencePhotos = [] } = req.body;
+  console.log(`\n[VORK-API] 📥 POST /orders/${id}/dispute - Type: ${type}, Reason: ${reason}`);
+
+  const order = db.select().from(orders).where(eq(orders.id, id)).get();
+  if (!order) return res.status(404).json({ error: "Commande introuvable" });
+
+  const now = new Date().toISOString();
+  const disputeId = `dispute-${Date.now()}`;
+
+  db.update(orders)
+    .set({
+      status: "en_reclamation",
+      updatedAt: now,
+    })
+    .where(eq(orders.id, id))
+    .run();
+
+  try {
+    db.insert(disputes).values({
+      id: disputeId,
+      orderId: id,
+      type: type || "vice_cache_3mois",
+      claimantRef: order.clientRef || "client-1",
+      reason: reason || "Défaut de matière ou de matériau signalé par le client (Art. 12.5 & 16.9)",
+      clientEvidencePhotos: JSON.stringify(clientEvidencePhotos || []),
+      artisanResponse: null,
+      artisanEvidencePhotos: JSON.stringify([]),
+      status: "en_arbitrage_admin",
+      escrowStatusAtDispute: order.escrowReleasedAt ? "already_released" : "locked",
+      arbitrationDecision: null,
+      arbitrationAmount: null,
+      arbitratedBy: "admin-vork",
+      createdAt: now,
+    }).run();
+  } catch (err) {
+    console.error(`[VORK-API] ⚠️ Error creating dispute record:`, err.message);
+  }
+
+  console.log(`[VORK-API] ⚠️ Defect dispute opened for order ${id} (DisputeID: ${disputeId})`);
+  res.json({ success: true, disputeId, status: "en_reclamation" });
 });
 
 /**
