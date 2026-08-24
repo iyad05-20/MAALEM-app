@@ -145,7 +145,16 @@ export function initSchema() {
     "ALTER TABLE orders ADD COLUMN allow_open REAL DEFAULT 1",
     "ALTER TABLE orders ADD COLUMN allow_try REAL DEFAULT 0",
     "ALTER TABLE orders ADD COLUMN counter_unreachable REAL DEFAULT 0",
-    "ALTER TABLE orders ADD COLUMN proof_image TEXT"
+    "ALTER TABLE orders ADD COLUMN proof_image TEXT",
+    "ALTER TABLE disputes ADD COLUMN type TEXT NOT NULL DEFAULT 'non_reception'",
+    "ALTER TABLE disputes ADD COLUMN claimant_ref TEXT NOT NULL DEFAULT 'client-1'",
+    "ALTER TABLE disputes ADD COLUMN client_evidence_photos TEXT",
+    "ALTER TABLE disputes ADD COLUMN artisan_response TEXT",
+    "ALTER TABLE disputes ADD COLUMN artisan_evidence_photos TEXT",
+    "ALTER TABLE disputes ADD COLUMN escrow_status_at_dispute TEXT NOT NULL DEFAULT 'locked'",
+    "ALTER TABLE disputes ADD COLUMN arbitration_decision TEXT",
+    "ALTER TABLE disputes ADD COLUMN arbitration_amount REAL",
+    "ALTER TABLE disputes ADD COLUMN arbitrated_by TEXT DEFAULT 'admin-vork'"
   ];
   for (const sql of alterColumns) {
     try {

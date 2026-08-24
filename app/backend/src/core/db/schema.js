@@ -111,9 +111,18 @@ export const returnRequests = sqliteTable("return_requests", {
 export const disputes = sqliteTable("disputes", {
   id: text("id").primaryKey(),
   orderId: text("order_id").notNull(),
+  type: text("type").notNull().default("non_reception"), // 'non_reception' | 'vice_cache_3mois' | 'non_conformite' | 'retard_critique' | 'retractation_bloquee'
+  claimantRef: text("claimant_ref").notNull().default("client-1"),
   reason: text("reason").notNull(),
+  clientEvidencePhotos: text("client_evidence_photos"), // JSON array
+  artisanResponse: text("artisan_response"),
+  artisanEvidencePhotos: text("artisan_evidence_photos"), // JSON array
   resolution: text("resolution"),
-  status: text("status").notNull().default("ouvert"),
+  status: text("status").notNull().default("en_arbitrage_admin"), // 'en_attente_artisan' | 'en_arbitrage_admin' | 'resolu_remboursement_total' | 'resolu_remboursement_partiel' | 'resolu_remplacement' | 'rejete'
+  escrowStatusAtDispute: text("escrow_status_at_dispute").notNull().default("locked"), // 'locked' | 'already_released'
+  arbitrationDecision: text("arbitration_decision"),
+  arbitrationAmount: real("arbitration_amount"),
+  arbitratedBy: text("arbitrated_by").default("admin-vork"),
   createdAt: text("created_at").notNull(),
   resolvedAt: text("resolved_at"),
 });
