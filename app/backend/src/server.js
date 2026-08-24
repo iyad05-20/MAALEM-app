@@ -49,11 +49,15 @@ app.set('trust proxy', 1);
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
 const allowedOrigins = [
-  'http://localhost:5173',   // Vite dev
+  'http://localhost:5173',   // Vite dev client
   'http://127.0.0.1:5173',
+  'http://localhost:5174',   // Vite dev admin
+  'http://127.0.0.1:5174',
   'http://localhost:4173',   // Vite preview
   'http://localhost:3000',   // Frontend Docker compose
+  'http://localhost:3002',   // Admin Dashboard Docker compose
   process.env.FRONTEND_URL,
+  process.env.ADMIN_URL,
 ].filter(Boolean);
 
 app.use(cors({
@@ -62,7 +66,8 @@ app.use(cors({
       !origin || 
       allowedOrigins.includes(origin) || 
       origin.endsWith('.vercel.app') ||
-      origin.includes('localhost:3001') ||
+      origin.includes('localhost') ||
+      origin.includes('127.0.0.1') ||
       origin.includes('herokuapp.com')
     ) return cb(null, true);
     cb(new Error(`CORS blocked: ${origin}`));
