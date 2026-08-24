@@ -120,6 +120,7 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
   const [trackingNumber, setTrackingNumber] = useState("");
   const [extendHours, setExtendHours] = useState<24 | 48 | 72>(24);
   const [disputeReasonCategory, setDisputeReasonCategory] = useState("Défaut de structure / assemblage (fissure interne, collage défaillant)");
+  const [disputeType, setDisputeType] = useState<string>("vice_cache_3mois");
   const [disputeReason, setDisputeReason] = useState("");
   const [disputePhotoUrl, setDisputePhotoUrl] = useState("");
 
@@ -411,7 +412,12 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
     if (loading) return;
     setLoading(true); setMessage(null);
     try {
-      await clientWalletAPI.createDispute(selectedOrder.id, fullReason, disputePhotoUrl ? [disputePhotoUrl.trim()] : []);
+      await clientWalletAPI.createDispute(
+        selectedOrder.id, 
+        fullReason, 
+        disputePhotoUrl ? [disputePhotoUrl.trim()] : [],
+        disputeType
+      );
       setShowDisputeModal(false);
       const msg = isDisputePostEscrow
         ? "Réclamation transmise (Art. 11.6). Les fonds étant déjà libérés, le Vendeur dispose de 15 jours pour vous rembourser directement."
@@ -1625,7 +1631,17 @@ export const ClientOrderDetailView: React.FC<ClientOrderDetailViewProps> = ({
               <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "var(--text-secondary)", marginBottom: 14 }}>Sélectionnez le motif. L'escrow sera immédiatement gelé pour arbitrage Vork.</p>
 
               <div style={{ marginBottom: 12 }}>
-                <label style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text-secondary)", display: "block", marginBottom: 4 }}>Motif du vice caché *</label>
+                <label style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text-secondary)", display: "block", marginBottom: 4 }}>Type de Réclamation (Catégorie CGV) *</label>
+                <select value={disputeType} onChange={(e) => setDisputeType(e.target.value)} style={{ width: "100%", padding: "10px 12px", borderRadius: 12, border: "1px solid var(--border)", background: "var(--bg-primary)", fontFamily: "var(--font-body)", fontSize: 12, fontWeight: 700, color: "var(--primary)", outline: "none", marginBottom: 8 }}>
+                  <option value="vice_cache_3mois">🔍 Vice Caché / Défaut de Matière Première (Garantie 3 mois - Art. 12.5 & 16.9)</option>
+                  <option value="non_conformite">📐 Non-Conformité au Devis Sur-Mesure (Art. 12)</option>
+                  <option value="non_reception">✍️ Non-Réception / Contestation Signature à la livraison (Art. 11.6 & 13.3)</option>
+                  <option value="retard_critique">⏱️ Retard Critique d'Expédition / Fabrication (&gt;5 jours)</option>
+                </select>
+              </div>
+
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text-secondary)", display: "block", marginBottom: 4 }}>Motif détaillé du vice / problème constasté *</label>
                 <select value={disputeReasonCategory} onChange={(e) => setDisputeReasonCategory(e.target.value)} style={{ width: "100%", padding: "10px 12px", borderRadius: 12, border: "1px solid var(--border)", background: "var(--bg-primary)", fontFamily: "var(--font-body)", fontSize: 12, fontWeight: 600, color: "var(--primary)", outline: "none", marginBottom: 10 }}>
                   {VICE_CACHE_REASONS.map((r, i) => (
                     <option key={i} value={r}>{r}</option>
