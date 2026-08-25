@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Sidebar, type ArtisanTab } from "./components/Sidebar";
-import { Header } from "./components/Header";
-import { WorkshopDashboard } from "./views/WorkshopDashboard";
+import { ArtisanBottomNav, type MobileArtisanTab } from "./components/ArtisanBottomNav";
+import { ArtisanMobileHeader } from "./components/ArtisanMobileHeader";
 import { OrdersWorkshopView } from "./views/OrdersWorkshopView";
 import { ReturnsWorkshopView } from "./views/ReturnsWorkshopView";
 import { DisputesWorkshopView } from "./views/DisputesWorkshopView";
 import { ArtisanWalletView } from "./views/ArtisanWalletView";
-import { ShopHealthView } from "./views/ShopHealthView";
-import { CatalogManagementView } from "./views/CatalogManagementView";
+import { ShopManagementMobileView } from "./views/ShopManagementMobileView";
 
 import { PrepPhotosModal } from "./components/PrepPhotosModal";
 import { SenditShippingModal } from "./components/SenditShippingModal";
@@ -27,7 +25,7 @@ import type {
 } from "./types/artisanTypes";
 
 export const App: React.FC = () => {
-  const [currentTab, setCurrentTab] = useState<ArtisanTab>("dashboard");
+  const [currentTab, setCurrentTab] = useState<MobileArtisanTab>("atelier");
   const [orders, setOrders] = useState<ArtisanOrder[]>([]);
   const [returns, setReturns] = useState<ArtisanReturn[]>([]);
   const [disputes, setDisputes] = useState<ArtisanDispute[]>([]);
@@ -77,7 +75,7 @@ export const App: React.FC = () => {
     loadAllData();
   }, []);
 
-  // Handlers for orders
+  // Handlers
   const handleAcceptOrder = async (orderId: string) => {
     await artisanAPI.acceptOrder(orderId);
     await loadAllData();
@@ -117,7 +115,6 @@ export const App: React.FC = () => {
     return res;
   };
 
-  // Handlers for returns & disputes
   const handleConfirmReturn = async (returnId: string) => {
     await artisanAPI.confirmReturn(returnId);
     await loadAllData();
@@ -138,34 +135,81 @@ export const App: React.FC = () => {
     await loadAllData();
   };
 
-  const getHeaderInfo = () => {
+  const getHeaderTitle = () => {
     switch (currentTab) {
-      case "dashboard":
-        return { title: "Vue d'Ensemble de l'Atelier", subtitle: "KPIs, Commandes urgentes et santé globale de la boutique" };
-      case "orders":
-        return { title: "Atelier des Commandes & Fabrication", subtitle: "Acceptation (<72h), 4 photos d'atelier et expéditions Sendit / Direct" };
-      case "returns":
-        return { title: "Gestion des Retours Clients (7j)", subtitle: "Suivi des expéditions de retour et confirmation de réception sous 48h" };
-      case "disputes":
-        return { title: "Médiation & Litiges Contradictoires (48h)", subtitle: "Réponse officielle d'atelier et transmission des pièces justificatives" };
-      case "wallet":
-        return { title: "Portefeuille Financier & Retraits RIB", subtitle: "Revenus nets des ventes (-10% Vork) et virements bancaires marocains" };
-      case "health":
-        return { title: "Santé de la Boutique & Avertissements", subtitle: "Jauge de conformité mensuelle (X/10) et respect des règles CGV" };
-      case "catalog":
-        return { title: "Catalogue des Créations", subtitle: "Ajout et gestion des articles (Standard vs Sur-Mesure)" };
+      case "atelier": return "Atelier de Confection";
+      case "retours": return "Retours & Rétractations";
+      case "litiges": return "Médiation & Litiges (48h)";
+      case "wallet": return "Portefeuille des Ventes";
+      case "boutique": return "Boutique & Créations";
     }
   };
 
-  const headerInfo = getHeaderInfo();
   const pendingOrdersCount = orders.filter(o => ["acompte_verse", "payee_integralement"].includes(o.status)).length;
   const openDisputesCount = disputes.filter(d => !d.status.startsWith("resolu") && d.status !== "rejete").length;
   const pendingReturnsCount = returns.filter(r => r.status === "initie").length;
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "var(--bg-primary)" }}>
-      {/* Sidebar Navigation */}
-      <Sidebar
+    <div className="phone-shell">
+      {/* Pattern Corners matching Client App */}
+      <div className="pattern-corner pattern-top-right" />
+      <div className="pattern-corner pattern-bottom-left" />
+
+      {/* Top Mobile Header */}
+      <ArtisanMobileHeader
+        title={getHeaderTitle()}
+        onRefresh={loadAllData}
+        loading={loading}
+        shopStatus={health?.suspensionStatus || "active"}
+        warningCount={health?.warningCountCurrentMonth || 0}
+      />
+
+      {/* Scrollable View Area */}
+      <main className="app-content">
+        {currentTab === "atelier" && (
+          <OrdersWorkshopView
+            orders={orders}
+            onAccept={handleAcceptOrder}
+            onOpenRefuseModal={setRefuseOrderId}
+            onOpenPrepPhotosModal={setPrepPhotosOrderId}
+            onOpenSenditModal={setSenditModalOrder}
+            onOpenDirectDeliveryModal={setDirectDeliveryOrder}
+          />
+        )}
+
+        {currentTab === "retours" && (
+          <ReturnsWorkshopView
+            returns={returns}
+            onConfirmReturn={handleConfirmReturn}
+          />
+        )}
+
+        {currentTab === "litiges" && (
+          <DisputesWorkshopView
+            disputes={disputes}
+            onOpenReplyModal={setReplyDispute}
+          />
+        )}
+
+        {currentTab === "wallet" && (
+          <ArtisanWalletView
+            wallet={wallet}
+            onOpenWithdrawalModal={() => setShowWithdrawalModal(true)}
+          />
+        )}
+
+        {currentTab === "boutique" && (
+          <ShopManagementMobileView
+            health={health}
+            warnings={warnings}
+            products={products}
+            onCreateProduct={handleCreateProduct}
+          />
+        )}
+      </main>
+
+      {/* Mobile Bottom Navigation Bar */}
+      <ArtisanBottomNav
         currentTab={currentTab}
         onTabChange={setCurrentTab}
         pendingOrdersCount={pendingOrdersCount}
@@ -173,78 +217,7 @@ export const App: React.FC = () => {
         returnsCount={pendingReturnsCount}
       />
 
-      {/* Main Content Area */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-        <Header
-          title={headerInfo.title}
-          subtitle={headerInfo.subtitle}
-          onRefresh={loadAllData}
-          loading={loading}
-          shopStatus={health?.suspensionStatus || "active"}
-          warningCount={health?.warningCountCurrentMonth || 0}
-        />
-
-        <main style={{ padding: "28px 32px", marginLeft: 270, maxWidth: 1300 }}>
-          {currentTab === "dashboard" && (
-            <WorkshopDashboard
-              orders={orders}
-              disputes={disputes}
-              returns={returns}
-              wallet={wallet}
-              health={health}
-              onNavigateTab={setCurrentTab}
-            />
-          )}
-
-          {currentTab === "orders" && (
-            <OrdersWorkshopView
-              orders={orders}
-              onAccept={handleAcceptOrder}
-              onOpenRefuseModal={setRefuseOrderId}
-              onOpenPrepPhotosModal={setPrepPhotosOrderId}
-              onOpenSenditModal={setSenditModalOrder}
-              onOpenDirectDeliveryModal={setDirectDeliveryOrder}
-            />
-          )}
-
-          {currentTab === "returns" && (
-            <ReturnsWorkshopView
-              returns={returns}
-              onConfirmReturn={handleConfirmReturn}
-            />
-          )}
-
-          {currentTab === "disputes" && (
-            <DisputesWorkshopView
-              disputes={disputes}
-              onOpenReplyModal={setReplyDispute}
-            />
-          )}
-
-          {currentTab === "wallet" && (
-            <ArtisanWalletView
-              wallet={wallet}
-              onOpenWithdrawalModal={() => setShowWithdrawalModal(true)}
-            />
-          )}
-
-          {currentTab === "health" && (
-            <ShopHealthView
-              health={health}
-              warnings={warnings}
-            />
-          )}
-
-          {currentTab === "catalog" && (
-            <CatalogManagementView
-              products={products}
-              onCreateProduct={handleCreateProduct}
-            />
-          )}
-        </main>
-      </div>
-
-      {/* Modals */}
+      {/* Bottom Sheet Modals */}
       {prepPhotosOrderId && (
         <PrepPhotosModal
           orderId={prepPhotosOrderId}
