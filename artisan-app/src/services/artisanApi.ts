@@ -4,7 +4,10 @@ import type {
   ArtisanDispute, 
   ArtisanWallet, 
   ArtisanProfileHealth, 
-  ArtisanProduct 
+  ArtisanProduct,
+  ArtisanNotification,
+  ArtisanProfileDetails,
+  ArtisanStats
 } from "../types/artisanTypes";
 
 export function getBackendUrl(): string {
@@ -162,6 +165,38 @@ export const artisanAPI = {
     const data = await res.json();
     if (!data.success) throw new Error(data.error || "Erreur statut boutique.");
     return { profile: data.profile, warnings: data.warnings || [] };
+  },
+
+  async getNotifications(artisanRef = "artisan-1"): Promise<ArtisanNotification[]> {
+    const res = await fetch(`${getApiBase()}/notifications?artisanRef=${artisanRef}`);
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || "Erreur notifications.");
+    return data.notifications;
+  },
+
+  async getProfileDetails(): Promise<ArtisanProfileDetails> {
+    const res = await fetch(`${getApiBase()}/profile/details`);
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || "Erreur profil.");
+    return data.profileDetails;
+  },
+
+  async updateProfileDetails(details: Partial<ArtisanProfileDetails>): Promise<ArtisanProfileDetails> {
+    const res = await fetch(`${getApiBase()}/profile/details`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(details),
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || "Erreur mise à jour profil.");
+    return data.profileDetails;
+  },
+
+  async getStats(artisanRef = "artisan-1"): Promise<ArtisanStats> {
+    const res = await fetch(`${getApiBase()}/stats?artisanRef=${artisanRef}`);
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || "Erreur statistiques.");
+    return data.stats;
   },
 
   async getProducts(): Promise<ArtisanProduct[]> {

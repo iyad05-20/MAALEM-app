@@ -1,7 +1,7 @@
 import React from "react";
-import { Hammer, RotateCcw, Scale, Wallet, Store } from "lucide-react";
+import { Hammer, RotateCcw, Scale, Wallet, User } from "lucide-react";
 
-export type MobileArtisanTab = "atelier" | "retours" | "litiges" | "wallet" | "boutique";
+export type MobileArtisanTab = "atelier" | "retours" | "litiges" | "wallet" | "profil";
 
 interface ArtisanBottomNavProps {
   currentTab: MobileArtisanTab;
@@ -23,7 +23,7 @@ export const ArtisanBottomNav: React.FC<ArtisanBottomNavProps> = ({
     { id: "retours" as MobileArtisanTab, label: "Retours (7j)", icon: RotateCcw, badge: returnsCount },
     { id: "litiges" as MobileArtisanTab, label: "Litiges (48h)", icon: Scale, badge: openDisputesCount },
     { id: "wallet" as MobileArtisanTab, label: "Portefeuille", icon: Wallet },
-    { id: "boutique" as MobileArtisanTab, label: "Ma Boutique", icon: Store },
+    { id: "profil" as MobileArtisanTab, label: "Mon Atelier", icon: User },
   ];
 
   return (

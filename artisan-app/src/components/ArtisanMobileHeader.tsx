@@ -1,10 +1,12 @@
 import React, { useState } from "react";
-import { RefreshCw, Globe, ShieldCheck, ShieldAlert, Award } from "lucide-react";
+import { RefreshCw, Globe, Bell } from "lucide-react";
 import { getBackendUrl, setBackendUrl } from "../services/artisanApi";
 
 interface ArtisanMobileHeaderProps {
   title: string;
   onRefresh: () => void;
+  onOpenNotifications: () => void;
+  unreadNotifsCount: number;
   loading: boolean;
   shopStatus?: string;
   warningCount?: number;
@@ -13,6 +15,8 @@ interface ArtisanMobileHeaderProps {
 export const ArtisanMobileHeader: React.FC<ArtisanMobileHeaderProps> = ({
   title,
   onRefresh,
+  onOpenNotifications,
+  unreadNotifsCount,
   loading,
   shopStatus = "active",
   warningCount = 0,
@@ -30,9 +34,9 @@ export const ArtisanMobileHeader: React.FC<ArtisanMobileHeaderProps> = ({
 
   return (
     <header style={{
-      padding: "14px 18px",
-      background: "rgba(250, 250, 248, 0.95)",
-      backdropFilter: "blur(12px)",
+      padding: "12px 16px",
+      background: "rgba(250, 250, 248, 0.96)",
+      backdropFilter: "blur(14px)",
       borderBottom: "1px solid var(--border)",
       display: "flex",
       alignItems: "center",
@@ -41,11 +45,11 @@ export const ArtisanMobileHeader: React.FC<ArtisanMobileHeaderProps> = ({
       top: 0,
       zIndex: 40,
     }}>
-      {/* Workshop identity */}
+      {/* Identity */}
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <div style={{
-          width: 36,
-          height: 36,
+          width: 38,
+          height: 38,
           borderRadius: "50%",
           background: "var(--primary)",
           display: "flex",
@@ -54,14 +58,14 @@ export const ArtisanMobileHeader: React.FC<ArtisanMobileHeaderProps> = ({
           color: "var(--accent-premium)",
           fontWeight: 800,
           fontFamily: "var(--font-display)",
-          fontSize: 14,
+          fontSize: 15,
           boxShadow: "0 2px 8px rgba(26,42,58,0.15)",
         }}>
           م
         </div>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 14, color: "var(--primary)", margin: 0 }}>
+            <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 13, color: "var(--primary)", margin: 0 }}>
               Maâlem Abdelkader
             </h2>
             <span className={`badge-pill ${warningCount >= 5 ? "badge-urgent" : "badge-success"}`}>
@@ -74,23 +78,62 @@ export const ArtisanMobileHeader: React.FC<ArtisanMobileHeaderProps> = ({
         </div>
       </div>
 
-      {/* Quick Action Icons */}
+      {/* Actions */}
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        {/* Backend Target Switcher */}
+        {/* Notifications Icon Button */}
+        <button
+          onClick={onOpenNotifications}
+          style={{
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
+            borderRadius: 12,
+            padding: "8px",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "var(--primary)",
+            position: "relative",
+          }}
+          title="Notifications"
+        >
+          <Bell size={16} />
+          {unreadNotifsCount > 0 && (
+            <span style={{
+              position: "absolute",
+              top: -2,
+              right: -2,
+              background: "#DC3545",
+              color: "#FFF",
+              fontSize: 8,
+              fontWeight: 800,
+              width: 14,
+              height: 14,
+              borderRadius: "50%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}>
+              {unreadNotifsCount}
+            </span>
+          )}
+        </button>
+
+        {/* Target Switcher */}
         <button
           onClick={() => setShowConfig(!showConfig)}
           style={{
-            background: "none",
+            background: "var(--surface)",
             border: "1px solid var(--border)",
-            borderRadius: 10,
-            padding: "6px",
+            borderRadius: 12,
+            padding: "8px",
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             color: isLocal ? "#2D6A4F" : "var(--accent-warm)",
           }}
-          title="Serveur Cible"
+          title="Serveur Backend Cible"
         >
           <Globe size={16} />
         </button>
@@ -100,10 +143,10 @@ export const ArtisanMobileHeader: React.FC<ArtisanMobileHeaderProps> = ({
           onClick={onRefresh}
           disabled={loading}
           style={{
-            background: "none",
+            background: "var(--surface)",
             border: "1px solid var(--border)",
-            borderRadius: 10,
-            padding: "6px",
+            borderRadius: 12,
+            padding: "8px",
             cursor: "pointer",
             display: "flex",
             alignItems: "center",

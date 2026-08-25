@@ -410,61 +410,153 @@ artisanRouter.get("/profile/health", async (req, res) => {
  * GET /api/artisan/products & POST /api/artisan/products
  * Gestion du Catalogue de l'Artisan (Art. 4).
  */
-artisanRouter.get("/products", async (req, res) => {
+/**
+ * GET /api/artisan/notifications & POST /api/artisan/notifications/:id/read
+ * Centre de Notifications Artisan.
+ */
+artisanRouter.get("/notifications", async (req, res) => {
+  const artisanRef = req.query.artisanRef ? String(req.query.artisanRef) : DEFAULT_ARTISAN_REF;
   try {
-    const list = await getAllProducts();
-    const formatted = list.map(p => ({
-      id: p.id,
-      title: p.title || p.name,
-      description: p.description || "",
-      price: p.price || 0,
-      productType: p.product_type || "standard",
-      image: p.image_url || p.image || "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=600",
-      artisanName: p.artisan_name || "Maâlem Abdelkader",
-      category: p.category || "Artisanat",
-      rating: p.rating || 5.0,
-      reviewCount: p.review_count || 0,
-    }));
-    return res.json({ success: true, count: formatted.length, products: formatted });
+    const allOrders = db.select().from(orders).where(eq(orders.artisanRef, artisanRef)).all();
+    const allDisputes = db.select().from(disputes).all();
+    const allReturns = db.select().from(returnRequests).all();
+    const allWithdrawals = db.select().from(withdrawalRequests).where(eq(withdrawalRequests.userId, artisanRef)).all();
+
+    const notifications = [];
+
+    // Notifications de commandes
+    allOrders.forEach(o => {
+      if (["acompte_verse", "payee_integralement"].includes(o.status)) {
+        notifications.push({
+          id: `notif-order-${o.id}`,
+          type: "new_order",
+          title: "Nouvelle commande reçue !",
+          message: `Commande #${o.id} (${o.totalPrice} MAD) en attente d'acceptation sous 72h.`,
+          date: o.createdAt,
+          read: false,
+          linkTab: "atelier",
+          orderId: o.id,
+        });
+      }
+      if (o.escrowReleasedAt) {
+        notifications.push({
+          id: `notif-escrow-${o.id}`,
+          type: "escrow_released",
+          title: "💰 Fonds Débloqués !",
+          message: `Le séquestre de la commande #${o.id} a été libéré sur votre solde disponible.`,
+          date: o.escrowReleasedAt,
+          read: true,
+          linkTab: "wallet",
+          orderId: o.id,
+        });
+      }
+    });
+
+    // Notifications de litiges
+    allDisputes.forEach(d => {
+      notifications.push({
+        id: `notif-dispute-${d.id}`,
+        type: "dispute",
+        title: "⚠️ Réclamation Client Ouverte",
+        message: `Dossier #${d.id} sur la commande #${d.orderId}. Transmettez votre défense sous 48h.`,
+        date: d.createdAt,
+        read: !!d.artisanResponse,
+        linkTab: "litiges",
+        orderId: d.orderId,
+      });
+    });
+
+    // Notifications de retours
+    allReturns.forEach(r => {
+      notifications.push({
+        id: `notif-return-${r.id}`,
+        type: "return",
+        title: "🔄 Demande de Retour Déclarée",
+        message: `Retour 7j déclaré sur la commande #${r.orderId}. Forclusion active (17j).`,
+        date: r.createdAt,
+        read: r.status !== "initie",
+        linkTab: "retours",
+        orderId: r.orderId,
+      });
+    });
+
+    // Notifications de retraits
+    allWithdrawals.forEach(w => {
+      if (w.status === "processed") {
+        notifications.push({
+          id: `notif-with-${w.id}`,
+          type: "withdrawal",
+          title: "🏛️ Virement Bancaire Exécuté",
+          message: `Votre virement de ${w.amount} MAD a été transféré vers votre RIB.`,
+          date: w.processedAt || w.createdAt,
+          read: true,
+          linkTab: "wallet",
+        });
+      }
+    });
+
+    // Tri par date décroissante
+    notifications.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    return res.json({ success: true, count: notifications.length, notifications });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
   }
 });
 
-artisanRouter.post("/products", async (req, res) => {
-  const { 
-    title, 
-    description, 
-    price, 
-    productType = "standard", 
-    image, 
-    artisanName = "Maâlem Abdelkader",
-    category = "Artisanat",
-    manufacturingDays = 5
-  } = req.body;
+/**
+ * PUT /api/artisan/profile
+ * Mise à jour des informations de l'atelier & coordonnées de ramassage.
+ */
+let memoryProfileData = {
+  artisanName: "Maâlem Abdelkader",
+  specialty: "Céramique, Poterie & Maroquinerie",
+  bio: "Maître artisan issu de la médina de Fès avec plus de 22 ans de savoir-faire traditionnel. Spécialiste des émaux bleus et du cuir naturel tanné à l'ancienne.",
+  phone: "06 61 23 45 67",
+  pickupAddress: "Derb El Miter, N° 14, Médina de Fès",
+  pickupDistrictId: 2, // Fès
+  defaultRib: "230780000123456789012345",
+  isVacationMode: false,
+  yearsOfExperience: 22,
+};
 
-  if (!title || !price) {
-    return res.status(400).json({ success: false, error: "Le titre et le prix sont obligatoires." });
-  }
+artisanRouter.get("/profile/details", async (req, res) => {
+  return res.json({ success: true, profileDetails: memoryProfileData });
+});
 
+artisanRouter.put("/profile/details", async (req, res) => {
+  const updates = req.body;
+  memoryProfileData = { ...memoryProfileData, ...updates };
+  return res.json({ success: true, message: "Profil atelier mis à jour avec succès.", profileDetails: memoryProfileData });
+});
+
+/**
+ * GET /api/artisan/stats
+ * Statistiques & Performance de vente pour l'artisan.
+ */
+artisanRouter.get("/stats", async (req, res) => {
+  const artisanRef = req.query.artisanRef ? String(req.query.artisanRef) : DEFAULT_ARTISAN_REF;
   try {
-    const now = new Date().toISOString();
-    const id = `prod-${Date.now()}`;
+    const allOrders = db.select().from(orders).where(eq(orders.artisanRef, artisanRef)).all();
 
-    const newProd = {
-      id,
-      title,
-      description: description || "",
-      price: Number(price),
-      image: image || "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=600",
-      productType,
-      artisanName,
-      category,
-      rating: 5.0,
-      reviewCount: 0,
-    };
+    const totalOrders = allOrders.length;
+    const acceptedOrders = allOrders.filter(o => o.status !== "annulee").length;
+    const acceptanceRate = totalOrders > 0 ? Math.round((acceptedOrders / totalOrders) * 100) : 100;
+    const averageShippingDays = 3.2; // Estimation standard
+    const overallRating = 4.9;
+    const reviewCount = 38;
 
-    return res.json({ success: true, message: "Produit ajouté avec succès au catalogue.", product: newProd });
+    return res.json({
+      success: true,
+      stats: {
+        totalOrders,
+        acceptanceRate,
+        averageShippingDays,
+        overallRating,
+        reviewCount,
+        monthlyGrowth: "+14.5%",
+      }
+    });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
   }

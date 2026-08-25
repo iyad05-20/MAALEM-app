@@ -89,3 +89,35 @@ export interface ArtisanProduct {
   reviewCount?: number;
   createdAt?: string;
 }
+
+export interface ArtisanNotification {
+  id: string;
+  type: "new_order" | "dispute" | "return" | "escrow_released" | "withdrawal";
+  title: string;
+  message: string;
+  date: string;
+  read: boolean;
+  linkTab: string;
+  orderId?: string;
+}
+
+export interface ArtisanProfileDetails {
+  artisanName: string;
+  specialty: string;
+  bio: string;
+  phone: string;
+  pickupAddress: string;
+  pickupDistrictId: number;
+  defaultRib: string;
+  isVacationMode: boolean;
+  yearsOfExperience: number;
+}
+
+export interface ArtisanStats {
+  totalOrders: number;
+  acceptanceRate: number;
+  averageShippingDays: number;
+  overallRating: number;
+  reviewCount: number;
+  monthlyGrowth: string;
+}

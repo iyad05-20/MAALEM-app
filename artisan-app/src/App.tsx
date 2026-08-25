@@ -5,6 +5,8 @@ import { OrdersWorkshopView } from "./views/OrdersWorkshopView";
 import { ReturnsWorkshopView } from "./views/ReturnsWorkshopView";
 import { DisputesWorkshopView } from "./views/DisputesWorkshopView";
 import { ArtisanWalletView } from "./views/ArtisanWalletView";
+import { ArtisanProfileView } from "./views/ArtisanProfileView";
+import { ArtisanNotificationsView } from "./views/ArtisanNotificationsView";
 import { ShopManagementMobileView } from "./views/ShopManagementMobileView";
 
 import { PrepPhotosModal } from "./components/PrepPhotosModal";
@@ -21,11 +23,15 @@ import type {
   ArtisanReturn, 
   ArtisanWallet, 
   ArtisanProfileHealth, 
-  ArtisanProduct 
+  ArtisanProduct,
+  ArtisanNotification,
+  ArtisanProfileDetails,
+  ArtisanStats
 } from "./types/artisanTypes";
 
 export const App: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<MobileArtisanTab>("atelier");
+  const [profileSubTab, setProfileSubTab] = useState<"settings" | "catalog">("settings");
   const [orders, setOrders] = useState<ArtisanOrder[]>([]);
   const [returns, setReturns] = useState<ArtisanReturn[]>([]);
   const [disputes, setDisputes] = useState<ArtisanDispute[]>([]);
@@ -33,9 +39,13 @@ export const App: React.FC = () => {
   const [health, setHealth] = useState<ArtisanProfileHealth | null>(null);
   const [warnings, setWarnings] = useState<any[]>([]);
   const [products, setProducts] = useState<ArtisanProduct[]>([]);
+  const [notifications, setNotifications] = useState<ArtisanNotification[]>([]);
+  const [profileDetails, setProfileDetails] = useState<ArtisanProfileDetails | null>(null);
+  const [stats, setStats] = useState<ArtisanStats | null>(null);
   const [loading, setLoading] = useState(false);
 
   // Modals state
+  const [showNotificationsModal, setShowNotificationsModal] = useState<boolean>(false);
   const [prepPhotosOrderId, setPrepPhotosOrderId] = useState<string | null>(null);
   const [senditModalOrder, setSenditModalOrder] = useState<ArtisanOrder | null>(null);
   const [directDeliveryOrder, setDirectDeliveryOrder] = useState<ArtisanOrder | null>(null);
@@ -46,13 +56,16 @@ export const App: React.FC = () => {
   const loadAllData = async () => {
     setLoading(true);
     try {
-      const [o, r, d, w, h, p] = await Promise.all([
+      const [o, r, d, w, h, p, n, prof, st] = await Promise.all([
         artisanAPI.getOrders(),
         artisanAPI.getReturns().catch(() => []),
         artisanAPI.getDisputes().catch(() => []),
         artisanAPI.getWallet().catch(() => null),
         artisanAPI.getProfileHealth().catch(() => ({ profile: null, warnings: [] })),
         artisanAPI.getProducts().catch(() => []),
+        artisanAPI.getNotifications().catch(() => []),
+        artisanAPI.getProfileDetails().catch(() => null),
+        artisanAPI.getStats().catch(() => null),
       ]);
 
       setOrders(o);
@@ -64,6 +77,9 @@ export const App: React.FC = () => {
         setWarnings(h.warnings || []);
       }
       setProducts(p);
+      setNotifications(n);
+      setProfileDetails(prof);
+      setStats(st);
     } catch (err: any) {
       console.error("Erreur chargement données:", err);
     } finally {
@@ -135,19 +151,25 @@ export const App: React.FC = () => {
     await loadAllData();
   };
 
+  const handleUpdateProfile = async (details: Partial<ArtisanProfileDetails>) => {
+    const updated = await artisanAPI.updateProfileDetails(details);
+    setProfileDetails(updated);
+  };
+
   const getHeaderTitle = () => {
     switch (currentTab) {
       case "atelier": return "Atelier de Confection";
       case "retours": return "Retours & Rétractations";
       case "litiges": return "Médiation & Litiges (48h)";
       case "wallet": return "Portefeuille des Ventes";
-      case "boutique": return "Boutique & Créations";
+      case "profil": return "Mon Atelier & Profil";
     }
   };
 
   const pendingOrdersCount = orders.filter(o => ["acompte_verse", "payee_integralement"].includes(o.status)).length;
   const openDisputesCount = disputes.filter(d => !d.status.startsWith("resolu") && d.status !== "rejete").length;
   const pendingReturnsCount = returns.filter(r => r.status === "initie").length;
+  const unreadNotifsCount = notifications.filter(n => !n.read).length;
 
   return (
     <div className="phone-shell">
@@ -159,6 +181,8 @@ export const App: React.FC = () => {
       <ArtisanMobileHeader
         title={getHeaderTitle()}
         onRefresh={loadAllData}
+        onOpenNotifications={() => setShowNotificationsModal(true)}
+        unreadNotifsCount={unreadNotifsCount}
         loading={loading}
         shopStatus={health?.suspensionStatus || "active"}
         warningCount={health?.warningCountCurrentMonth || 0}
@@ -198,13 +222,62 @@ export const App: React.FC = () => {
           />
         )}
 
-        {currentTab === "boutique" && (
-          <ShopManagementMobileView
-            health={health}
-            warnings={warnings}
-            products={products}
-            onCreateProduct={handleCreateProduct}
-          />
+        {currentTab === "profil" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {/* Sub-tab switcher */}
+            <div style={{ display: "flex", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 4 }}>
+              <button
+                onClick={() => setProfileSubTab("settings")}
+                style={{
+                  flex: 1,
+                  padding: "8px",
+                  borderRadius: 10,
+                  border: "none",
+                  background: profileSubTab === "settings" ? "var(--primary)" : "transparent",
+                  color: profileSubTab === "settings" ? "#FFFFFF" : "var(--text-secondary)",
+                  fontFamily: "var(--font-display)",
+                  fontWeight: 700,
+                  fontSize: 11,
+                  cursor: "pointer",
+                }}
+              >
+                👤 Profil & Ramassage
+              </button>
+              <button
+                onClick={() => setProfileSubTab("catalog")}
+                style={{
+                  flex: 1,
+                  padding: "8px",
+                  borderRadius: 10,
+                  border: "none",
+                  background: profileSubTab === "catalog" ? "var(--primary)" : "transparent",
+                  color: profileSubTab === "catalog" ? "#FFFFFF" : "var(--text-secondary)",
+                  fontFamily: "var(--font-display)",
+                  fontWeight: 700,
+                  fontSize: 11,
+                  cursor: "pointer",
+                }}
+              >
+                🎨 Catalogue & Santé
+              </button>
+            </div>
+
+            {profileSubTab === "settings" ? (
+              <ArtisanProfileView
+                profileDetails={profileDetails}
+                health={health}
+                stats={stats}
+                onUpdateProfile={handleUpdateProfile}
+              />
+            ) : (
+              <ShopManagementMobileView
+                health={health}
+                warnings={warnings}
+                products={products}
+                onCreateProduct={handleCreateProduct}
+              />
+            )}
+          </div>
         )}
       </main>
 
@@ -217,7 +290,46 @@ export const App: React.FC = () => {
         returnsCount={pendingReturnsCount}
       />
 
-      {/* Bottom Sheet Modals */}
+      {/* Modals & Bottom Sheets */}
+      {showNotificationsModal && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0,0,0,0.5)",
+          zIndex: 100,
+          display: "flex",
+          alignItems: "flex-end",
+          justifyContent: "center",
+        }}>
+          <div style={{
+            background: "#FCFBF9",
+            width: "100%",
+            maxWidth: 440,
+            maxHeight: "80vh",
+            borderRadius: "24px 24px 0 0",
+            padding: "20px",
+            overflowY: "auto",
+            boxShadow: "0 -10px 30px rgba(0,0,0,0.2)",
+          }}>
+            <div style={{ width: 36, height: 4, background: "rgba(0,0,0,0.15)", borderRadius: 2, margin: "0 auto 16px" }} />
+            <ArtisanNotificationsView
+              notifications={notifications}
+              onNavigateTab={(tab) => {
+                setShowNotificationsModal(false);
+                setCurrentTab(tab);
+              }}
+            />
+            <button
+              onClick={() => setShowNotificationsModal(false)}
+              className="btn-mobile-outline"
+              style={{ width: "100%", marginTop: 14 }}
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
+
       {prepPhotosOrderId && (
         <PrepPhotosModal
           orderId={prepPhotosOrderId}
