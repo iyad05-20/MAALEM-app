@@ -1,7 +1,7 @@
 import React from "react";
-import { Hammer, RotateCcw, Scale, Wallet, User } from "lucide-react";
+import { Hammer, Layers, Wallet, User } from "lucide-react";
 
-export type MobileArtisanTab = "atelier" | "retours" | "litiges" | "wallet" | "profil";
+export type MobileArtisanTab = "atelier" | "catalogue" | "wallet" | "profil";
 
 interface ArtisanBottomNavProps {
   currentTab: MobileArtisanTab;
@@ -18,12 +18,13 @@ export const ArtisanBottomNav: React.FC<ArtisanBottomNavProps> = ({
   openDisputesCount,
   returnsCount,
 }) => {
+  const profileBadgeCount = openDisputesCount + returnsCount;
+
   const tabs = [
     { id: "atelier" as MobileArtisanTab, label: "Atelier", icon: Hammer, badge: pendingOrdersCount },
-    { id: "retours" as MobileArtisanTab, label: "Retours (7j)", icon: RotateCcw, badge: returnsCount },
-    { id: "litiges" as MobileArtisanTab, label: "Litiges (48h)", icon: Scale, badge: openDisputesCount },
+    { id: "catalogue" as MobileArtisanTab, label: "Catalogue", icon: Layers },
     { id: "wallet" as MobileArtisanTab, label: "Portefeuille", icon: Wallet },
-    { id: "profil" as MobileArtisanTab, label: "Mon Atelier", icon: User },
+    { id: "profil" as MobileArtisanTab, label: "Mon Espace", icon: User, badge: profileBadgeCount > 0 ? profileBadgeCount : undefined },
   ];
 
   return (
@@ -39,7 +40,7 @@ export const ArtisanBottomNav: React.FC<ArtisanBottomNavProps> = ({
             className={`nav-tab-btn ${isActive ? "active" : ""}`}
           >
             <div style={{ position: "relative" }}>
-              <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} color={isActive ? "var(--accent-warm)" : "var(--text-secondary)"} />
+              <Icon size={22} strokeWidth={isActive ? 2.5 : 1.8} color={isActive ? "var(--accent-warm)" : "var(--text-secondary)"} />
               {tab.badge !== undefined && tab.badge > 0 && (
                 <span className="nav-badge">{tab.badge}</span>
               )}

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { RefreshCw, Globe, Bell } from "lucide-react";
+import { RefreshCw, Globe, Bell, Sparkles } from "lucide-react";
 import { getBackendUrl, setBackendUrl } from "../services/artisanApi";
 
 interface ArtisanMobileHeaderProps {
@@ -33,9 +33,9 @@ export const ArtisanMobileHeader: React.FC<ArtisanMobileHeaderProps> = ({
   const isLocal = targetUrl.includes("localhost") || targetUrl.includes("127.0.0.1");
 
   return (
-    <header style={{
-      padding: "12px 16px",
-      background: "rgba(250, 250, 248, 0.96)",
+    <header className="app-header" style={{
+      padding: "16px 20px 12px",
+      background: "rgba(250, 250, 248, 0.98)",
       backdropFilter: "blur(14px)",
       borderBottom: "1px solid var(--border)",
       display: "flex",
@@ -45,64 +45,61 @@ export const ArtisanMobileHeader: React.FC<ArtisanMobileHeaderProps> = ({
       top: 0,
       zIndex: 40,
     }}>
-      {/* Identity */}
+      {/* Brand Logo matching Client App */}
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{
-          width: 38,
-          height: 38,
-          borderRadius: "50%",
-          background: "var(--primary)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "var(--accent-premium)",
-          fontWeight: 800,
-          fontFamily: "var(--font-display)",
-          fontSize: 15,
-          boxShadow: "0 2px 8px rgba(26,42,58,0.15)",
-        }}>
-          م
-        </div>
-        <div>
+        <div style={{ display: "flex", flexDirection: "column" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 13, color: "var(--primary)", margin: 0 }}>
-              Maâlem Abdelkader
-            </h2>
-            <span className={`badge-pill ${warningCount >= 5 ? "badge-urgent" : "badge-success"}`}>
-              {warningCount}/10 avert.
+            <h1 className="brand-logo" style={{ margin: 0, fontSize: 22, color: "var(--primary)", letterSpacing: "-0.5px" }}>
+              MAÂLEM
+            </h1>
+            <span style={{
+              background: "linear-gradient(135deg, var(--accent-warm) 0%, #B85830 100%)",
+              color: "#FFFFFF",
+              fontSize: 9,
+              fontWeight: 800,
+              fontFamily: "var(--font-display)",
+              padding: "2px 7px",
+              borderRadius: 8,
+              letterSpacing: 0.5,
+              textTransform: "uppercase",
+              boxShadow: "0 2px 6px rgba(204,119,85,0.3)",
+            }}>
+              PRO
             </span>
           </div>
-          <p style={{ fontSize: 10, color: "var(--text-secondary)", margin: 0, fontWeight: 500 }}>
-            {title} · Atelier Fès
-          </p>
+          <span style={{ fontSize: 10, color: "var(--text-secondary)", fontWeight: 600 }}>
+            {title}
+          </span>
         </div>
       </div>
 
-      {/* Actions */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        {/* Notifications Icon Button */}
+      {/* Header Actions */}
+      <div className="header-actions" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        {/* Notification Bell */}
         <button
           onClick={onOpenNotifications}
           style={{
             background: "var(--surface)",
             border: "1px solid var(--border)",
-            borderRadius: 12,
-            padding: "8px",
+            borderRadius: "50%",
+            width: 38,
+            height: 38,
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             color: "var(--primary)",
             position: "relative",
+            boxShadow: "var(--shadow-sm)",
           }}
           title="Notifications"
         >
-          <Bell size={16} />
+          <Bell size={18} />
           {unreadNotifsCount > 0 && (
             <span style={{
               position: "absolute",
-              top: -2,
-              right: -2,
+              top: 2,
+              right: 2,
               background: "#DC3545",
               color: "#FFF",
               fontSize: 8,
@@ -113,6 +110,7 @@ export const ArtisanMobileHeader: React.FC<ArtisanMobileHeaderProps> = ({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
+              border: "1.5px solid #FFF",
             }}>
               {unreadNotifsCount}
             </span>
@@ -125,17 +123,19 @@ export const ArtisanMobileHeader: React.FC<ArtisanMobileHeaderProps> = ({
           style={{
             background: "var(--surface)",
             border: "1px solid var(--border)",
-            borderRadius: 12,
-            padding: "8px",
+            borderRadius: "50%",
+            width: 38,
+            height: 38,
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             color: isLocal ? "#2D6A4F" : "var(--accent-warm)",
+            boxShadow: "var(--shadow-sm)",
           }}
-          title="Serveur Backend Cible"
+          title="Serveur Cible"
         >
-          <Globe size={16} />
+          <Globe size={18} />
         </button>
 
         {/* Refresh */}
@@ -145,13 +145,15 @@ export const ArtisanMobileHeader: React.FC<ArtisanMobileHeaderProps> = ({
           style={{
             background: "var(--surface)",
             border: "1px solid var(--border)",
-            borderRadius: 12,
-            padding: "8px",
+            borderRadius: "50%",
+            width: 38,
+            height: 38,
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             color: "var(--primary)",
+            boxShadow: "var(--shadow-sm)",
           }}
           title="Actualiser"
         >

@@ -31,7 +31,6 @@ import type {
 
 export const App: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<MobileArtisanTab>("atelier");
-  const [profileSubTab, setProfileSubTab] = useState<"settings" | "catalog">("settings");
   const [orders, setOrders] = useState<ArtisanOrder[]>([]);
   const [returns, setReturns] = useState<ArtisanReturn[]>([]);
   const [disputes, setDisputes] = useState<ArtisanDispute[]>([]);
@@ -44,8 +43,10 @@ export const App: React.FC = () => {
   const [stats, setStats] = useState<ArtisanStats | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Modals state
+  // Modals & Drawers state
   const [showNotificationsModal, setShowNotificationsModal] = useState<boolean>(false);
+  const [showReturnsDrawer, setShowReturnsDrawer] = useState<boolean>(false);
+  const [showDisputesDrawer, setShowDisputesDrawer] = useState<boolean>(false);
   const [prepPhotosOrderId, setPrepPhotosOrderId] = useState<string | null>(null);
   const [senditModalOrder, setSenditModalOrder] = useState<ArtisanOrder | null>(null);
   const [directDeliveryOrder, setDirectDeliveryOrder] = useState<ArtisanOrder | null>(null);
@@ -159,10 +160,9 @@ export const App: React.FC = () => {
   const getHeaderTitle = () => {
     switch (currentTab) {
       case "atelier": return "Atelier de Confection";
-      case "retours": return "Retours & Rétractations";
-      case "litiges": return "Médiation & Litiges (48h)";
+      case "catalogue": return "Catalogue & Créations";
       case "wallet": return "Portefeuille des Ventes";
-      case "profil": return "Mon Atelier & Profil";
+      case "profil": return "Mon Espace Maâlem";
     }
   };
 
@@ -201,17 +201,12 @@ export const App: React.FC = () => {
           />
         )}
 
-        {currentTab === "retours" && (
-          <ReturnsWorkshopView
-            returns={returns}
-            onConfirmReturn={handleConfirmReturn}
-          />
-        )}
-
-        {currentTab === "litiges" && (
-          <DisputesWorkshopView
-            disputes={disputes}
-            onOpenReplyModal={setReplyDispute}
+        {currentTab === "catalogue" && (
+          <ShopManagementMobileView
+            health={health}
+            warnings={warnings}
+            products={products}
+            onCreateProduct={handleCreateProduct}
           />
         )}
 
@@ -223,61 +218,16 @@ export const App: React.FC = () => {
         )}
 
         {currentTab === "profil" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {/* Sub-tab switcher */}
-            <div style={{ display: "flex", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 4 }}>
-              <button
-                onClick={() => setProfileSubTab("settings")}
-                style={{
-                  flex: 1,
-                  padding: "8px",
-                  borderRadius: 10,
-                  border: "none",
-                  background: profileSubTab === "settings" ? "var(--primary)" : "transparent",
-                  color: profileSubTab === "settings" ? "#FFFFFF" : "var(--text-secondary)",
-                  fontFamily: "var(--font-display)",
-                  fontWeight: 700,
-                  fontSize: 11,
-                  cursor: "pointer",
-                }}
-              >
-                👤 Profil & Ramassage
-              </button>
-              <button
-                onClick={() => setProfileSubTab("catalog")}
-                style={{
-                  flex: 1,
-                  padding: "8px",
-                  borderRadius: 10,
-                  border: "none",
-                  background: profileSubTab === "catalog" ? "var(--primary)" : "transparent",
-                  color: profileSubTab === "catalog" ? "#FFFFFF" : "var(--text-secondary)",
-                  fontFamily: "var(--font-display)",
-                  fontWeight: 700,
-                  fontSize: 11,
-                  cursor: "pointer",
-                }}
-              >
-                🎨 Catalogue & Santé
-              </button>
-            </div>
-
-            {profileSubTab === "settings" ? (
-              <ArtisanProfileView
-                profileDetails={profileDetails}
-                health={health}
-                stats={stats}
-                onUpdateProfile={handleUpdateProfile}
-              />
-            ) : (
-              <ShopManagementMobileView
-                health={health}
-                warnings={warnings}
-                products={products}
-                onCreateProduct={handleCreateProduct}
-              />
-            )}
-          </div>
+          <ArtisanProfileView
+            profileDetails={profileDetails}
+            health={health}
+            stats={stats}
+            returns={returns}
+            disputes={disputes}
+            onUpdateProfile={handleUpdateProfile}
+            onOpenReturns={() => setShowReturnsDrawer(true)}
+            onOpenDisputes={() => setShowDisputesDrawer(true)}
+          />
         )}
       </main>
 
@@ -290,40 +240,58 @@ export const App: React.FC = () => {
         returnsCount={pendingReturnsCount}
       />
 
-      {/* Modals & Bottom Sheets */}
+      {/* ─── Drawers & Bottom Sheets ───────────────────────────────────────── */}
+
+      {/* Notifications Drawer */}
       {showNotificationsModal && (
-        <div style={{
-          position: "fixed",
-          inset: 0,
-          background: "rgba(0,0,0,0.5)",
-          zIndex: 100,
-          display: "flex",
-          alignItems: "flex-end",
-          justifyContent: "center",
-        }}>
-          <div style={{
-            background: "#FCFBF9",
-            width: "100%",
-            maxWidth: 440,
-            maxHeight: "80vh",
-            borderRadius: "24px 24px 0 0",
-            padding: "20px",
-            overflowY: "auto",
-            boxShadow: "0 -10px 30px rgba(0,0,0,0.2)",
-          }}>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+          <div style={{ background: "#FCFBF9", width: "100%", maxWidth: 440, maxHeight: "82vh", borderRadius: "24px 24px 0 0", padding: "20px", overflowY: "auto", boxShadow: "0 -10px 30px rgba(0,0,0,0.2)" }}>
             <div style={{ width: 36, height: 4, background: "rgba(0,0,0,0.15)", borderRadius: 2, margin: "0 auto 16px" }} />
             <ArtisanNotificationsView
               notifications={notifications}
               onNavigateTab={(tab) => {
                 setShowNotificationsModal(false);
-                setCurrentTab(tab);
+                if (tab === "retours") setShowReturnsDrawer(true);
+                else if (tab === "litiges") setShowDisputesDrawer(true);
+                else setCurrentTab(tab);
               }}
             />
-            <button
-              onClick={() => setShowNotificationsModal(false)}
-              className="btn-mobile-outline"
-              style={{ width: "100%", marginTop: 14 }}
-            >
+            <button onClick={() => setShowNotificationsModal(false)} className="btn-mobile-outline" style={{ width: "100%", marginTop: 14 }}>
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Returns Drawer from Profile */}
+      {showReturnsDrawer && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+          <div style={{ background: "#FCFBF9", width: "100%", maxWidth: 440, maxHeight: "82vh", borderRadius: "24px 24px 0 0", padding: "20px", overflowY: "auto", boxShadow: "0 -10px 30px rgba(0,0,0,0.2)" }}>
+            <div style={{ width: 36, height: 4, background: "rgba(0,0,0,0.15)", borderRadius: 2, margin: "0 auto 16px" }} />
+            <ReturnsWorkshopView
+              returns={returns}
+              onConfirmReturn={handleConfirmReturn}
+            />
+            <button onClick={() => setShowReturnsDrawer(false)} className="btn-mobile-outline" style={{ width: "100%", marginTop: 14 }}>
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Disputes Drawer from Profile */}
+      {showDisputesDrawer && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+          <div style={{ background: "#FCFBF9", width: "100%", maxWidth: 440, maxHeight: "82vh", borderRadius: "24px 24px 0 0", padding: "20px", overflowY: "auto", boxShadow: "0 -10px 30px rgba(0,0,0,0.2)" }}>
+            <div style={{ width: 36, height: 4, background: "rgba(0,0,0,0.15)", borderRadius: 2, margin: "0 auto 16px" }} />
+            <DisputesWorkshopView
+              disputes={disputes}
+              onOpenReplyModal={(d) => {
+                setShowDisputesDrawer(false);
+                setReplyDispute(d);
+              }}
+            />
+            <button onClick={() => setShowDisputesDrawer(false)} className="btn-mobile-outline" style={{ width: "100%", marginTop: 14 }}>
               Fermer
             </button>
           </div>
