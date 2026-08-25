@@ -12,6 +12,7 @@ import clientRoutes         from './client/routes/clientRoutes.js';
 import mockCmiRouter        from './core/paymentProviders/mockCmi.js';
 import { cronRouter }       from './routes/cronRoutes.js';
 import { adminRouter }      from './routes/admin.routes.js';
+import { artisanRouter }    from './routes/artisan.routes.js';
 import { startCronScheduler } from './services/cronService.js';
 import { loadProducts }       from './services/recommendation.service.js';
 import { initSearchIndex }  from './services/search/meilisearch.service.js';
@@ -53,11 +54,15 @@ const allowedOrigins = [
   'http://127.0.0.1:5173',
   'http://localhost:5174',   // Vite dev admin
   'http://127.0.0.1:5174',
+  'http://localhost:5175',   // Vite dev artisan
+  'http://127.0.0.1:5175',
   'http://localhost:4173',   // Vite preview
-  'http://localhost:3000',   // Frontend Docker compose
+  'http://localhost:3000',   // Frontend Client Docker compose
   'http://localhost:3002',   // Admin Dashboard Docker compose
+  'http://localhost:3003',   // Artisan App Docker compose
   process.env.FRONTEND_URL,
   process.env.ADMIN_URL,
+  process.env.ARTISAN_URL,
 ].filter(Boolean);
 
 app.use(cors({
@@ -91,6 +96,7 @@ app.use('/api/products',        productsRoutes);
 app.use('/api/favorites',       favoritesRoutes);
 app.use('/api/reviews',         reviewsRoutes);
 app.use('/api/client',          clientRoutes);
+app.use('/api/artisan',         artisanRouter);
 app.use('/api/cron',            cronRouter);
 app.use('/api/admin',           adminRouter);
 app.use('/mock-cmi',            mockCmiRouter);

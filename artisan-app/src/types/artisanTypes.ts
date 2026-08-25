@@ -1,0 +1,91 @@
+export interface ArtisanOrder {
+  id: string;
+  clientRef: string;
+  artisanRef: string;
+  totalPrice: number;
+  productType: "standard" | "personnalise" | "sur_commande";
+  transportProvider: "sendit" | "vendeur";
+  status: string;
+  createdAt: string;
+  acceptedAt?: string | null;
+  deliveredAt?: string | null;
+  prepPhotos?: string[];
+  senditDeliveryCode?: string | null;
+  senditWaybillUrl?: string | null;
+  senditWaybillPhoto?: string | null;
+  vendeurDeliverySignaturePhoto?: string | null;
+  clientSignature?: string | null;
+  escrowReleasedAt?: string | null;
+  counterUnreachable?: number | null;
+  nonReceptionClaimedAt?: string | null;
+  j2RelanceSentAt?: string | null;
+}
+
+export interface ArtisanReturn {
+  id: string;
+  orderId: string;
+  mode: "sendit" | "propres_moyens";
+  returnShippingFee: number;
+  status: "initie" | "resolu_conforme" | "rejete_non_conforme";
+  createdAt: string;
+  resolvedAt?: string | null;
+  order?: ArtisanOrder | null;
+}
+
+export interface ArtisanDispute {
+  id: string;
+  orderId: string;
+  type: string;
+  claimantRef: string;
+  reason: string;
+  clientEvidencePhotos: string[];
+  artisanResponse?: string | null;
+  artisanEvidencePhotos: string[];
+  status: string;
+  escrowStatusAtDispute: string;
+  arbitrationDecision?: string | null;
+  arbitrationAmount?: number | null;
+  createdAt: string;
+  resolvedAt?: string | null;
+  order?: ArtisanOrder | null;
+}
+
+export interface ArtisanWallet {
+  artisanRef: string;
+  availableBalance: number;
+  lockedEscrow: number;
+  totalGrossSales: number;
+  totalNetEarnings: number;
+  vorkPlatformFeesTotal: number;
+  withdrawals: Array<{
+    id: string;
+    userId: string;
+    amount: number;
+    rib: string;
+    status: "pending" | "processed" | "rejected";
+    createdAt: string;
+    processedAt?: string | null;
+  }>;
+}
+
+export interface ArtisanProfileHealth {
+  id: string;
+  warningCountCurrentMonth: number;
+  suspensionStatus: "active" | "paused" | "suspended_7d" | "suspended_14d" | "blocked";
+  suspendedUntil?: string | null;
+  updatedAt: string;
+}
+
+export interface ArtisanProduct {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  productType: "standard" | "personnalise" | "sur_commande";
+  image: string;
+  artisanName: string;
+  category: string;
+  rating?: number;
+  reviewCount?: number;
+  createdAt?: string;
+}
