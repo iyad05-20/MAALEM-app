@@ -57,23 +57,23 @@ export const ArtisanMarketplaceView: React.FC<ArtisanMarketplaceViewProps> = ({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      style={{ display: "flex", flexDirection: "column", gap: 16 }}
+      style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}
     >
-      {/* Header Info */}
-      <div className="artisan-card-glass" style={{ background: "linear-gradient(135deg, rgba(204, 119, 85, 0.08), rgba(212, 175, 55, 0.04))", border: "1px solid rgba(204, 119, 85, 0.25)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+      {/* Header Info Banner */}
+      <div className="artisan-card" style={{ background: "linear-gradient(135deg, rgba(184, 98, 63, 0.08), rgba(212, 175, 55, 0.04))", border: "1px solid rgba(184, 98, 63, 0.25)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: 4 }}>
           <ShoppingBag size={20} color="var(--accent-warm)" />
-          <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 15, color: "var(--primary)", margin: 0 }}>
+          <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 900, fontSize: "var(--font-md)", color: "var(--primary)", margin: 0 }}>
             Marché des Commandes Sur-Mesure
           </h3>
         </div>
-        <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: 0, lineHeight: 1.4 }}>
-          Commandes spéciales déposées par les clients. Soumettez votre offre pour remporter la confection.
+        <p style={{ fontSize: "11px", color: "var(--text-secondary)", margin: 0, lineHeight: 1.4 }}>
+          Annonces personnalisées des clients. Soumettez votre devis (prix et délai) pour fabriquer la pièce.
         </p>
       </div>
 
       {/* Category Pills Slider */}
-      <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
+      <div style={{ display: "flex", gap: "var(--space-2)", overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
         {categories.map((cat) => (
           <motion.button
             whileTap={{ scale: 0.95 }}
@@ -86,7 +86,7 @@ export const ArtisanMarketplaceView: React.FC<ArtisanMarketplaceViewProps> = ({
               background: selectedCategory === cat ? "var(--primary)" : "var(--surface)",
               color: selectedCategory === cat ? "#FFFFFF" : "var(--text-secondary)",
               fontFamily: "var(--font-display)",
-              fontSize: 11,
+              fontSize: "11px",
               fontWeight: 800,
               cursor: "pointer",
               whiteSpace: "nowrap",
@@ -102,10 +102,10 @@ export const ArtisanMarketplaceView: React.FC<ArtisanMarketplaceViewProps> = ({
       {filteredRequests.length === 0 ? (
         <div className="artisan-card" style={{ padding: "44px 20px", textAlign: "center", color: "var(--text-secondary)" }}>
           <ShoppingBag size={38} style={{ opacity: 0.3, marginBottom: 8 }} />
-          <p style={{ fontSize: 13, fontWeight: 700, margin: 0 }}>Aucune annonce sur-mesure dans cette catégorie.</p>
+          <p style={{ fontSize: "13px", fontWeight: 700, margin: 0 }}>Aucune annonce sur-mesure dans cette catégorie.</p>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
           {filteredRequests.map((reqItem, idx) => {
             const hasMyQuote = reqItem.quotes.some(q => q.artisanName.includes("Abdelkader"));
 
@@ -116,11 +116,11 @@ export const ArtisanMarketplaceView: React.FC<ArtisanMarketplaceViewProps> = ({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.25, delay: idx * 0.05 }}
                 className="artisan-card"
-                style={{ padding: 18 }}
               >
-                <div style={{ display: "flex", gap: 14, marginBottom: 12 }}>
-                  <div style={{ width: 84, height: 84, borderRadius: 16, overflow: "hidden", flexShrink: 0, border: "1px solid var(--border)" }}>
-                    <img src={reqItem.image} alt={reqItem.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <div style={{ display: "flex", gap: "var(--space-3)", marginBottom: "var(--space-3)" }}>
+                  {/* Photo with Section 7 Treatment (Overlay 15% + 90% desaturation) */}
+                  <div className="artisan-photo-wrapper" style={{ width: 84, height: 84, flexShrink: 0, border: "1px solid var(--border)" }}>
+                    <img src={reqItem.image} alt={reqItem.title} />
                   </div>
 
                   <div style={{ flex: 1 }}>
@@ -128,12 +128,12 @@ export const ArtisanMarketplaceView: React.FC<ArtisanMarketplaceViewProps> = ({
                       <span className="badge-pill badge-info" style={{ fontSize: 9 }}>
                         {reqItem.category}
                       </span>
-                      <span style={{ fontSize: 10, color: "var(--text-muted)" }}>
+                      <span style={{ fontSize: 10, color: "var(--text-tertiary)" }}>
                         {new Date(reqItem.createdAt).toLocaleDateString("fr-FR")}
                       </span>
                     </div>
 
-                    <h4 style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 900, color: "var(--primary)", margin: "2px 0 4px" }}>
+                    <h4 style={{ fontFamily: "var(--font-display)", fontSize: "var(--font-sm)", fontWeight: 900, color: "var(--primary)", margin: "2px 0 4px" }}>
                       {reqItem.title}
                     </h4>
 
@@ -153,8 +153,8 @@ export const ArtisanMarketplaceView: React.FC<ArtisanMarketplaceViewProps> = ({
 
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 10, borderTop: "1px solid var(--border-subtle)" }}>
                   <div>
-                    <span style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 600 }}>Budget Estimé Client :</span>
-                    <p style={{ fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 900, color: "var(--accent-warm)", margin: 0 }}>
+                    <span style={{ fontSize: 10, color: "var(--text-tertiary)", fontWeight: 600 }}>Budget Client :</span>
+                    <p style={{ fontFamily: "var(--font-display)", fontSize: "var(--font-md)", fontWeight: 900, color: "var(--accent-warm)", margin: 0 }}>
                       {reqItem.budget}
                     </p>
                   </div>
@@ -180,7 +180,7 @@ export const ArtisanMarketplaceView: React.FC<ArtisanMarketplaceViewProps> = ({
         </div>
       )}
 
-      {/* Quote Submission Bottom Sheet Drawer */}
+      {/* Quote Submission Glass Sheet Drawer */}
       <AnimatePresence>
         {activeRequest && (
           <motion.div
@@ -202,27 +202,28 @@ export const ArtisanMarketplaceView: React.FC<ArtisanMarketplaceViewProps> = ({
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              transition={{ type: "spring", damping: 26, stiffness: 320 }}
+              className="glass-overlay"
               style={{
                 background: "#FCFBF9",
                 width: "100%",
                 maxWidth: 440,
                 borderRadius: "28px 28px 0 0",
-                padding: "20px 22px 34px",
+                padding: "var(--space-5) var(--space-5) var(--space-7)",
                 boxShadow: "0 -14px 40px rgba(0,0,0,0.35)",
               }}
             >
-              <div style={{ width: 40, height: 4, background: "#CBD5E1", borderRadius: 2, margin: "0 auto 18px" }} />
+              <div style={{ width: 40, height: 4, background: "#CBD5E1", borderRadius: 2, margin: "0 auto var(--space-4)" }} />
 
-              <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 900, fontSize: 17, color: "var(--primary)", marginBottom: 2 }}>
+              <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 900, fontSize: "var(--font-md)", color: "var(--primary)", marginBottom: 2 }}>
                 📜 Transmettre un Devis Vendeur
               </h3>
-              <p style={{ fontSize: 11, color: "var(--text-secondary)", marginBottom: 16 }}>
+              <p style={{ fontSize: "11px", color: "var(--text-secondary)", marginBottom: 16 }}>
                 Pour l'annonce : <strong>{activeRequest.title}</strong>
               </p>
 
-              <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)" }}>
                   <div>
                     <label style={{ fontSize: 10, fontWeight: 800, color: "var(--text-secondary)", display: "block", marginBottom: 4 }}>
                       Prix Proposé (MAD) *

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { motion } from "framer-motion";
 import { 
   User, 
   Phone, 
@@ -82,16 +83,22 @@ export const ArtisanProfileView: React.FC<ArtisanProfileViewProps> = ({
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}
+    >
       {/* Workshop Master Card */}
       <div style={{
-        background: "linear-gradient(135deg, #1A2A3A 0%, #111D29 100%)",
-        borderRadius: 24,
-        padding: 20,
+        background: "linear-gradient(135deg, #1A2A3A 0%, #101B26 100%)",
+        borderRadius: 26,
+        padding: "var(--space-5)",
         color: "#FFFFFF",
         boxShadow: "0 10px 25px rgba(26, 42, 58, 0.2)",
+        border: "1px solid rgba(212, 175, 55, 0.25)",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginBottom: "var(--space-4)" }}>
           <div style={{
             width: 52,
             height: 52,
@@ -109,14 +116,14 @@ export const ArtisanProfileView: React.FC<ArtisanProfileViewProps> = ({
           </div>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 16, color: "#FFFFFF", margin: 0 }}>
+              <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 900, fontSize: "var(--font-md)", color: "#FFFFFF", margin: 0 }}>
                 {profileDetails?.artisanName || "Maâlem Abdelkader"}
               </h3>
               <span className="badge-pill" style={{ background: "rgba(212,175,55,0.2)", color: "var(--accent-premium)", border: "1px solid rgba(212,175,55,0.4)" }}>
                 ★ Maître Artisan
               </span>
             </div>
-            <p style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", margin: "2px 0 0" }}>
+            <p style={{ fontSize: 11, color: "rgba(244,241,234,0.75)", margin: "2px 0 0" }}>
               {profileDetails?.specialty || "Céramique & Cuir Fassi"} · Médina de Fès
             </p>
           </div>
@@ -125,20 +132,20 @@ export const ArtisanProfileView: React.FC<ArtisanProfileViewProps> = ({
         {/* Stats Row */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, background: "rgba(255,255,255,0.06)", padding: 10, borderRadius: 14 }}>
           <div style={{ textAlign: "center" }}>
-            <p style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", margin: "0 0 2px" }}>Note Boutique</p>
-            <strong style={{ fontSize: 13, color: "var(--accent-premium)", display: "flex", alignItems: "center", justifyContent: "center", gap: 2 }}>
+            <p style={{ fontSize: 10, color: "rgba(244,241,234,0.6)", margin: "0 0 2px" }}>Note Boutique</p>
+            <strong style={{ fontFamily: "var(--font-display)", fontSize: "14px", color: "var(--accent-premium)", display: "flex", alignItems: "center", justifyContent: "center", gap: 2 }}>
               <Star size={12} fill="var(--accent-premium)" /> {stats?.overallRating || 4.9}
             </strong>
           </div>
           <div style={{ textAlign: "center", borderLeft: "1px solid rgba(255,255,255,0.1)", borderRight: "1px solid rgba(255,255,255,0.1)" }}>
-            <p style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", margin: "0 0 2px" }}>Acceptation</p>
-            <strong style={{ fontSize: 13, color: "#34D399" }}>
+            <p style={{ fontSize: 10, color: "rgba(244,241,234,0.6)", margin: "0 0 2px" }}>Acceptation</p>
+            <strong style={{ fontFamily: "var(--font-display)", fontSize: "14px", color: "#34D399" }}>
               {stats?.acceptanceRate || 100}%
             </strong>
           </div>
           <div style={{ textAlign: "center" }}>
-            <p style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", margin: "0 0 2px" }}>Expédition</p>
-            <strong style={{ fontSize: 13, color: "#FFFFFF" }}>
+            <p style={{ fontSize: 10, color: "rgba(244,241,234,0.6)", margin: "0 0 2px" }}>Expédition</p>
+            <strong style={{ fontFamily: "var(--font-display)", fontSize: "14px", color: "#FFFFFF" }}>
               ~{stats?.averageShippingDays || 3}j
             </strong>
           </div>
@@ -148,7 +155,7 @@ export const ArtisanProfileView: React.FC<ArtisanProfileViewProps> = ({
       {/* Vacation Mode Quick Card */}
       <div className="artisan-card" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 16px" }}>
         <div>
-          <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, color: "var(--primary)", margin: "0 0 2px" }}>
+          <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "var(--font-sm)", color: "var(--primary)", margin: "0 0 2px" }}>
             Mode Congés / Pause Atelier
           </h4>
           <p style={{ fontSize: 10, color: "var(--text-secondary)", margin: 0 }}>
@@ -156,7 +163,8 @@ export const ArtisanProfileView: React.FC<ArtisanProfileViewProps> = ({
           </p>
         </div>
 
-        <button
+        <motion.button
+          whileTap={{ scale: 0.95 }}
           type="button"
           onClick={handleToggleVacation}
           style={{
@@ -164,14 +172,14 @@ export const ArtisanProfileView: React.FC<ArtisanProfileViewProps> = ({
             borderRadius: 12,
             border: "none",
             background: isVacationMode ? "var(--accent-warm)" : "rgba(45, 106, 79, 0.12)",
-            color: isVacationMode ? "#FFFFFF" : "#2D6A4F",
+            color: isVacationMode ? "#FFFFFF" : "var(--accent-emerald)",
             fontSize: 11,
             fontWeight: 800,
             cursor: "pointer",
           }}
         >
           {isVacationMode ? "En Pause" : "Actif ✓"}
-        </button>
+        </motion.button>
       </div>
 
       {/* Menu List matching Client App Profile View */}
@@ -192,11 +200,11 @@ export const ArtisanProfileView: React.FC<ArtisanProfileViewProps> = ({
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 10, background: "rgba(212,175,55,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: "rgba(212,175,55,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <RotateCcw size={16} color="var(--accent-premium)" />
             </div>
             <div style={{ textAlign: "left" }}>
-              <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, color: "var(--primary)", margin: 0 }}>
+              <p style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "var(--font-sm)", color: "var(--primary)", margin: 0 }}>
                 Retours Clients & Forclusion 17j (Art. 13)
               </p>
               <p style={{ fontSize: 10, color: "var(--text-secondary)", margin: 0 }}>
@@ -206,7 +214,7 @@ export const ArtisanProfileView: React.FC<ArtisanProfileViewProps> = ({
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             {pendingReturns > 0 && <span className="nav-badge" style={{ position: "static" }}>{pendingReturns}</span>}
-            <ChevronRight size={16} color="var(--text-secondary)" />
+            <ChevronRight size={16} color="var(--text-tertiary)" />
           </div>
         </button>
 
@@ -226,11 +234,11 @@ export const ArtisanProfileView: React.FC<ArtisanProfileViewProps> = ({
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 10, background: "rgba(220,53,69,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: "rgba(220,53,69,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Scale size={16} color="#DC3545" />
             </div>
             <div style={{ textAlign: "left" }}>
-              <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, color: "var(--primary)", margin: 0 }}>
+              <p style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "var(--font-sm)", color: "var(--primary)", margin: 0 }}>
                 Médiation & Litiges (48h - Art. 20)
               </p>
               <p style={{ fontSize: 10, color: "var(--text-secondary)", margin: 0 }}>
@@ -240,7 +248,7 @@ export const ArtisanProfileView: React.FC<ArtisanProfileViewProps> = ({
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             {openDisputes > 0 && <span className="nav-badge" style={{ position: "static" }}>{openDisputes}</span>}
-            <ChevronRight size={16} color="var(--text-secondary)" />
+            <ChevronRight size={16} color="var(--text-tertiary)" />
           </div>
         </button>
 
@@ -253,11 +261,11 @@ export const ArtisanProfileView: React.FC<ArtisanProfileViewProps> = ({
           borderBottom: "1px solid var(--border)",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 10, background: isSuspended ? "rgba(220,53,69,0.1)" : "rgba(45,106,79,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              {isSuspended ? <ShieldAlert size={16} color="#DC3545" /> : <ShieldCheck size={16} color="#2D6A4F" />}
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: isSuspended ? "rgba(220,53,69,0.1)" : "rgba(45,106,79,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              {isSuspended ? <ShieldAlert size={16} color="#DC3545" /> : <ShieldCheck size={16} color="var(--accent-emerald)" />}
             </div>
             <div>
-              <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, color: "var(--primary)", margin: 0 }}>
+              <p style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "var(--font-sm)", color: "var(--primary)", margin: 0 }}>
                 Santé Boutique : {warningCount} / 10 avertissements
               </p>
               <p style={{ fontSize: 10, color: "var(--text-secondary)", margin: 0 }}>
@@ -286,11 +294,11 @@ export const ArtisanProfileView: React.FC<ArtisanProfileViewProps> = ({
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 10, background: "rgba(26,42,58,0.06)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: "rgba(26,42,58,0.06)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <MapPin size={16} color="var(--primary)" />
             </div>
             <div style={{ textAlign: "left" }}>
-              <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, color: "var(--primary)", margin: 0 }}>
+              <p style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "var(--font-sm)", color: "var(--primary)", margin: 0 }}>
                 Coordonnées de Ramassage Sendit & RIB
               </p>
               <p style={{ fontSize: 10, color: "var(--text-secondary)", margin: 0 }}>
@@ -298,7 +306,7 @@ export const ArtisanProfileView: React.FC<ArtisanProfileViewProps> = ({
               </p>
             </div>
           </div>
-          <ChevronRight size={16} color="var(--text-secondary)" />
+          <ChevronRight size={16} color="var(--text-tertiary)" />
         </button>
 
         {/* 5. Conditions Générales Vendeur */}
@@ -316,11 +324,11 @@ export const ArtisanProfileView: React.FC<ArtisanProfileViewProps> = ({
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 10, background: "rgba(26,42,58,0.06)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: "rgba(26,42,58,0.06)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <FileText size={16} color="var(--primary)" />
             </div>
             <div style={{ textAlign: "left" }}>
-              <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, color: "var(--primary)", margin: 0 }}>
+              <p style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "var(--font-sm)", color: "var(--primary)", margin: 0 }}>
                 Conditions Générales Vork Vendeur (CGV)
               </p>
               <p style={{ fontSize: 10, color: "var(--text-secondary)", margin: 0 }}>
@@ -328,14 +336,14 @@ export const ArtisanProfileView: React.FC<ArtisanProfileViewProps> = ({
               </p>
             </div>
           </div>
-          <ChevronRight size={16} color="var(--text-secondary)" />
+          <ChevronRight size={16} color="var(--text-tertiary)" />
         </button>
       </div>
 
-      {/* Settings Form Modal Sheet */}
+      {/* Settings Form Glass Sheet */}
       {showSettingsForm && (
         <form onSubmit={handleSave} className="artisan-card" style={{ display: "flex", flexDirection: "column", gap: 10, border: "1.5px solid var(--primary)" }}>
-          <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, color: "var(--primary)", margin: 0 }}>
+          <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 14, color: "var(--primary)", margin: 0 }}>
             ✏️ Modifier les Paramètres Atelier
           </h4>
 
@@ -385,29 +393,30 @@ export const ArtisanProfileView: React.FC<ArtisanProfileViewProps> = ({
         </form>
       )}
 
-      {/* CGV Modal */}
+      {/* CGV Glass Sheet Modal */}
       {showCgvModal && (
         <div style={{
           position: "fixed",
           inset: 0,
-          background: "rgba(0,0,0,0.5)",
+          background: "rgba(0,0,0,0.55)",
+          backdropFilter: "blur(6px)",
           zIndex: 100,
           display: "flex",
           alignItems: "flex-end",
           justifyContent: "center",
         }}>
-          <div style={{
+          <div className="glass-overlay" style={{
             background: "#FCFBF9",
             width: "100%",
             maxWidth: 440,
             maxHeight: "80vh",
-            borderRadius: "24px 24px 0 0",
-            padding: "20px 20px 32px",
+            borderRadius: "28px 28px 0 0",
+            padding: "var(--space-5) var(--space-5) var(--space-7)",
             overflowY: "auto",
-            boxShadow: "0 -10px 30px rgba(0,0,0,0.2)",
+            boxShadow: "0 -10px 30px rgba(0,0,0,0.25)",
           }}>
-            <div style={{ width: 36, height: 4, background: "rgba(0,0,0,0.15)", borderRadius: 2, margin: "0 auto 16px" }} />
-            <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, color: "var(--primary)", marginBottom: 10 }}>
+            <div style={{ width: 36, height: 4, background: "rgba(0,0,0,0.15)", borderRadius: 2, margin: "0 auto var(--space-4)" }} />
+            <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 900, fontSize: "var(--font-md)", color: "var(--primary)", marginBottom: 10 }}>
               Règles d'Or Maâlem (CGV Vork)
             </h3>
             <div style={{ fontSize: 11, color: "var(--text-secondary)", lineHeight: 1.5, display: "flex", flexDirection: "column", gap: 10 }}>
@@ -422,6 +431,6 @@ export const ArtisanProfileView: React.FC<ArtisanProfileViewProps> = ({
           </div>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 };

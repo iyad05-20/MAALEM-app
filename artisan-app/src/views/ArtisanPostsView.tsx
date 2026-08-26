@@ -51,12 +51,12 @@ export const ArtisanPostsView: React.FC<ArtisanPostsViewProps> = ({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      style={{ display: "flex", flexDirection: "column", gap: 16 }}
+      style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}
     >
       {/* Top Header Card */}
-      <div className="artisan-card-glass" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div className="artisan-card" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 16, color: "var(--primary)", margin: 0 }}>
+          <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 900, fontSize: "var(--font-md)", color: "var(--primary)", margin: 0 }}>
             Mes Posts & Catalogue ({products.length})
           </h3>
           <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: 0 }}>
@@ -75,14 +75,14 @@ export const ArtisanPostsView: React.FC<ArtisanPostsViewProps> = ({
         </motion.button>
       </div>
 
-      {/* Posts Grid List */}
+      {/* Posts List */}
       {products.length === 0 ? (
         <div className="artisan-card" style={{ padding: "44px 20px", textAlign: "center", color: "var(--text-secondary)" }}>
           <Layers size={38} style={{ opacity: 0.3, marginBottom: 8 }} />
           <p style={{ fontSize: 13, fontWeight: 700, margin: 0 }}>Aucun post publié pour le moment.</p>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
           {products.map((p, idx) => (
             <motion.div
               key={p.id}
@@ -90,21 +90,22 @@ export const ArtisanPostsView: React.FC<ArtisanPostsViewProps> = ({
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.25, delay: idx * 0.05 }}
               className="artisan-card"
-              style={{ padding: 16 }}
             >
-              <div style={{ display: "flex", gap: 14, marginBottom: 12 }}>
-                <div style={{ width: 76, height: 76, borderRadius: 14, overflow: "hidden", flexShrink: 0, position: "relative", border: "1px solid var(--border)" }}>
-                  <img src={p.image} alt={p.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <div style={{ display: "flex", gap: "var(--space-3)", marginBottom: "var(--space-3)" }}>
+                {/* Photo Treatment Section 7 */}
+                <div className="artisan-photo-wrapper" style={{ width: 76, height: 76, flexShrink: 0, border: "1px solid var(--border)" }}>
+                  <img src={p.image} alt={p.title} />
                   <span style={{
                     position: "absolute",
                     top: 4,
                     left: 4,
-                    background: p.productType === "standard" ? "rgba(45, 106, 79, 0.95)" : "rgba(204, 119, 85, 0.95)",
+                    background: p.productType === "standard" ? "rgba(45, 106, 79, 0.95)" : "rgba(184, 98, 63, 0.95)",
                     color: "#FFFFFF",
                     fontSize: 8,
                     fontWeight: 800,
                     padding: "2px 6px",
                     borderRadius: 4,
+                    zIndex: 2,
                   }}>
                     {p.productType === "standard" ? "Standard" : "Sur-mesure"}
                   </span>
@@ -112,10 +113,10 @@ export const ArtisanPostsView: React.FC<ArtisanPostsViewProps> = ({
 
                 <div style={{ flex: 1 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                    <h4 style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 900, color: "var(--primary)", margin: 0 }}>
+                    <h4 style={{ fontFamily: "var(--font-display)", fontSize: "var(--font-sm)", fontWeight: 900, color: "var(--primary)", margin: 0 }}>
                       {p.title}
                     </h4>
-                    <span style={{ fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 900, color: "var(--accent-warm)" }}>
+                    <span style={{ fontFamily: "var(--font-display)", fontSize: "var(--font-md)", fontWeight: 900, color: "var(--accent-warm)" }}>
                       {p.price} MAD
                     </span>
                   </div>
@@ -148,7 +149,7 @@ export const ArtisanPostsView: React.FC<ArtisanPostsViewProps> = ({
         </div>
       )}
 
-      {/* Edit Product Sheet Drawer */}
+      {/* Edit Product Glass Sheet Drawer */}
       <AnimatePresence>
         {editingProduct && (
           <motion.div
@@ -171,18 +172,19 @@ export const ArtisanPostsView: React.FC<ArtisanPostsViewProps> = ({
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="glass-overlay"
               style={{
                 background: "#FCFBF9",
                 width: "100%",
                 maxWidth: 440,
                 borderRadius: "28px 28px 0 0",
-                padding: "20px 22px 34px",
+                padding: "var(--space-5) var(--space-5) var(--space-7)",
                 boxShadow: "0 -14px 40px rgba(0,0,0,0.35)",
               }}
             >
-              <div style={{ width: 40, height: 4, background: "#CBD5E1", borderRadius: 2, margin: "0 auto 18px" }} />
+              <div style={{ width: 40, height: 4, background: "#CBD5E1", borderRadius: 2, margin: "0 auto var(--space-4)" }} />
 
-              <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 900, fontSize: 16, color: "var(--primary)", marginBottom: 2 }}>
+              <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 900, fontSize: "var(--font-md)", color: "var(--primary)", marginBottom: 2 }}>
                 ✏️ Éditer le Post : {editingProduct.title}
               </h3>
               <p style={{ fontSize: 11, color: "var(--text-secondary)", marginBottom: 16 }}>

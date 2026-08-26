@@ -1,41 +1,66 @@
 /* ==========================================================================
-   MAÂLEM ARTISAN APP – LUXURY MOBILE DESIGN SYSTEM
-   Ultra-Premium Morocco Artisanal Aesthetic (Harmonized with Client App)
+   MAÂLEM ARTISAN APP – LUXURY MOROCCAN DESIGN SYSTEM
+   Strictly compliant with vork-design-system SKILL.md
    ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,800;9..144,900&family=Manrope:wght@400;500;600;700&display=swap');
 
 :root {
-  --bg-primary: #FAF8F5;
-  --surface: #FFFFFF;
-  --surface-glass: rgba(255, 255, 255, 0.85);
-  
+  /* ── Palette Marocaine Réelle ────────────────────────────────────────── */
   --primary: #1A2A3A;
   --primary-dark: #101B26;
 
+  /* Terre Cuite Réelle (Volontairement brique #B8623F - pas de tell IA #CC7755) */
   --accent-warm: #B8623F;
   --accent-warm-light: rgba(184, 98, 63, 0.12);
+
   --accent-premium: #D4AF37;
   --accent-premium-light: rgba(212, 175, 55, 0.14);
   --accent-secondary: #9CAF88;
   --accent-emerald: #2D6A4F;
 
-  --border: #E8E4DD;
-  --border-subtle: rgba(232, 228, 221, 0.6);
+  --bg-primary: #FAFAF8;
+  --surface: #FFFFFF;
+  --surface-glass: rgba(255, 255, 255, 0.88);
 
-  --text-primary: #1C1E21;
-  --text-secondary: #64748B;
-  --text-muted: #94A3B8;
+  --border: #E9E6E1;
+  --border-subtle: rgba(233, 230, 225, 0.6);
 
-  --font-display: 'Plus Jakarta Sans', sans-serif;
+  /* ── Couleurs de Texte ───────────────────────────────────────────────── */
+  --text-primary: #1A2A3A;
+  --text-secondary: #5C6B78;
+  --text-tertiary: #9AA5AD;
+  --text-on-dark: #F4F1EA;
+
+  /* ── Typographie ────────────────────────────────────────────────────── */
+  --font-display: 'Fraunces', serif;
   --font-body: 'Manrope', sans-serif;
 
+  /* Échelle typographique : 12 / 14 / 16 / 20 / 28 / 40px */
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-md: 16px;
+  --font-size-lg: 20px;
+  --font-size-xl: 28px;
+  --font-size-2xl: 40px;
+
+  /* ── Échelle d'Espacement (Grille 4px) ──────────────────────────────── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  /* ── Ombres Layered ─────────────────────────────────────────────────── */
   --shadow-xs: 0 1px 3px rgba(26, 42, 58, 0.04);
   --shadow-sm: 0 4px 12px rgba(26, 42, 58, 0.05);
   --shadow-md: 0 10px 28px rgba(26, 42, 58, 0.08);
   --shadow-lg: 0 20px 40px rgba(26, 42, 58, 0.12);
-  --shadow-gold: 0 8px 24px rgba(212, 175, 55, 0.25);
   --shadow-terracotta: 0 8px 24px rgba(184, 98, 63, 0.25);
+  --shadow-gold: 0 8px 24px rgba(212, 175, 55, 0.25);
 }
 
 *,
@@ -67,7 +92,13 @@ body {
   width: 100%;
 }
 
-/* ─── Phone Shell (Luxury Smartphone Viewport) ─────────────────────────── */
+/* ─── Keyboard Focus Accessibility (Outline 2px solid var(--accent-warm)) ─── */
+:focus-visible {
+  outline: 2px solid var(--accent-warm) !important;
+  outline-offset: 2px !important;
+}
+
+/* ─── Phone Shell (Mobile Container) ────────────────────────────────── */
 .phone-shell {
   width: 100%;
   max-width: 430px;
@@ -97,37 +128,11 @@ body {
   }
 }
 
-/* ─── Moroccan Pattern Watermark ─────────────────────────────────────── */
-.pattern-corner {
-  position: absolute;
-  width: 280px;
-  height: 280px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50'%3E%3Cg fill='none' stroke='%23D4AF37' stroke-width='1.2'%3E%3Cpolygon points='14,4 36,4 46,14 46,36 36,46 14,46 4,36 4,14'/%3E%3Crect x='-3' y='-3' width='6' height='6' transform='rotate(45 0 0)'/%3E%3Crect x='47' y='-3' width='6' height='6' transform='rotate(45 50 0)'/%3E%3Crect x='47' y='47' width='6' height='6' transform='rotate(45 50 50)'/%3E%3Crect x='-3' y='47' width='6' height='6' transform='rotate(45 0 50)'/%3E%3C/g%3E%3C/svg%3E");
-  background-size: 28px 28px;
-  opacity: 0.22;
-  pointer-events: none;
-  z-index: 1;
-}
-
-.pattern-top-right {
-  top: 0;
-  right: 0;
-  -webkit-mask-image: linear-gradient(-135deg, black 0%, black 20%, transparent 75%);
-  mask-image: linear-gradient(-135deg, black 0%, black 20%, transparent 75%);
-}
-
-.pattern-bottom-left {
-  bottom: 0;
-  left: 0;
-  -webkit-mask-image: linear-gradient(45deg, black 0%, black 20%, transparent 75%);
-  mask-image: linear-gradient(45deg, black 0%, black 20%, transparent 75%);
-}
-
 /* ─── Scrollable Content Area ────────────────────────────────────────── */
 .app-content {
   flex: 1;
   overflow-y: auto;
-  padding: 16px 18px 94px;
+  padding: var(--space-4) var(--space-4) 96px;
   scrollbar-width: none;
   -ms-overflow-style: none;
   position: relative;
@@ -138,101 +143,115 @@ body {
   display: none;
 }
 
-/* ─── Cards & Glassmorphism ──────────────────────────────────────────── */
+/* ─── Flat vs Glass Rules ────────────────────────────────────────────── */
+
+/* FLAT (Blanc Opaque --surface) : Cartes de contenu standard */
 .artisan-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 22px;
-  padding: 16px 18px;
+  border-radius: 24px;
+  padding: var(--space-4);
   box-shadow: var(--shadow-sm);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
-}
-
-.artisan-card-glass {
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(232, 228, 221, 0.8);
-  border-radius: 22px;
-  padding: 16px 18px;
-  box-shadow: var(--shadow-sm);
 }
 
 .artisan-card:hover {
   box-shadow: var(--shadow-md);
-  border-color: rgba(204, 119, 85, 0.3);
+  border-color: rgba(184, 98, 63, 0.3);
 }
 
-/* ─── Buttons ────────────────────────────────────────────────────────── */
+/* GLASS (blur 12px, rgba 0.88) : Réservé exclusivement aux modales/sheets/navs qui flottent */
+.glass-overlay {
+  background: var(--surface-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-md);
+}
+
+/* ─── Photo Overlay & Desaturation Treatment (Section 7) ─────────────── */
+.artisan-photo-wrapper {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+}
+
+.artisan-photo-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(90%);
+}
+
+.artisan-photo-wrapper::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(16, 27, 38, 0.15); /* Overlay uniforme 15% --primary-dark */
+  pointer-events: none;
+}
+
+/* ─── Buttons with Min 44x44px Touch Targets ────────────────────────── */
 .btn-mobile-primary {
   width: 100%;
-  padding: 14px 18px;
+  min-height: 46px;
+  padding: var(--space-3) var(--space-4);
   border-radius: 18px;
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-  color: #FFFFFF;
+  color: var(--text-on-dark);
   border: none;
   font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 13px;
+  font-weight: 800;
+  font-size: var(--font-size-xs);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: var(--space-2);
   box-shadow: 0 6px 18px rgba(26, 42, 58, 0.18);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.btn-mobile-primary:active {
-  transform: scale(0.97);
-}
-
 .btn-mobile-terracotta {
   width: 100%;
-  padding: 14px 18px;
+  min-height: 46px;
+  padding: var(--space-3) var(--space-4);
   border-radius: 18px;
-  background: linear-gradient(135deg, var(--accent-warm) 0%, #B85830 100%);
+  background: linear-gradient(135deg, var(--accent-warm) 0%, #994A2B 100%);
   color: #FFFFFF;
   border: none;
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: 13px;
+  font-size: var(--font-size-xs);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: var(--space-2);
   box-shadow: var(--shadow-terracotta);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.btn-mobile-terracotta:active {
-  transform: scale(0.97);
-}
-
 .btn-mobile-outline {
-  padding: 10px 16px;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-4);
   border-radius: 16px;
   background: var(--surface);
   color: var(--primary);
   border: 1px solid var(--border);
   font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 12px;
+  font-weight: 800;
+  font-size: var(--font-size-xs);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--space-2);
   box-shadow: var(--shadow-xs);
-  transition: all 0.15s ease;
 }
 
-.btn-mobile-outline:active {
-  background: rgba(0, 0, 0, 0.03);
-}
-
-/* ─── Floating Bottom Navigation Bar ─────────────────────────────────── */
+/* ─── Bottom Navigation Bar (Glass Overlay) ─────────────────────────── */
 .artisan-bottom-nav {
   position: absolute;
   bottom: 0;
@@ -241,11 +260,12 @@ body {
   height: 76px;
   background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
   justify-content: space-around;
-  padding: 0 10px 10px;
+  padding: 0 var(--space-2) var(--space-2);
   z-index: 50;
   box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.04);
 }
@@ -260,23 +280,25 @@ body {
   color: var(--text-secondary);
   font-family: var(--font-display);
   font-size: 10px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   position: relative;
   padding: 6px 12px;
+  min-width: 44px;
+  min-height: 44px;
+  justify-content: center;
   transition: all 0.2s ease;
   border-radius: 16px;
 }
 
 .nav-tab-btn.active {
   color: var(--accent-warm);
-  font-weight: 800;
 }
 
 .nav-badge {
   position: absolute;
-  top: 1px;
-  right: 4px;
+  top: 2px;
+  right: 6px;
   background: #DC3545;
   color: #FFFFFF;
   font-size: 9px;
@@ -292,7 +314,7 @@ body {
 
 /* ─── Badges ─────────────────────────────────────────────────────────── */
 .badge-pill {
-  padding: 4px 10px;
+  padding: var(--space-1) var(--space-2);
   border-radius: 12px;
   font-size: 10px;
   font-weight: 800;
@@ -300,7 +322,6 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  letter-spacing: 0.2px;
 }
 
 .badge-urgent {
@@ -310,29 +331,29 @@ body {
 }
 
 .badge-warning {
-  background: rgba(204, 119, 85, 0.12);
-  color: #CC7755;
-  border: 1px solid rgba(204, 119, 85, 0.3);
+  background: rgba(184, 98, 63, 0.12);
+  color: var(--accent-warm);
+  border: 1px solid rgba(184, 98, 63, 0.3);
 }
 
 .badge-success {
   background: rgba(45, 106, 79, 0.1);
-  color: #2D6A4F;
+  color: var(--accent-emerald);
   border: 1px solid rgba(45, 106, 79, 0.25);
 }
 
 .badge-info {
   background: rgba(26, 42, 58, 0.08);
-  color: #1A2A3A;
+  color: var(--primary);
   border: 1px solid rgba(26, 42, 58, 0.18);
 }
 
-/* Spinner Animation */
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-.spin {
-  animation: spin 1s linear infinite;
+/* ─── Prefers Reduced Motion Accessibility Fallback (Section 6) ──────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

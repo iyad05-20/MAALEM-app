@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { 
   Wallet, 
   Lock, 
@@ -13,10 +13,9 @@ import {
   Truck, 
   FileSignature, 
   ChevronRight,
-  Printer,
-  Sparkles,
-  ShieldCheck
+  Printer
 } from "lucide-react";
+import { AnimatedZelligePattern } from "../components/AnimatedZelligePattern";
 import type { ArtisanOrder, ArtisanWallet } from "../types/artisanTypes";
 
 interface ArtisanHomeDashboardViewProps {
@@ -65,85 +64,84 @@ export const ArtisanHomeDashboardView: React.FC<ArtisanHomeDashboardViewProps> =
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      style={{ display: "flex", flexDirection: "column", gap: 18 }}
+      style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}
     >
-      {/* ─── 1. PORTEFEUILLE LUXE (DUAL WALLET) ─────────────────────────────────── */}
+      {/* ─── 1. PORTEFEUILLE DUEL (WALLETS BLOQUÉ vs LIBRE) ─────────────────── */}
       <motion.div
-        whileHover={{ scale: 1.01 }}
+        whileHover={{ scale: 1.005 }}
         style={{
-          background: "linear-gradient(135deg, #1A2A3A 0%, #0F1B27 100%)",
-          borderRadius: 26,
-          padding: 22,
+          background: "linear-gradient(135deg, #1A2A3A 0%, #101B26 100%)",
+          borderRadius: 28,
+          padding: "var(--space-5)",
           color: "#FFFFFF",
           boxShadow: "0 14px 36px rgba(26, 42, 58, 0.28)",
           position: "relative",
           overflow: "hidden",
-          border: "1px solid rgba(212, 175, 55, 0.25)",
+          border: "1px solid rgba(212, 175, 55, 0.3)",
         }}
       >
-        {/* Glow Effects */}
-        <div style={{
-          position: "absolute",
-          top: -30,
-          right: -30,
-          width: 140,
-          height: 140,
-          borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(212, 175, 55, 0.28) 0%, transparent 70%)",
-          pointerEvents: "none",
-        }} />
+        {/* Animated Zellige Signature Element */}
+        <div style={{ position: "absolute", top: 12, right: 12, pointerEvents: "none" }}>
+          <AnimatedZelligePattern size={52} color="var(--accent-premium)" />
+        </div>
 
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--space-4)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
             <Wallet size={20} color="var(--accent-premium)" />
-            <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.8, textTransform: "uppercase", color: "rgba(255,255,255,0.9)" }}>
+            <span style={{
+              fontSize: "10px",
+              fontWeight: 800,
+              letterSpacing: "0.8px",
+              textTransform: "uppercase",
+              color: "var(--text-on-dark)",
+            }}>
               Portefeuille Maâlem Vork
             </span>
           </div>
-          <span className="badge-pill" style={{ background: "rgba(212,175,55,0.18)", color: "var(--accent-premium)", border: "1px solid rgba(212,175,55,0.35)" }}>
-            ★ Escrow Séquestre
+          <span className="badge-pill" style={{ background: "rgba(212,175,55,0.18)", color: "var(--accent-premium)", border: "1px solid rgba(212,175,55,0.35)", marginRight: 42 }}>
+            ★ Séquestre Sécurisé
           </span>
         </div>
 
-        {/* Dual Wallet Display */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 18 }}>
+        {/* Dual Wallet Display (Partie Libre vs Partie Bloquée) */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)", marginBottom: "var(--space-4)" }}>
           {/* Partie Libre / Disponible */}
           <div style={{
             background: "rgba(255,255,255,0.08)",
             borderRadius: 18,
-            padding: 14,
+            padding: "var(--space-3) var(--space-4)",
             border: "1px solid rgba(255,255,255,0.14)",
             backdropFilter: "blur(6px)",
           }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-1)", marginBottom: 4 }}>
               <CheckCircle2 size={14} color="#34D399" />
-              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.75)", fontWeight: 700 }}>Partie Libre</span>
+              <span style={{ fontSize: "10px", color: "rgba(244,241,234,0.8)", fontWeight: 700 }}>Partie Libre</span>
             </div>
-            <p style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 900, color: "#FFFFFF", margin: 0 }}>
-              {wallet?.availableBalance || 0} <span style={{ fontSize: 13, color: "var(--accent-premium)" }}>MAD</span>
+            <p style={{ fontFamily: "var(--font-display)", fontSize: "var(--font-lg)", fontWeight: 900, color: "#FFFFFF", margin: 0 }}>
+              {wallet?.availableBalance || 0} <span style={{ fontSize: "13px", color: "var(--accent-premium)" }}>MAD</span>
             </p>
-            <p style={{ fontSize: 9, color: "rgba(255,255,255,0.55)", margin: "2px 0 0" }}>
-              Déblocable sur RIB
+            <p style={{ fontSize: "9px", color: "rgba(244,241,234,0.6)", margin: "2px 0 0" }}>
+              Disponible sur RIB
             </p>
           </div>
 
-          {/* Partie Bloquée */}
+          {/* Partie Bloquée (Confection / Transport / Retractation) */}
           <div style={{
             background: "rgba(255,255,255,0.08)",
             borderRadius: 18,
-            padding: 14,
+            padding: "var(--space-3) var(--space-4)",
             border: "1px solid rgba(255,255,255,0.14)",
             backdropFilter: "blur(6px)",
           }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-1)", marginBottom: 4 }}>
               <Lock size={14} color="#60A5FA" />
-              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.75)", fontWeight: 700 }}>Partie Bloquée</span>
+              <span style={{ fontSize: "10px", color: "rgba(244,241,234,0.8)", fontWeight: 700 }}>Partie Bloquée</span>
             </div>
-            <p style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 900, color: "#FFFFFF", margin: 0 }}>
-              {wallet?.lockedEscrow || 0} <span style={{ fontSize: 13, color: "#60A5FA" }}>MAD</span>
+            <p style={{ fontFamily: "var(--font-display)", fontSize: "var(--font-lg)", fontWeight: 900, color: "#FFFFFF", margin: 0 }}>
+              {wallet?.lockedEscrow || 0} <span style={{ fontSize: "13px", color: "#60A5FA" }}>MAD</span>
             </p>
-            <p style={{ fontSize: 9, color: "rgba(255,255,255,0.55)", margin: "2px 0 0" }}>
-              Confection & Rétractation 7j
+            <p style={{ fontSize: "9px", color: "rgba(244,241,234,0.6)", margin: "2px 0 0" }}>
+              Confection & Rétractation
             </p>
           </div>
         </div>
@@ -164,11 +162,11 @@ export const ArtisanHomeDashboardView: React.FC<ArtisanHomeDashboardViewProps> =
       {/* ─── 2. COMMANDES ACTIVES CHRONOLOGIQUES ───────────────────────────── */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 16, color: "var(--primary)", margin: 0 }}>
+          <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 900, fontSize: "var(--font-md)", color: "var(--primary)", margin: 0 }}>
             Commandes Actives ({activeOrders.length})
           </h3>
-          <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: 0 }}>
-            Fil d'atelier trié chronologiquement
+          <p style={{ fontSize: "11px", color: "var(--text-secondary)", margin: 0 }}>
+            Ordre chronologique de confection
           </p>
         </div>
 
@@ -182,10 +180,10 @@ export const ArtisanHomeDashboardView: React.FC<ArtisanHomeDashboardViewProps> =
       {activeOrders.length === 0 ? (
         <div className="artisan-card" style={{ padding: "44px 20px", textAlign: "center", color: "var(--text-secondary)" }}>
           <Package size={38} style={{ opacity: 0.3, marginBottom: 8 }} />
-          <p style={{ fontSize: 13, fontWeight: 700, margin: 0 }}>Aucune commande active actuellement.</p>
+          <p style={{ fontSize: "13px", fontWeight: 700, margin: 0 }}>Aucune commande active actuellement.</p>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
           {activeOrders.map((order, idx) => {
             const isToAccept = ["acompte_verse", "payee_integralement"].includes(order.status);
             const isInPrep = order.status === "en_preparation";
@@ -200,29 +198,28 @@ export const ArtisanHomeDashboardView: React.FC<ArtisanHomeDashboardViewProps> =
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.25, delay: idx * 0.05 }}
                 className="artisan-card"
-                style={{ padding: 18 }}
               >
                 {/* Order Header */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "var(--space-3)" }}>
                   <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
-                      <strong style={{ fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 900, color: "var(--primary)" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: 2 }}>
+                      <strong style={{ fontFamily: "var(--font-display)", fontSize: "var(--font-md)", fontWeight: 900, color: "var(--primary)" }}>
                         #{order.id}
                       </strong>
                       <span className={`badge-pill ${isToAccept ? "badge-urgent" : isInPrep ? "badge-warning" : isInTransport ? "badge-info" : "badge-success"}`}>
                         {order.status.replace(/_/g, " ")}
                       </span>
                     </div>
-                    <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: 0 }}>
+                    <p style={{ fontSize: "11px", color: "var(--text-secondary)", margin: 0 }}>
                       {new Date(order.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })} · {order.productType === "standard" ? "📦 Standard Sendit" : "🎨 Sur-Mesure Direct"}
                     </p>
                   </div>
 
                   <div style={{ textAlign: "right" }}>
-                    <p style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 900, color: "var(--primary)", margin: 0 }}>
+                    <p style={{ fontFamily: "var(--font-display)", fontSize: "var(--font-md)", fontWeight: 900, color: "var(--primary)", margin: 0 }}>
                       {order.totalPrice} MAD
                     </p>
-                    <p style={{ fontSize: 10, color: "var(--accent-emerald)", fontWeight: 800, margin: 0 }}>
+                    <p style={{ fontSize: "10px", color: "var(--accent-emerald)", fontWeight: 800, margin: 0 }}>
                       Net: {Math.round(order.totalPrice * 0.90)} MAD
                     </p>
                   </div>
@@ -232,12 +229,12 @@ export const ArtisanHomeDashboardView: React.FC<ArtisanHomeDashboardViewProps> =
                 <div style={{
                   background: "rgba(26,42,58,0.03)",
                   borderRadius: 14,
-                  padding: "10px 14px",
-                  marginBottom: 14,
+                  padding: "var(--space-2) var(--space-3)",
+                  marginBottom: "var(--space-3)",
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  fontSize: 10,
+                  fontSize: "10px",
                   color: "var(--text-secondary)",
                   border: "1px solid var(--border-subtle)",
                 }}>
@@ -248,11 +245,11 @@ export const ArtisanHomeDashboardView: React.FC<ArtisanHomeDashboardViewProps> =
                   <span>3. {isDelivered ? "✓ Livré" : isInTransport ? "🚚 Transit" : "Expédition"}</span>
                 </div>
 
-                {/* Action Buttons */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {/* Action Buttons (Min 44x44px Touch Target) */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                   {/* Step 1 : Accept / Refuse */}
                   {isToAccept && (
-                    <div style={{ display: "flex", gap: 10 }}>
+                    <div style={{ display: "flex", gap: "var(--space-2)" }}>
                       <motion.button
                         whileTap={{ scale: 0.96 }}
                         onClick={() => onOpenRefuseModal(order.id)}
@@ -284,12 +281,12 @@ export const ArtisanHomeDashboardView: React.FC<ArtisanHomeDashboardViewProps> =
                         width: "100%",
                         justifyContent: "space-between",
                         padding: "12px 16px",
-                        border: hasPrepPhotos ? "1.5px solid #2D6A4F" : "1.5px solid var(--accent-warm)"
+                        border: hasPrepPhotos ? "1.5px solid var(--accent-emerald)" : "1.5px solid var(--accent-warm)"
                       }}
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <Camera size={16} color={hasPrepPhotos ? "#2D6A4F" : "var(--accent-warm)"} />
-                        <span style={{ color: hasPrepPhotos ? "#2D6A4F" : "var(--accent-warm)", fontWeight: 800 }}>
+                        <Camera size={16} color={hasPrepPhotos ? "var(--accent-emerald)" : "var(--accent-warm)"} />
+                        <span style={{ color: hasPrepPhotos ? "var(--accent-emerald)" : "var(--accent-warm)", fontWeight: 800 }}>
                           {hasPrepPhotos ? `✓ ${order.prepPhotos?.length} Photos d'Atelier validées` : "Uploader les 4 Photos d'Atelier (Art. 8.1)"}
                         </span>
                       </div>
@@ -332,7 +329,7 @@ export const ArtisanHomeDashboardView: React.FC<ArtisanHomeDashboardViewProps> =
                       whileTap={{ scale: 0.97 }}
                       onClick={() => onOpenDirectDeliveryModal(order)}
                       className="btn-mobile-primary"
-                      style={{ background: "#2D6A4F" }}
+                      style={{ background: "var(--accent-emerald)" }}
                     >
                       <FileSignature size={16} />
                       <span>Valider Livraison avec Bordereau Signé (Art. 11.5)</span>
