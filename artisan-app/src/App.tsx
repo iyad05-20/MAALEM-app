@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { ArtisanBottomNav, type MobileArtisanTab } from "./components/ArtisanBottomNav";
 import { ArtisanMobileHeader } from "./components/ArtisanMobileHeader";
-import { OrdersWorkshopView } from "./views/OrdersWorkshopView";
-import { ReturnsWorkshopView } from "./views/ReturnsWorkshopView";
-import { DisputesWorkshopView } from "./views/DisputesWorkshopView";
-import { ArtisanWalletView } from "./views/ArtisanWalletView";
+
+import { ArtisanHomeDashboardView } from "./views/ArtisanHomeDashboardView";
+import { ArtisanMarketplaceView } from "./views/ArtisanMarketplaceView";
+import { ArtisanPostsView } from "./views/ArtisanPostsView";
 import { ArtisanProfileView } from "./views/ArtisanProfileView";
 import { ArtisanNotificationsView } from "./views/ArtisanNotificationsView";
-import { ShopManagementMobileView } from "./views/ShopManagementMobileView";
+import { ReturnsWorkshopView } from "./views/ReturnsWorkshopView";
+import { DisputesWorkshopView } from "./views/DisputesWorkshopView";
 
+import { CreatePostModalSheet } from "./components/CreatePostModalSheet";
 import { PrepPhotosModal } from "./components/PrepPhotosModal";
 import { SenditShippingModal } from "./components/SenditShippingModal";
 import { DirectDeliveryModal } from "./components/DirectDeliveryModal";
@@ -26,11 +28,12 @@ import type {
   ArtisanProduct,
   ArtisanNotification,
   ArtisanProfileDetails,
-  ArtisanStats
+  ArtisanStats,
+  CustomOrderRequest
 } from "./types/artisanTypes";
 
 export const App: React.FC = () => {
-  const [currentTab, setCurrentTab] = useState<MobileArtisanTab>("atelier");
+  const [currentTab, setCurrentTab] = useState<MobileArtisanTab>("home");
   const [orders, setOrders] = useState<ArtisanOrder[]>([]);
   const [returns, setReturns] = useState<ArtisanReturn[]>([]);
   const [disputes, setDisputes] = useState<ArtisanDispute[]>([]);
@@ -38,12 +41,14 @@ export const App: React.FC = () => {
   const [health, setHealth] = useState<ArtisanProfileHealth | null>(null);
   const [warnings, setWarnings] = useState<any[]>([]);
   const [products, setProducts] = useState<ArtisanProduct[]>([]);
+  const [customRequests, setCustomRequests] = useState<CustomOrderRequest[]>([]);
   const [notifications, setNotifications] = useState<ArtisanNotification[]>([]);
   const [profileDetails, setProfileDetails] = useState<ArtisanProfileDetails | null>(null);
   const [stats, setStats] = useState<ArtisanStats | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Modals & Drawers state
+  // Modals & Drawers
+  const [showCreatePostModal, setShowCreatePostModal] = useState<boolean>(false);
   const [showNotificationsModal, setShowNotificationsModal] = useState<boolean>(false);
   const [showReturnsDrawer, setShowReturnsDrawer] = useState<boolean>(false);
   const [showDisputesDrawer, setShowDisputesDrawer] = useState<boolean>(false);
@@ -57,13 +62,14 @@ export const App: React.FC = () => {
   const loadAllData = async () => {
     setLoading(true);
     try {
-      const [o, r, d, w, h, p, n, prof, st] = await Promise.all([
+      const [o, r, d, w, h, p, cr, n, prof, st] = await Promise.all([
         artisanAPI.getOrders(),
         artisanAPI.getReturns().catch(() => []),
         artisanAPI.getDisputes().catch(() => []),
         artisanAPI.getWallet().catch(() => null),
         artisanAPI.getProfileHealth().catch(() => ({ profile: null, warnings: [] })),
         artisanAPI.getProducts().catch(() => []),
+        artisanAPI.getCustomRequests().catch(() => []),
         artisanAPI.getNotifications().catch(() => []),
         artisanAPI.getProfileDetails().catch(() => null),
         artisanAPI.getStats().catch(() => null),
@@ -78,6 +84,7 @@ export const App: React.FC = () => {
         setWarnings(h.warnings || []);
       }
       setProducts(p);
+      setCustomRequests(cr);
       setNotifications(n);
       setProfileDetails(prof);
       setStats(st);
@@ -93,6 +100,14 @@ export const App: React.FC = () => {
   }, []);
 
   // Handlers
+  const handleTabChange = (tab: MobileArtisanTab) => {
+    if (tab === "create") {
+      setShowCreatePostModal(true);
+    } else {
+      setCurrentTab(tab);
+    }
+  };
+
   const handleAcceptOrder = async (orderId: string) => {
     await artisanAPI.acceptOrder(orderId);
     await loadAllData();
@@ -152,6 +167,16 @@ export const App: React.FC = () => {
     await loadAllData();
   };
 
+  const handleUpdateProduct = async (productData: any) => {
+    await artisanAPI.createProduct(productData);
+    await loadAllData();
+  };
+
+  const handleSubmitQuote = async (requestId: string, price: number, days: number, note: string) => {
+    await artisanAPI.submitCustomQuote(requestId, price, days, note);
+    await loadAllData();
+  };
+
   const handleUpdateProfile = async (details: Partial<ArtisanProfileDetails>) => {
     const updated = await artisanAPI.updateProfileDetails(details);
     setProfileDetails(updated);
@@ -159,10 +184,11 @@ export const App: React.FC = () => {
 
   const getHeaderTitle = () => {
     switch (currentTab) {
-      case "atelier": return "Atelier de Confection";
-      case "catalogue": return "Catalogue & Créations";
-      case "wallet": return "Portefeuille des Ventes";
-      case "profil": return "Mon Espace Maâlem";
+      case "home": return "Accueil & Commandes";
+      case "market": return "Marché Sur-Mesure";
+      case "create": return "Publier un Post";
+      case "posts": return "Mes Posts & Catalogue";
+      case "profile": return "Profil & Paramètres";
     }
   };
 
@@ -190,9 +216,11 @@ export const App: React.FC = () => {
 
       {/* Scrollable View Area */}
       <main className="app-content">
-        {currentTab === "atelier" && (
-          <OrdersWorkshopView
+        {currentTab === "home" && (
+          <ArtisanHomeDashboardView
+            wallet={wallet}
             orders={orders}
+            onOpenWithdrawalModal={() => setShowWithdrawalModal(true)}
             onAccept={handleAcceptOrder}
             onOpenRefuseModal={setRefuseOrderId}
             onOpenPrepPhotosModal={setPrepPhotosOrderId}
@@ -201,23 +229,22 @@ export const App: React.FC = () => {
           />
         )}
 
-        {currentTab === "catalogue" && (
-          <ShopManagementMobileView
-            health={health}
-            warnings={warnings}
+        {currentTab === "market" && (
+          <ArtisanMarketplaceView
+            customRequests={customRequests}
+            onSubmitQuote={handleSubmitQuote}
+          />
+        )}
+
+        {currentTab === "posts" && (
+          <ArtisanPostsView
             products={products}
-            onCreateProduct={handleCreateProduct}
+            onOpenCreateModal={() => setShowCreatePostModal(true)}
+            onUpdateProduct={handleUpdateProduct}
           />
         )}
 
-        {currentTab === "wallet" && (
-          <ArtisanWalletView
-            wallet={wallet}
-            onOpenWithdrawalModal={() => setShowWithdrawalModal(true)}
-          />
-        )}
-
-        {currentTab === "profil" && (
+        {currentTab === "profile" && (
           <ArtisanProfileView
             profileDetails={profileDetails}
             health={health}
@@ -234,13 +261,21 @@ export const App: React.FC = () => {
       {/* Mobile Bottom Navigation Bar */}
       <ArtisanBottomNav
         currentTab={currentTab}
-        onTabChange={setCurrentTab}
+        onTabChange={handleTabChange}
         pendingOrdersCount={pendingOrdersCount}
         openDisputesCount={openDisputesCount}
         returnsCount={pendingReturnsCount}
       />
 
-      {/* ─── Drawers & Bottom Sheets ───────────────────────────────────────── */}
+      {/* ─── Modals & Bottom Sheet Drawers ───────────────────────────────── */}
+
+      {/* Central Button Action: Create Post Modal Sheet */}
+      {showCreatePostModal && (
+        <CreatePostModalSheet
+          onClose={() => setShowCreatePostModal(false)}
+          onCreateProduct={handleCreateProduct}
+        />
+      )}
 
       {/* Notifications Drawer */}
       {showNotificationsModal && (
@@ -253,7 +288,7 @@ export const App: React.FC = () => {
                 setShowNotificationsModal(false);
                 if (tab === "retours") setShowReturnsDrawer(true);
                 else if (tab === "litiges") setShowDisputesDrawer(true);
-                else setCurrentTab(tab);
+                else setCurrentTab(tab as MobileArtisanTab);
               }}
             />
             <button onClick={() => setShowNotificationsModal(false)} className="btn-mobile-outline" style={{ width: "100%", marginTop: 14 }}>

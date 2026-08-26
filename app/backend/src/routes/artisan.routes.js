@@ -561,3 +561,87 @@ artisanRouter.get("/stats", async (req, res) => {
     return res.status(500).json({ success: false, error: err.message });
   }
 });
+
+/**
+ * In-memory Custom Order Requests (Marché Sur-Mesure Vendeur)
+ */
+let memoryCustomRequests = [
+  {
+    id: "req-101",
+    clientName: "Laila Bennani",
+    category: "Céramique & Poterie",
+    title: "Ensemble de 12 assiettes Zellige Bleu Fassi",
+    description: "Je recherche un ensemble personnalisé de 12 grandes assiettes de service avec motifs géométriques bleus traditionnels de Fès.",
+    budget: "1 800 MAD",
+    deliveryCity: "Casablanca",
+    createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
+    image: "https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?w=600",
+    quotes: [
+      {
+        artisanName: "Maâlem Abdelkader",
+        proposedPrice: 1650,
+        confectionDays: 8,
+        note: "Réalisable à la main dans notre atelier de Fès avec cuisson traditionnelle.",
+        createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
+      }
+    ]
+  },
+  {
+    id: "req-102",
+    clientName: "Karim Tazi",
+    category: "Cuir & Maroquinerie",
+    title: "Pouf en cuir naturel teinté terracotta sur-mesure",
+    description: "Recherche artisan maroquinier pour réaliser un pouf rond de 60cm de diamètre en cuir véritable teinté à la main.",
+    budget: "900 MAD",
+    deliveryCity: "Rabat",
+    createdAt: new Date(Date.now() - 3600000 * 12).toISOString(),
+    image: "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=600",
+    quotes: []
+  },
+  {
+    id: "req-103",
+    clientName: "Sofia El Amrani",
+    category: "Textile & Caftans",
+    title: "Selham Royal en laine blanche tressé fil d'or",
+    description: "Commande spéciale pour un événement familial. Selham traditionnel cousu main avec Sfifa d'or.",
+    budget: "3 500 MAD",
+    deliveryCity: "Marrakech",
+    createdAt: new Date(Date.now() - 3600000 * 24).toISOString(),
+    image: "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=600",
+    quotes: []
+  }
+];
+
+artisanRouter.get("/custom-requests", async (req, res) => {
+  const { category } = req.query;
+  let list = memoryCustomRequests;
+  if (category && category !== "Toutes") {
+    list = list.filter(r => r.category.toLowerCase().includes(String(category).toLowerCase()));
+  }
+  return res.json({ success: true, count: list.length, requests: list });
+});
+
+artisanRouter.post("/custom-requests/:id/quote", async (req, res) => {
+  const { id } = req.params;
+  const { proposedPrice, confectionDays, note } = req.body;
+
+  if (!proposedPrice || !confectionDays) {
+    return res.status(400).json({ success: false, error: "Le prix et le délai de confection sont obligatoires." });
+  }
+
+  const reqItem = memoryCustomRequests.find(r => r.id === id);
+  if (!reqItem) return res.status(404).json({ success: false, error: "Annonce sur-mesure introuvable." });
+
+  const newQuote = {
+    artisanName: "Maâlem Abdelkader",
+    proposedPrice: Number(proposedPrice),
+    confectionDays: Number(confectionDays),
+    note: note || "",
+    createdAt: new Date().toISOString(),
+  };
+
+  reqItem.quotes.push(newQuote);
+
+  return res.json({ success: true, message: "Devis / Offre transmis au client avec succès !", quote: newQuote });
+});
+

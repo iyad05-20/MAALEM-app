@@ -7,7 +7,8 @@ import type {
   ArtisanProduct,
   ArtisanNotification,
   ArtisanProfileDetails,
-  ArtisanStats
+  ArtisanStats,
+  CustomOrderRequest
 } from "../types/artisanTypes";
 
 export function getBackendUrl(): string {
@@ -214,6 +215,24 @@ export const artisanAPI = {
     });
     const data = await res.json();
     if (!data.success) throw new Error(data.error || "Erreur création produit.");
+    return data;
+  },
+
+  async getCustomRequests(category = "Toutes"): Promise<CustomOrderRequest[]> {
+    const res = await fetch(`${getApiBase()}/custom-requests?category=${encodeURIComponent(category)}`);
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || "Erreur marché sur-mesure.");
+    return data.requests;
+  },
+
+  async submitCustomQuote(requestId: string, proposedPrice: number, confectionDays: number, note: string): Promise<any> {
+    const res = await fetch(`${getApiBase()}/custom-requests/${requestId}/quote`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ proposedPrice, confectionDays, note }),
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || "Erreur soumission devis.");
     return data;
   }
 };

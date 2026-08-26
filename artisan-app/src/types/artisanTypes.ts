@@ -88,6 +88,29 @@ export interface ArtisanProduct {
   rating?: number;
   reviewCount?: number;
   createdAt?: string;
+  manufacturingDays?: number;
+  status?: "active" | "hidden" | "out_of_stock";
+}
+
+export interface CustomOrderQuote {
+  artisanName: string;
+  proposedPrice: number;
+  confectionDays: number;
+  note: string;
+  createdAt: string;
+}
+
+export interface CustomOrderRequest {
+  id: string;
+  clientName: string;
+  category: string;
+  title: string;
+  description: string;
+  budget: string;
+  deliveryCity: string;
+  createdAt: string;
+  image: string;
+  quotes: CustomOrderQuote[];
 }
 
 export interface ArtisanNotification {
