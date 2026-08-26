@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { ShoppingBag, Send, CheckCircle2, MapPin, Clock, Tag, Sparkles } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ShoppingBag, Send, CheckCircle2, MapPin, Clock, Tag, Sparkles, X } from "lucide-react";
 import type { CustomOrderRequest } from "../types/artisanTypes";
 
 interface ArtisanMarketplaceViewProps {
@@ -29,7 +30,7 @@ export const ArtisanMarketplaceView: React.FC<ArtisanMarketplaceViewProps> = ({
     setActiveRequest(reqItem);
     setProposedPrice(reqItem.budget.replace(/\D/g, "") || "1500");
     setConfectionDays("7");
-    setNote("Exécution artisanale dans notre atelier avec finitions faites à la main.");
+    setNote("Exécution artisanale dans notre atelier de Fès avec finitions traditionnelles à la main.");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -52,73 +53,87 @@ export const ArtisanMarketplaceView: React.FC<ArtisanMarketplaceViewProps> = ({
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      style={{ display: "flex", flexDirection: "column", gap: 16 }}
+    >
       {/* Header Info */}
-      <div className="artisan-card" style={{ background: "linear-gradient(135deg, rgba(204, 119, 85, 0.1), rgba(26, 42, 58, 0.03))", border: "1px solid rgba(204, 119, 85, 0.25)" }}>
+      <div className="artisan-card-glass" style={{ background: "linear-gradient(135deg, rgba(204, 119, 85, 0.08), rgba(212, 175, 55, 0.04))", border: "1px solid rgba(204, 119, 85, 0.25)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
           <ShoppingBag size={20} color="var(--accent-warm)" />
-          <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 14, color: "var(--primary)", margin: 0 }}>
+          <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 15, color: "var(--primary)", margin: 0 }}>
             Marché des Commandes Sur-Mesure
           </h3>
         </div>
         <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: 0, lineHeight: 1.4 }}>
-          Annonces personnalisées déposées par les clients. Soumettez votre devis (prix et délai) pour remporter la commande.
+          Commandes spéciales déposées par les clients. Soumettez votre offre pour remporter la confection.
         </p>
       </div>
 
       {/* Category Pills Slider */}
-      <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
+      <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
         {categories.map((cat) => (
-          <button
+          <motion.button
+            whileTap={{ scale: 0.95 }}
             key={cat}
             onClick={() => setSelectedCategory(cat)}
             style={{
-              padding: "7px 14px",
-              borderRadius: 20,
+              padding: "8px 16px",
+              borderRadius: 22,
               border: selectedCategory === cat ? "1.5px solid var(--primary)" : "1px solid var(--border)",
               background: selectedCategory === cat ? "var(--primary)" : "var(--surface)",
               color: selectedCategory === cat ? "#FFFFFF" : "var(--text-secondary)",
               fontFamily: "var(--font-display)",
               fontSize: 11,
-              fontWeight: 700,
+              fontWeight: 800,
               cursor: "pointer",
               whiteSpace: "nowrap",
+              boxShadow: selectedCategory === cat ? "var(--shadow-sm)" : "none",
             }}
           >
             {cat}
-          </button>
+          </motion.button>
         ))}
       </div>
 
       {/* Requests Feed */}
       {filteredRequests.length === 0 ? (
-        <div className="artisan-card" style={{ padding: "40px 20px", textAlign: "center", color: "var(--text-secondary)" }}>
-          <ShoppingBag size={36} style={{ opacity: 0.3, marginBottom: 8 }} />
-          <p style={{ fontSize: 13, fontWeight: 600, margin: 0 }}>Aucune demande sur-mesure dans cette catégorie.</p>
+        <div className="artisan-card" style={{ padding: "44px 20px", textAlign: "center", color: "var(--text-secondary)" }}>
+          <ShoppingBag size={38} style={{ opacity: 0.3, marginBottom: 8 }} />
+          <p style={{ fontSize: 13, fontWeight: 700, margin: 0 }}>Aucune annonce sur-mesure dans cette catégorie.</p>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {filteredRequests.map((reqItem) => {
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {filteredRequests.map((reqItem, idx) => {
             const hasMyQuote = reqItem.quotes.some(q => q.artisanName.includes("Abdelkader"));
 
             return (
-              <div key={reqItem.id} className="artisan-card" style={{ padding: 16 }}>
-                <div style={{ display: "flex", gap: 12, marginBottom: 10 }}>
-                  <div style={{ width: 80, height: 80, borderRadius: 14, overflow: "hidden", flexShrink: 0 }}>
+              <motion.div
+                key={reqItem.id}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25, delay: idx * 0.05 }}
+                className="artisan-card"
+                style={{ padding: 18 }}
+              >
+                <div style={{ display: "flex", gap: 14, marginBottom: 12 }}>
+                  <div style={{ width: 84, height: 84, borderRadius: 16, overflow: "hidden", flexShrink: 0, border: "1px solid var(--border)" }}>
                     <img src={reqItem.image} alt={reqItem.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   </div>
 
                   <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 2 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
                       <span className="badge-pill badge-info" style={{ fontSize: 9 }}>
                         {reqItem.category}
                       </span>
-                      <span style={{ fontSize: 10, color: "var(--text-secondary)" }}>
+                      <span style={{ fontSize: 10, color: "var(--text-muted)" }}>
                         {new Date(reqItem.createdAt).toLocaleDateString("fr-FR")}
                       </span>
                     </div>
 
-                    <h4 style={{ fontFamily: "var(--font-display)", fontSize: 13, fontWeight: 800, color: "var(--primary)", margin: "2px 0" }}>
+                    <h4 style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 900, color: "var(--primary)", margin: "2px 0 4px" }}>
                       {reqItem.title}
                     </h4>
 
@@ -132,134 +147,148 @@ export const ArtisanMarketplaceView: React.FC<ArtisanMarketplaceViewProps> = ({
                   </div>
                 </div>
 
-                <p style={{ fontSize: 11, color: "var(--primary)", margin: "0 0 10px", lineHeight: 1.4, background: "rgba(0,0,0,0.03)", padding: 8, borderRadius: 10, fontStyle: "italic" }}>
+                <p style={{ fontSize: 11, color: "var(--primary)", margin: "0 0 12px", lineHeight: 1.5, background: "rgba(26,42,58,0.03)", padding: 10, borderRadius: 12, fontStyle: "italic" }}>
                   "{reqItem.description}"
                 </p>
 
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 8, borderTop: "1px solid var(--border)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 10, borderTop: "1px solid var(--border-subtle)" }}>
                   <div>
-                    <span style={{ fontSize: 10, color: "var(--text-secondary)" }}>Budget Estimé Client :</span>
-                    <p style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 800, color: "var(--accent-warm)", margin: 0 }}>
+                    <span style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 600 }}>Budget Estimé Client :</span>
+                    <p style={{ fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 900, color: "var(--accent-warm)", margin: 0 }}>
                       {reqItem.budget}
                     </p>
                   </div>
 
                   {hasMyQuote ? (
-                    <span className="badge-pill badge-success" style={{ padding: "6px 12px" }}>
+                    <span className="badge-pill badge-success" style={{ padding: "6px 14px" }}>
                       ✓ Devis Transmis
                     </span>
                   ) : (
-                    <button
+                    <motion.button
+                      whileTap={{ scale: 0.96 }}
                       onClick={() => handleOpenQuoteModal(reqItem)}
                       className="btn-mobile-terracotta"
-                      style={{ width: "auto", padding: "8px 14px", fontSize: 11 }}
+                      style={{ width: "auto", padding: "9px 16px", fontSize: 11 }}
                     >
                       <Send size={13} /> Soumettre un Devis
-                    </button>
+                    </motion.button>
                   )}
                 </div>
-              </div>
+              </motion.div>
             );
           })}
         </div>
       )}
 
       {/* Quote Submission Bottom Sheet Drawer */}
-      {activeRequest && (
-        <div style={{
-          position: "fixed",
-          inset: 0,
-          background: "rgba(0,0,0,0.55)",
-          backdropFilter: "blur(4px)",
-          zIndex: 200,
-          display: "flex",
-          alignItems: "flex-end",
-          justifyContent: "center",
-        }}>
-          <div style={{
-            background: "#FCFBF9",
-            width: "100%",
-            maxWidth: 440,
-            borderRadius: "24px 24px 0 0",
-            padding: "20px 20px 32px",
-            boxShadow: "0 -12px 32px rgba(0,0,0,0.3)",
-          }}>
-            <div style={{ width: 36, height: 4, background: "rgba(0,0,0,0.15)", borderRadius: 2, margin: "0 auto 16px" }} />
+      <AnimatePresence>
+        {activeRequest && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0,0,0,0.6)",
+              backdropFilter: "blur(6px)",
+              zIndex: 200,
+              display: "flex",
+              alignItems: "flex-end",
+              justifyContent: "center",
+            }}
+          >
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              style={{
+                background: "#FCFBF9",
+                width: "100%",
+                maxWidth: 440,
+                borderRadius: "28px 28px 0 0",
+                padding: "20px 22px 34px",
+                boxShadow: "0 -14px 40px rgba(0,0,0,0.35)",
+              }}
+            >
+              <div style={{ width: 40, height: 4, background: "#CBD5E1", borderRadius: 2, margin: "0 auto 18px" }} />
 
-            <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 16, color: "var(--primary)", marginBottom: 2 }}>
-              📜 Transmettre Devis / Offre Vendeur
-            </h3>
-            <p style={{ fontSize: 11, color: "var(--text-secondary)", marginBottom: 14 }}>
-              Pour l'annonce : <strong>{activeRequest.title}</strong>
-            </p>
+              <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 900, fontSize: 17, color: "var(--primary)", marginBottom: 2 }}>
+                📜 Transmettre un Devis Vendeur
+              </h3>
+              <p style={{ fontSize: 11, color: "var(--text-secondary)", marginBottom: 16 }}>
+                Pour l'annonce : <strong>{activeRequest.title}</strong>
+              </p>
 
-            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                <div>
-                  <label style={{ fontSize: 10, fontWeight: 700, color: "var(--text-secondary)", display: "block", marginBottom: 3 }}>
-                    Prix Proposé (MAD) *
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min={100}
-                    value={proposedPrice}
-                    onChange={(e) => setProposedPrice(e.target.value)}
-                    style={{ width: "100%", padding: "10px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 13, fontWeight: 800, color: "var(--primary)" }}
-                  />
+              <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <div>
+                    <label style={{ fontSize: 10, fontWeight: 800, color: "var(--text-secondary)", display: "block", marginBottom: 4 }}>
+                      Prix Proposé (MAD) *
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min={100}
+                      value={proposedPrice}
+                      onChange={(e) => setProposedPrice(e.target.value)}
+                      style={{ width: "100%", padding: "12px", borderRadius: 12, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 14, fontWeight: 900, color: "var(--primary)" }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: 10, fontWeight: 800, color: "var(--text-secondary)", display: "block", marginBottom: 4 }}>
+                      Délai Confection (Jours) *
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min={1}
+                      value={confectionDays}
+                      onChange={(e) => setConfectionDays(e.target.value)}
+                      style={{ width: "100%", padding: "12px", borderRadius: 12, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 14, fontWeight: 900, color: "var(--primary)" }}
+                    />
+                  </div>
                 </div>
 
                 <div>
-                  <label style={{ fontSize: 10, fontWeight: 700, color: "var(--text-secondary)", display: "block", marginBottom: 3 }}>
-                    Délai de Confection (Jours) *
+                  <label style={{ fontSize: 10, fontWeight: 800, color: "var(--text-secondary)", display: "block", marginBottom: 4 }}>
+                    Note explicative au Client
                   </label>
-                  <input
-                    type="number"
-                    required
-                    min={1}
-                    value={confectionDays}
-                    onChange={(e) => setConfectionDays(e.target.value)}
-                    style={{ width: "100%", padding: "10px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 13, fontWeight: 800, color: "var(--primary)" }}
+                  <textarea
+                    rows={3}
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder="Expliquez la qualité des matériaux et les finitions faites main..."
+                    style={{ width: "100%", padding: "12px", borderRadius: 12, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 12, color: "var(--primary)" }}
                   />
                 </div>
-              </div>
 
-              <div>
-                <label style={{ fontSize: 10, fontWeight: 700, color: "var(--text-secondary)", display: "block", marginBottom: 3 }}>
-                  Note explicative au Client
-                </label>
-                <textarea
-                  rows={3}
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  placeholder="Expliquez la qualité des matériaux et le processus d'atelier..."
-                  style={{ width: "100%", padding: "10px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 11, color: "var(--primary)" }}
-                />
-              </div>
-
-              <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
-                <button
-                  type="button"
-                  onClick={() => setActiveRequest(null)}
-                  className="btn-mobile-outline"
-                  style={{ flex: 1 }}
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="btn-mobile-terracotta"
-                  style={{ flex: 2 }}
-                >
-                  <Send size={15} />
-                  <span>{submitting ? "Transmission..." : "Envoyer le Devis"}</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
+                <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
+                  <button
+                    type="button"
+                    onClick={() => setActiveRequest(null)}
+                    className="btn-mobile-outline"
+                    style={{ flex: 1 }}
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="btn-mobile-terracotta"
+                    style={{ flex: 2 }}
+                  >
+                    <Send size={15} />
+                    <span>{submitting ? "Transmission..." : "Envoyer le Devis"}</span>
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 };
