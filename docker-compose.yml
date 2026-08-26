@@ -31,6 +31,30 @@ services:
     networks:
       - vork-network
 
+  admin-dashboard:
+    build:
+      context: ./admin-dashboard
+      dockerfile: Dockerfile
+    ports:
+      - "3002:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - vork-network
+
+  artisan-app:
+    build:
+      context: ./artisan-app
+      dockerfile: Dockerfile
+    ports:
+      - "3003:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - vork-network
+
   meilisearch:
     image: getmeili/meilisearch:v1.10
     container_name: vork-meilisearch

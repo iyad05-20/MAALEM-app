@@ -13,7 +13,7 @@ const disputeSchema = z.object({
 });
 
 const resolveDisputeSchema = z.object({
-  resolution: z.enum(["faute_vendeur", "faute_cathedis", "faute_client"]),
+  resolution: z.enum(["faute_vendeur", "faute_sendit", "faute_client"]),
 });
 
 const processWithdrawalSchema = z.object({

@@ -1,9 +1,10 @@
 import { eq } from "drizzle-orm";
 import type { db as DbType } from "../../core/db";
 import { orders, ledgerEntries, paymentsReceived } from "../../core/db/schema";
+import { senditClient } from "../../services/sendit/senditClient";
 
 export function acceptOrder(db: typeof DbType, orderId: string): void {
-  db.transaction((tx) => {
+  db.transaction((tx: any) => {
     const order = tx.select().from(orders).where(eq(orders.id, orderId)).get();
     if (!order) {
       throw new Error("commande_introuvable");
@@ -25,7 +26,7 @@ export function acceptOrder(db: typeof DbType, orderId: string): void {
 }
 
 export function refuseOrder(db: typeof DbType, orderId: string): void {
-  db.transaction((tx) => {
+  db.transaction((tx: any) => {
     const order = tx.select().from(orders).where(eq(orders.id, orderId)).get();
     if (!order) {
       throw new Error("commande_introuvable");
@@ -39,7 +40,7 @@ export function refuseOrder(db: typeof DbType, orderId: string): void {
       .from(paymentsReceived)
       .where(eq(paymentsReceived.orderId, orderId))
       .all();
-    const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+    const totalPaid = payments.reduce((sum: number, p: any) => sum + p.amount, 0);
 
     const now = new Date().toISOString();
 
@@ -66,4 +67,60 @@ export function refuseOrder(db: typeof DbType, orderId: string): void {
       .where(eq(orders.id, orderId))
       .run();
   });
+}
+
+
+export async function shipOrder(
+  db: typeof DbType,
+  orderId: string,
+  deliveryData: {
+    pickup_district_id: number;
+    district_id: number;
+    name: string;
+    phone: string;
+    address: string;
+  }
+): Promise<string> {
+  const order = db.select().from(orders).where(eq(orders.id, orderId)).get();
+  if (!order) {
+    throw new Error("commande_introuvable");
+  }
+  if (order.status !== "en_preparation") {
+    throw new Error(`statut_incompatible_pour_expedition:${order.status}`);
+  }
+
+  // 1. Appeler l'API Sendit pour créer le colis
+  const senditResult = await senditClient.createDelivery({
+    pickup_district_id: deliveryData.pickup_district_id,
+    district_id: deliveryData.district_id,
+    name: deliveryData.name,
+    amount: order.totalPrice,
+    address: deliveryData.address,
+    phone: deliveryData.phone,
+    reference: order.id,
+    allow_open: order.allowOpen ?? 1,
+    allow_try: order.allowTry ?? 0,
+  });
+
+  if (!senditResult.success || !senditResult.data?.code) {
+    throw new Error("echec_creation_livraison_sendit");
+  }
+
+  const senditDeliveryCode = senditResult.data.code;
+  const now = new Date().toISOString();
+
+  // 2. Mettre à jour le statut et enregistrer le code de suivi Sendit
+  db.update(orders)
+    .set({
+      status: "en_cours_de_transport",
+      senditDeliveryCode: senditDeliveryCode,
+      pickupDistrictId: deliveryData.pickup_district_id,
+      deliveryDistrictId: deliveryData.district_id,
+      shippedAt: now,
+      updatedAt: now,
+    })
+    .where(eq(orders.id, orderId))
+    .run();
+
+  return senditDeliveryCode;
 }

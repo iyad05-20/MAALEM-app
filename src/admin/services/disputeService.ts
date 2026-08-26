@@ -4,7 +4,7 @@ import { orders, disputes, ledgerEntries, paymentsReceived } from "../../core/db
 import { calculateCancellationRefund } from "../../client/services/cancellationService";
 
 export function openDispute(db: typeof DbType, orderId: string, reason: string): string {
-  return db.transaction((tx) => {
+  return db.transaction((tx: any) => {
     const order = tx.select().from(orders).where(eq(orders.id, orderId)).get();
     if (!order) {
       throw new Error("commande_introuvable");
@@ -38,9 +38,9 @@ export function openDispute(db: typeof DbType, orderId: string, reason: string):
 export function resolveDispute(
   db: typeof DbType,
   disputeId: string,
-  resolution: "faute_vendeur" | "faute_cathedis" | "faute_client"
+  resolution: "faute_vendeur" | "faute_sendit" | "faute_client"
 ) {
-  return db.transaction((tx) => {
+  return db.transaction((tx: any) => {
     const dispute = tx.select().from(disputes).where(eq(disputes.id, disputeId)).get();
     if (!dispute) {
       throw new Error("litige_introuvable");
@@ -60,7 +60,7 @@ export function resolveDispute(
       .from(paymentsReceived)
       .where(eq(paymentsReceived.orderId, order.id))
       .all();
-    const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+    const totalPaid = payments.reduce((sum: number, p: any) => sum + p.amount, 0);
 
     if (resolution === "faute_vendeur") {
       if (totalPaid > 0) {
@@ -81,7 +81,7 @@ export function resolveDispute(
         .set({ status: "annulee", updatedAt: now })
         .where(eq(orders.id, order.id))
         .run();
-    } else if (resolution === "faute_cathedis") {
+    } else if (resolution === "faute_sendit") {
       if (totalPaid > 0) {
         tx.insert(ledgerEntries)
           .values({
@@ -90,7 +90,7 @@ export function resolveDispute(
             compteDebit: `escrow[${order.id}]`,
             compteCredit: `wallet[${order.clientRef}]`,
             montant: totalPaid,
-            type: "litige_faute_cathedis_remboursement_client",
+            type: "litige_faute_sendit_remboursement_client",
             createdAt: now,
           })
           .run();
@@ -101,10 +101,10 @@ export function resolveDispute(
         .values({
           id: crypto.randomUUID(),
           orderId: order.id,
-          compteDebit: "cathedis_guarantee_fund",
+          compteDebit: "sendit_guarantee_fund",
           compteCredit: `wallet[${order.artisanRef}]`,
           montant: artisanShare,
-          type: "litige_faute_cathedis_indemnisation_artisan",
+          type: "litige_faute_sendit_indemnisation_artisan",
           createdAt: now,
         })
         .run();

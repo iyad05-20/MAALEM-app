@@ -158,9 +158,13 @@ export const clientWalletAPI = {
     return newOrder;
   },
 
-  async payOrder(orderId: string): Promise<{ success: boolean; redirectUrl: string; amount: number; tranche: string }> {
+  async payOrder(orderId: string, choice: "deposit" | "total" = "deposit"): Promise<{ success: boolean; redirectUrl: string; amount: number; tranche: string }> {
     try {
-      const res = await fetch(`${API_BASE}/client/orders/${orderId}/pay`, { method: "POST", headers: { "Content-Type": "application/json" } });
+      const res = await fetch(`${API_BASE}/client/orders/${orderId}/pay`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ choice }),
+      });
       if (res.ok) return await res.json() as { success: boolean; redirectUrl: string; amount: number; tranche: string };
     } catch {
       // Fallback local dev
@@ -170,10 +174,10 @@ export const clientWalletAPI = {
     if (!order) throw new Error("Commande introuvable");
 
     const isGrosMontant = order.totalPrice >= 1000;
-    const amount = isGrosMontant ? Math.round(order.totalPrice * 0.5) : order.totalPrice;
-    const tranche = isGrosMontant ? "acompte_50" : "total_100";
+    const amount = (isGrosMontant && choice === "deposit") ? Math.round(order.totalPrice * 0.5) : order.totalPrice;
+    const tranche = (isGrosMontant && choice === "deposit") ? "acompte_50" : "total_100";
 
-    order.status = isGrosMontant ? "acompte_verse" : "payee_integralement";
+    order.status = (isGrosMontant && choice === "deposit") ? "acompte_verse" : "payee_integralement";
     order.depositAmount = amount;
     order.tranche = tranche as "total_100" | "acompte_50";
     saveOrders(orders);
@@ -224,7 +228,7 @@ export const clientWalletAPI = {
     return { success: true, refundAmount };
   },
 
-  async requestReturn(orderId: string, mode: "cathedis" | "propres_moyens", returnShippingFee = 35): Promise<{ success: boolean; returnId: string }> {
+  async requestReturn(orderId: string, mode: "sendit" | "propres_moyens", returnShippingFee = 35): Promise<{ success: boolean; returnId: string }> {
     try {
       const res = await fetch(`${API_BASE}/client/orders/${orderId}/return`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode, returnShippingFee }) });
       if (res.ok) return await res.json() as { success: boolean; returnId: string };
@@ -239,16 +243,20 @@ export const clientWalletAPI = {
 
     order.status = "retour_initie";
     order.carrierChoice = mode;
-    order.returnShippingFee = mode === "cathedis" ? returnShippingFee : 0;
+    order.returnShippingFee = mode === "sendit" ? returnShippingFee : 0;
     order.returnStatus = "initie";
     saveOrders(orders);
 
     return { success: true, returnId: `ret-${Date.now()}` };
   },
 
-  async createDispute(orderId: string, reason: string, photos: string[]): Promise<{ success: boolean; disputeId: string }> {
+  async createDispute(orderId: string, reason: string, photos: string[], type: string = "vice_cache_3mois"): Promise<{ success: boolean; disputeId: string }> {
     try {
-      const res = await fetch(`${API_BASE}/admin/orders/${orderId}/disputes`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reason, photos }) });
+      const res = await fetch(`${API_BASE}/client/orders/${orderId}/dispute`, { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json" }, 
+        body: JSON.stringify({ type, reason, clientEvidencePhotos: photos }) 
+      });
       if (res.ok) return await res.json() as { success: boolean; disputeId: string };
     } catch {
       // Fallback local dev
@@ -346,4 +354,327 @@ export const clientWalletAPI = {
     saveOrders(orders);
     return { success: true };
   },
+
+  // Tâche 3 : Validation manuelle de la réception par le client (Art. 4.3 C)
+  async validateDelivery(orderId: string): Promise<{ success: boolean }> {
+    try {
+      const res = await fetch(`${API_BASE}/client/orders/${orderId}/validate-delivery`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (res.ok) return await res.json() as { success: boolean };
+    } catch {
+      // Fallback local dev
+    }
+    const orders = getStoredOrders();
+    const order = orders.find((o) => o.id === orderId);
+    if (!order) throw new Error("Commande introuvable");
+    order.status = "complete";
+    saveOrders(orders);
+    return { success: true };
+  },
+
+  // Tâche 4 : Déclaration de non-réception 24h post-validation automatique (Art. 4.3 D)
+  async declareNotReceived(orderId: string): Promise<{ success: boolean }> {
+    try {
+      const res = await fetch(`${API_BASE}/client/orders/${orderId}/declare-not-received`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (res.ok) return await res.json() as { success: boolean };
+    } catch {
+      // Fallback local dev
+    }
+    const orders = getStoredOrders();
+    const order = orders.find((o) => o.id === orderId);
+    if (!order) throw new Error("Commande introuvable");
+    order.status = "en_reclamation";
+    saveOrders(orders);
+    return { success: true };
+  },
+
+  async getDistricts(querystring?: string): Promise<{ success: boolean; data: { id: number; name: string }[] }> {
+    try {
+      const query = querystring ? `?querystring=${encodeURIComponent(querystring)}` : "";
+      const res = await fetch(`${API_BASE}/districts${query}`);
+      if (res.ok) return await res.json();
+    } catch {
+      // Fallback
+    }
+    const fallback = [
+      { id: 46, name: "Casablanca" },
+      { id: 1, name: "Rabat" },
+      { id: 2, name: "Marrakech" },
+      { id: 3, name: "Fès" },
+      { id: 4, name: "Tanger" },
+      { id: 5, name: "Salé" },
+      { id: 6, name: "Meknès" },
+      { id: 7, name: "Agadir" },
+      { id: 8, name: "Oujda" },
+      { id: 9, name: "Kenitra" },
+      { id: 10, name: "Tétouan" },
+      { id: 11, name: "Temara" },
+      { id: 12, name: "Safi" },
+      { id: 13, name: "Mohammedia" },
+      { id: 14, name: "Khouribga" },
+      { id: 15, name: "El Jadida" },
+      { id: 16, name: "Beni Mellal" },
+      { id: 17, name: "Nador" },
+      { id: 18, name: "Dar Bouazza" },
+      { id: 19, name: "Taza" },
+      { id: 20, name: "Settat" },
+      { id: 21, name: "Berrechid" },
+      { id: 22, name: "Khemisset" },
+      { id: 23, name: "Guelmim" },
+      { id: 24, name: "Larache" },
+      { id: 25, name: "Ksar El Kebir" },
+      { id: 26, name: "Berkane" },
+      { id: 27, name: "Errachidia" },
+      { id: 28, name: "Bouskoura" },
+      { id: 29, name: "Fkih Ben Salah" },
+      { id: 30, name: "Oued Zem" },
+      { id: 31, name: "Sidi Slimane" },
+      { id: 32, name: "Taroudant" },
+      { id: 33, name: "Kelaat Sraghna" },
+      { id: 34, name: "Benguerir" },
+      { id: 35, name: "Essaouira" },
+      { id: 36, name: "Tiznit" },
+      { id: 37, name: "Azrou" },
+      { id: 38, name: "Midelt" },
+      { id: 39, name: "Ouarzazate" },
+      { id: 40, name: "Al Hoceima" },
+      { id: 41, name: "Chefchaouen" },
+      { id: 42, name: "Dakhla" },
+      { id: 43, name: "Laâyoune" }
+    ];
+    let data = fallback;
+    if (querystring) {
+      data = fallback.filter(d => d.name.toLowerCase().includes(querystring.toLowerCase()));
+    }
+    return { success: true, data };
+  },
+
+  async shipOrder(orderId: string, deliveryData: any): Promise<{ success: boolean; status: string; senditDeliveryCode: string }> {
+    try {
+      const res = await fetch(`${API_BASE}/artisan/orders/${orderId}/ship`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(deliveryData),
+      });
+      if (res.ok) return await res.json();
+    } catch {
+      // Fallback
+    }
+    const orders = getStoredOrders();
+    const order = orders.find((o) => o.id === orderId);
+    if (order) {
+      order.status = "en_cours_de_transport";
+      order.senditDeliveryCode = `SND-${Date.now()}`;
+      saveOrders(orders);
+      return { success: true, status: "en_cours_de_transport", senditDeliveryCode: order.senditDeliveryCode };
+    }
+    throw new Error("Commande introuvable");
+  },
+
+  async acceptOrder(orderId: string): Promise<{ success: boolean; status: string }> {
+    try {
+      const res = await fetch(`${API_BASE}/artisan/orders/${orderId}/accept`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (res.ok) return await res.json() as { success: boolean; status: string };
+    } catch {
+      // Fallback
+    }
+    const orders = getStoredOrders();
+    const order = orders.find((o) => o.id === orderId);
+    if (order) {
+      order.status = "en_preparation";
+      order.acceptedAt = new Date().toISOString();
+      saveOrders(orders);
+      return { success: true, status: "en_preparation" };
+    }
+    throw new Error("Commande introuvable");
+  },
+
+  async getOrderLabel(orderId: string, code: string): Promise<any> {
+    try {
+      const res = await fetch(`${API_BASE}/artisan/orders/${orderId}/label?code=${code}`);
+      if (res.ok) return await res.json();
+    } catch {
+      // Fallback
+    }
+    return { success: true, labelUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" };
+  },
+
+  async shipSenditStep1(orderId: string, deliveryData: any): Promise<{ success: boolean; senditDeliveryCode: string; waybillUrl: string; message?: string }> {
+    try {
+      const res = await fetch(`${API_BASE}/artisan/orders/${orderId}/ship-sendit-step1`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(deliveryData),
+      });
+      if (res.ok) return await res.json();
+    } catch {
+      // Fallback
+    }
+    const orders = getStoredOrders();
+    const order = orders.find((o) => o.id === orderId);
+    if (order) {
+      order.senditDeliveryCode = `SND-MOCK-${Date.now()}`;
+      order.senditWaybillUrl = "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
+      saveOrders(orders);
+      return { success: true, senditDeliveryCode: order.senditDeliveryCode, waybillUrl: order.senditWaybillUrl };
+    }
+    throw new Error("Commande introuvable");
+  },
+
+  async shipSenditStep2(orderId: string, blAttachedPhoto: string): Promise<{ success: boolean; status: string; senditDeliveryCode: string }> {
+    try {
+      const res = await fetch(`${API_BASE}/artisan/orders/${orderId}/ship-sendit-step2`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ blAttachedPhoto }),
+      });
+      if (res.ok) return await res.json();
+    } catch {
+      // Fallback
+    }
+    const orders = getStoredOrders();
+    const order = orders.find((o) => o.id === orderId);
+    if (order) {
+      order.status = "en_cours_de_transport";
+      order.senditWaybillPhoto = blAttachedPhoto;
+      order.shippedAt = new Date().toISOString();
+      saveOrders(orders);
+      return { success: true, status: "en_cours_de_transport", senditDeliveryCode: order.senditDeliveryCode || `SND-${Date.now()}` };
+    }
+    throw new Error("Commande introuvable");
+  },
+
+  async shipVendeurSelf(orderId: string, { transportDurationDays = 7 }: { transportDurationDays?: number }): Promise<{ success: boolean; status: string; transportProvider: string }> {
+    try {
+      const res = await fetch(`${API_BASE}/artisan/orders/${orderId}/ship-vendeur`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transportDurationDays }),
+      });
+      if (res.ok) return await res.json();
+    } catch {
+      // Fallback
+    }
+    const orders = getStoredOrders();
+    const order = orders.find((o) => o.id === orderId);
+    if (order) {
+      order.status = "en_cours_de_transport";
+      order.transportProvider = "vendeur";
+      order.shippedAt = new Date().toISOString();
+      saveOrders(orders);
+      return { success: true, status: "en_cours_de_transport", transportProvider: "vendeur" };
+    }
+    throw new Error("Commande introuvable");
+  },
+
+  async completeVendeurDelivery(orderId: string, { signaturePhoto }: { signaturePhoto: string }): Promise<{ success: boolean; status: string; escrowReleasedAt?: string; withdrawalExpiresAt?: string }> {
+    try {
+      const res = await fetch(`${API_BASE}/artisan/orders/${orderId}/complete-vendeur-delivery`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ signaturePhoto }),
+      });
+      if (res.ok) return await res.json();
+    } catch {
+      // Fallback
+    }
+    const orders = getStoredOrders();
+    const order = orders.find((o) => o.id === orderId);
+    if (order) {
+      order.status = "livre";
+      order.deliveredAt = new Date().toISOString();
+      order.receptionValidatedBy = "vendeur";
+      order.vendeurDeliverySignaturePhoto = signaturePhoto;
+      saveOrders(orders);
+      return { success: true, status: "livre" };
+    }
+    throw new Error("Commande introuvable");
+  },
+
+  async uploadPrepPhotos(orderId: string, photos: string[]): Promise<{ success: boolean; count: number }> {
+    try {
+      const res = await fetch(`${API_BASE}/artisan/orders/${orderId}/prep-photos`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ photos }),
+      });
+      if (res.ok) return await res.json();
+    } catch {
+      // Fallback
+    }
+    return { success: true, count: photos.length };
+  },
+
+  async claimNonReception(orderId: string, reason: string): Promise<{ success: boolean; status: string }> {
+    try {
+      const res = await fetch(`${API_BASE}/client/orders/${orderId}/claim-non-reception`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason }),
+      });
+      if (res.ok) return await res.json();
+    } catch {
+      // Fallback
+    }
+    const orders = getStoredOrders();
+    const order = orders.find((o) => o.id === orderId);
+    if (order) {
+      order.status = "en_reclamation";
+      order.nonReceptionClaimedAt = new Date().toISOString();
+      saveOrders(orders);
+      return { success: true, status: "en_reclamation" };
+    }
+    throw new Error("Commande introuvable");
+  },
+
+  async getVendorProfile(vendorRef: string = "artisan-1"): Promise<any> {
+    try {
+      const res = await fetch(`${API_BASE}/artisan/vendor/${vendorRef}/profile`);
+      if (res.ok) return await res.json();
+    } catch {
+      // Fallback
+    }
+    return {
+      success: true,
+      profile: {
+        id: vendorRef,
+        warningCountCurrentMonth: 0,
+        suspensionStatus: "active",
+        suspendedUntil: null,
+      },
+      warnings: [],
+    };
+  },
+
+  async simulateWebhook(payload: any): Promise<any> {
+    const res = await fetch(`${BACKEND_ROOT}/api/webhooks/sendit`, {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "x-sendit-signature": "dummy_signature"
+      },
+      body: JSON.stringify(payload),
+    });
+    return res.json();
+  },
+
+  // ⏰ Déclencheur et monitoring des Cron Jobs
+  async triggerCronJob(jobName: string = "run-all"): Promise<any> {
+    const endpoint = jobName === "run-all" ? `${BACKEND_ROOT}/api/cron/run-all` : `${BACKEND_ROOT}/api/cron/run/${jobName}`;
+    const res = await fetch(endpoint, { method: "POST" });
+    return res.json();
+  },
+
+  async getCronStatus(): Promise<any> {
+    const res = await fetch(`${BACKEND_ROOT}/api/cron/status`);
+    return res.json();
+  }
 };

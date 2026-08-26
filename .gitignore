@@ -3,6 +3,7 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+*.log
 
 # Environment files
 .env
@@ -28,6 +29,9 @@ test_output/
 *.gif
 *.bmp
 
-# OS metadata
+# IDE & system metadata
+.gemini/
+.agents/
+CVS/
 .DS_Store
 Thumbs.db

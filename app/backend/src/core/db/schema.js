@@ -5,7 +5,8 @@ export const orders = sqliteTable("orders", {
   clientRef: text("client_ref").notNull(),
   artisanRef: text("artisan_ref").notNull().default("artisan-1"),
   totalPrice: real("total_price").notNull(),
-  productType: text("product_type").notNull().default("standard"),
+  productType: text("product_type").notNull().default("standard"), // 'standard' | 'personnalise' | 'sur_commande'
+  transportProvider: text("transport_provider").notNull().default("sendit"), // 'sendit' | 'vendeur'
   status: text("status").notNull().default("en_attente_paiement"),
   createdAt: text("created_at").notNull(),
   acceptedAt: text("accepted_at"),
@@ -13,6 +14,44 @@ export const orders = sqliteTable("orders", {
   shippedAt: text("shipped_at"),
   deliveredAt: text("delivered_at"),
   updatedAt: text("updated_at").notNull(),
+
+  // Client signature at checkout
+  clientSignature: text("client_signature"),
+
+  // Preparation & delivery proof photos
+  prepPhotos: text("prep_photos"), // JSON array
+  senditWaybillUrl: text("sendit_waybill_url"),
+  senditWaybillPhoto: text("sendit_waybill_photo"),
+  vendeurDeliverySignaturePhoto: text("vendeur_delivery_signature_photo"),
+
+  // Escrow & validation lifecycle
+  escrowReleasedAt: text("escrow_released_at"),
+  withdrawalExpiresAt: text("withdrawal_expires_at"),
+  receptionValidatedBy: text("reception_validated_by"),
+  nonReceptionClaimedAt: text("non_reception_claimed_at"),
+  nonReceptionReason: text("non_reception_reason"),
+
+  // Cron & Automated Reminders
+  j2RelanceSentAt: text("j2_relance_sent_at"),
+
+  // Sendit delivery integrations
+  senditDeliveryCode: text("sendit_delivery_code"),
+  senditPickupCode: text("sendit_pickup_code"),
+  pickupDistrictId: real("pickup_district_id"),
+  deliveryDistrictId: real("delivery_district_id"),
+  allowOpen: real("allow_open").default(1),
+  allowTry: real("allow_try").default(0),
+  counterUnreachable: real("counter_unreachable").default(0),
+  proofImage: text("proof_image"),
+});
+
+export const cronExecutions = sqliteTable("cron_executions", {
+  id: text("id").primaryKey(),
+  jobName: text("job_name").notNull(),
+  status: text("status").notNull(), // 'success' | 'failed'
+  itemsProcessed: real("items_processed").default(0),
+  details: text("details"),
+  executedAt: text("executed_at").notNull(),
 });
 
 export const withdrawalRequests = sqliteTable("withdrawal_requests", {
@@ -72,9 +111,35 @@ export const returnRequests = sqliteTable("return_requests", {
 export const disputes = sqliteTable("disputes", {
   id: text("id").primaryKey(),
   orderId: text("order_id").notNull(),
+  type: text("type").notNull().default("non_reception"), // 'non_reception' | 'vice_cache_3mois' | 'non_conformite' | 'retard_critique' | 'retractation_bloquee'
+  claimantRef: text("claimant_ref").notNull().default("client-1"),
   reason: text("reason").notNull(),
+  clientEvidencePhotos: text("client_evidence_photos"), // JSON array
+  artisanResponse: text("artisan_response"),
+  artisanEvidencePhotos: text("artisan_evidence_photos"), // JSON array
   resolution: text("resolution"),
-  status: text("status").notNull().default("ouvert"),
+  status: text("status").notNull().default("en_arbitrage_admin"), // 'en_attente_artisan' | 'en_arbitrage_admin' | 'resolu_remboursement_total' | 'resolu_remboursement_partiel' | 'resolu_remplacement' | 'rejete'
+  escrowStatusAtDispute: text("escrow_status_at_dispute").notNull().default("locked"), // 'locked' | 'already_released'
+  arbitrationDecision: text("arbitration_decision"),
+  arbitrationAmount: real("arbitration_amount"),
+  arbitratedBy: text("arbitrated_by").default("admin-vork"),
   createdAt: text("created_at").notNull(),
   resolvedAt: text("resolved_at"),
+});
+
+export const vendorWarnings = sqliteTable("vendor_warnings", {
+  id: text("id").primaryKey(),
+  vendorRef: text("vendor_ref").notNull(),
+  orderId: text("order_id"),
+  reason: text("reason").notNull(),
+  monthYear: text("month_year").notNull(), // e.g. "2026-08"
+  createdAt: text("created_at").notNull(),
+});
+
+export const vendorProfiles = sqliteTable("vendor_profiles", {
+  id: text("id").primaryKey(), // e.g. "artisan-1"
+  warningCountCurrentMonth: real("warning_count_current_month").default(0),
+  suspensionStatus: text("suspension_status").default("active"), // 'active' | 'paused' | 'suspended_7d' | 'suspended_14d' | 'blocked'
+  suspendedUntil: text("suspended_until"),
+  updatedAt: text("updated_at").notNull(),
 });
