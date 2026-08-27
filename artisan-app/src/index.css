@@ -1,50 +1,40 @@
 /* ==========================================================================
-   MAÂLEM ARTISAN APP – LUXURY MOROCCAN DESIGN SYSTEM
+   MAÂLEM PRO – ARTISANAL LUXURY MOBILE DESIGN SYSTEM
    Strictly compliant with vork-design-system SKILL.md
    ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,800;9..144,900&family=Manrope:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,800;9..144,900&family=Manrope:wght@400;500;600;700;800&display=swap');
 
 :root {
-  /* ── Palette Marocaine Réelle ────────────────────────────────────────── */
-  --primary: #1A2A3A;
-  --primary-dark: #101B26;
+  /* ── Colors (Authentic Moroccan Palette) ─────────────────────────────── */
+  --primary: #1A2A3A;             /* Bleu Nuit Atlantique */
+  --primary-dark: #101B26;        /* Bleu Profond Luxe */
 
-  /* Terre Cuite Réelle (Volontairement brique #B8623F - pas de tell IA #CC7755) */
+  /* Terre Cuite Réelle (#B8623F - Argile Brique Marocaine, Pas de tell SaaS IA #CC7755) */
   --accent-warm: #B8623F;
   --accent-warm-light: rgba(184, 98, 63, 0.12);
 
-  --accent-premium: #D4AF37;
+  --accent-premium: #D4AF37;      /* Or Zellige Métallique */
   --accent-premium-light: rgba(212, 175, 55, 0.14);
-  --accent-secondary: #9CAF88;
-  --accent-emerald: #2D6A4F;
+  --accent-emerald: #2D6A4F;      /* Émeraude Artisanale */
 
-  --bg-primary: #FAFAF8;
+  --bg-primary: #FAFAF8;         /* Argile Blanche Chaleureuse */
   --surface: #FFFFFF;
-  --surface-glass: rgba(255, 255, 255, 0.88);
+  --surface-glass: rgba(255, 255, 255, 0.90);
 
   --border: #E9E6E1;
-  --border-subtle: rgba(233, 230, 225, 0.6);
+  --border-subtle: rgba(233, 230, 225, 0.7);
 
-  /* ── Couleurs de Texte ───────────────────────────────────────────────── */
+  /* ── Typography Tokens ──────────────────────────────────────────────── */
   --text-primary: #1A2A3A;
   --text-secondary: #5C6B78;
   --text-tertiary: #9AA5AD;
   --text-on-dark: #F4F1EA;
 
-  /* ── Typographie ────────────────────────────────────────────────────── */
   --font-display: 'Fraunces', serif;
   --font-body: 'Manrope', sans-serif;
 
-  /* Échelle typographique : 12 / 14 / 16 / 20 / 28 / 40px */
-  --font-size-xs: 12px;
-  --font-size-sm: 14px;
-  --font-size-md: 16px;
-  --font-size-lg: 20px;
-  --font-size-xl: 28px;
-  --font-size-2xl: 40px;
-
-  /* ── Échelle d'Espacement (Grille 4px) ──────────────────────────────── */
+  /* ── Spacing Grid (4px Base) ────────────────────────────────────────── */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -54,18 +44,15 @@
   --space-7: 48px;
   --space-8: 64px;
 
-  /* ── Ombres Layered ─────────────────────────────────────────────────── */
-  --shadow-xs: 0 1px 3px rgba(26, 42, 58, 0.04);
-  --shadow-sm: 0 4px 12px rgba(26, 42, 58, 0.05);
-  --shadow-md: 0 10px 28px rgba(26, 42, 58, 0.08);
-  --shadow-lg: 0 20px 40px rgba(26, 42, 58, 0.12);
-  --shadow-terracotta: 0 8px 24px rgba(184, 98, 63, 0.25);
-  --shadow-gold: 0 8px 24px rgba(212, 175, 55, 0.25);
+  /* ── Layered Shadows ────────────────────────────────────────────────── */
+  --shadow-xs: 0 2px 6px rgba(26, 42, 58, 0.04);
+  --shadow-sm: 0 6px 16px rgba(26, 42, 58, 0.06);
+  --shadow-md: 0 12px 32px rgba(26, 42, 58, 0.10);
+  --shadow-terracotta: 0 8px 24px rgba(184, 98, 63, 0.28);
+  --shadow-gold: 0 8px 24px rgba(212, 175, 55, 0.28);
 }
 
-*,
-*::before,
-*::after {
+*, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -73,7 +60,7 @@
 }
 
 body {
-  background-color: #0F131A;
+  background-color: #0B0F17;
   font-family: var(--font-body);
   color: var(--text-primary);
   display: flex;
@@ -92,13 +79,13 @@ body {
   width: 100%;
 }
 
-/* ─── Keyboard Focus Accessibility (Outline 2px solid var(--accent-warm)) ─── */
+/* ── Keyboard Focus Accessibility (Outline 2px solid var(--accent-warm)) ─── */
 :focus-visible {
   outline: 2px solid var(--accent-warm) !important;
   outline-offset: 2px !important;
 }
 
-/* ─── Phone Shell (Mobile Container) ────────────────────────────────── */
+/* ── Smartphone Container (PhoneShell) ────────────────────────────────── */
 .phone-shell {
   width: 100%;
   max-width: 430px;
@@ -106,12 +93,12 @@ body {
   max-height: 96vh;
   background-color: var(--bg-primary);
   border-radius: 40px;
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.7);
   position: relative;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  border: 10px solid #1A1F2B;
+  border: 10px solid #141923;
 }
 
 @media (max-width: 480px) {
@@ -128,11 +115,11 @@ body {
   }
 }
 
-/* ─── Scrollable Content Area ────────────────────────────────────────── */
+/* ── Scrollable Content Area ────────────────────────────────────────── */
 .app-content {
   flex: 1;
   overflow-y: auto;
-  padding: var(--space-4) var(--space-4) 96px;
+  padding: var(--space-4) var(--space-4) 98px;
   scrollbar-width: none;
   -ms-overflow-style: none;
   position: relative;
@@ -143,7 +130,7 @@ body {
   display: none;
 }
 
-/* ─── Flat vs Glass Rules ────────────────────────────────────────────── */
+/* ── Flat vs Glass Card Rules ────────────────────────────────────────── */
 
 /* FLAT (Blanc Opaque --surface) : Cartes de contenu standard */
 .artisan-card {
@@ -158,23 +145,23 @@ body {
 
 .artisan-card:hover {
   box-shadow: var(--shadow-md);
-  border-color: rgba(184, 98, 63, 0.3);
+  border-color: rgba(184, 98, 63, 0.35);
 }
 
-/* GLASS (blur 12px, rgba 0.88) : Réservé exclusivement aux modales/sheets/navs qui flottent */
+/* GLASS (blur 12px, rgba 0.90) : Réservé EXCLUSIVEMENT aux modales/sheets/navs qui flottent */
 .glass-overlay {
   background: var(--surface-glass);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border: 1px solid var(--border-subtle);
   box-shadow: var(--shadow-md);
 }
 
-/* ─── Photo Overlay & Desaturation Treatment (Section 7) ─────────────── */
+/* ── Section 7 Photo Treatment (Overlay 15% + 90% desaturation) ─────── */
 .artisan-photo-wrapper {
   position: relative;
   overflow: hidden;
-  border-radius: 16px;
+  border-radius: 18px;
 }
 
 .artisan-photo-wrapper img {
@@ -182,6 +169,11 @@ body {
   height: 100%;
   object-fit: cover;
   filter: saturate(90%);
+  transition: transform 0.3s ease;
+}
+
+.artisan-photo-wrapper:hover img {
+  transform: scale(1.04);
 }
 
 .artisan-photo-wrapper::after {
@@ -192,10 +184,10 @@ body {
   pointer-events: none;
 }
 
-/* ─── Buttons with Min 44x44px Touch Targets ────────────────────────── */
+/* ── Buttons (Min 44x44px Touch Targets) ────────────────────────────── */
 .btn-mobile-primary {
   width: 100%;
-  min-height: 46px;
+  min-height: 48px;
   padding: var(--space-3) var(--space-4);
   border-radius: 18px;
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
@@ -203,19 +195,19 @@ body {
   border: none;
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: var(--font-size-xs);
+  font-size: 13px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  box-shadow: 0 6px 18px rgba(26, 42, 58, 0.18);
+  box-shadow: 0 6px 20px rgba(26, 42, 58, 0.2);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .btn-mobile-terracotta {
   width: 100%;
-  min-height: 46px;
+  min-height: 48px;
   padding: var(--space-3) var(--space-4);
   border-radius: 18px;
   background: linear-gradient(135deg, var(--accent-warm) 0%, #994A2B 100%);
@@ -223,7 +215,7 @@ body {
   border: none;
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: var(--font-size-xs);
+  font-size: 13px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -242,16 +234,21 @@ body {
   border: 1px solid var(--border);
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: var(--font-size-xs);
+  font-size: 12px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
   box-shadow: var(--shadow-xs);
+  transition: all 0.15s ease;
 }
 
-/* ─── Bottom Navigation Bar (Glass Overlay) ─────────────────────────── */
+.btn-mobile-outline:active {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+/* ── Bottom Navigation Bar (Glass Floating Overlay) ─────────────────── */
 .artisan-bottom-nav {
   position: absolute;
   bottom: 0;
@@ -312,7 +309,7 @@ body {
   box-shadow: 0 2px 6px rgba(220, 53, 69, 0.4);
 }
 
-/* ─── Badges ─────────────────────────────────────────────────────────── */
+/* ── Badges ─────────────────────────────────────────────────────────── */
 .badge-pill {
   padding: var(--space-1) var(--space-2);
   border-radius: 12px;
@@ -348,7 +345,7 @@ body {
   border: 1px solid rgba(26, 42, 58, 0.18);
 }
 
-/* ─── Prefers Reduced Motion Accessibility Fallback (Section 6) ──────── */
+/* ── Prefers Reduced Motion Accessibility Fallback (Section 6) ──────── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
