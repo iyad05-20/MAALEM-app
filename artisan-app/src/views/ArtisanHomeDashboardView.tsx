@@ -1,24 +1,13 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { 
-  Wallet, 
-  Lock, 
-  CheckCircle2, 
-  Landmark, 
-  Package, 
-  Clock, 
-  Check, 
-  X, 
-  Camera, 
-  Truck, 
-  FileSignature, 
-  ChevronRight,
-  Printer
-} from "lucide-react";
-import { AnimatedZelligePattern } from "../components/AnimatedZelligePattern";
+import { Wallet, Lock, CheckCircle2, Landmark, Package, Camera, Check, X, Truck, FileSignature, ChevronRight, Printer } from "lucide-react";
 import type { ArtisanOrder, ArtisanWallet } from "../types/artisanTypes";
+import { useI18n } from "../services/i18n";
+import { getBackendUrl } from "../services/artisanApi";
 
-interface ArtisanHomeDashboardViewProps {
+export type ArtisanTab = "home" | "market" | "create" | "posts" | "profile";
+
+interface Props {
   wallet: ArtisanWallet | null;
   orders: ArtisanOrder[];
   onOpenWithdrawalModal: () => void;
@@ -29,323 +18,250 @@ interface ArtisanHomeDashboardViewProps {
   onOpenDirectDeliveryModal: (order: ArtisanOrder) => void;
 }
 
-export const ArtisanHomeDashboardView: React.FC<ArtisanHomeDashboardViewProps> = ({
-  wallet,
-  orders,
-  onOpenWithdrawalModal,
-  onAccept,
-  onOpenRefuseModal,
-  onOpenPrepPhotosModal,
-  onOpenSenditModal,
-  onOpenDirectDeliveryModal,
+export const ArtisanHomeDashboardView: React.FC<Props> = ({
+  wallet, orders,
+  onOpenWithdrawalModal, onAccept,
+  onOpenRefuseModal, onOpenPrepPhotosModal,
+  onOpenSenditModal, onOpenDirectDeliveryModal,
 }) => {
+  const { lang, t } = useI18n();
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  const handleAccept = async (orderId: string) => {
-    setActionLoading(orderId);
-    try {
-      await onAccept(orderId);
-    } catch (err: any) {
-      alert(err.message || "Erreur lors de l'acceptation.");
-    } finally {
-      setActionLoading(null);
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "acompte_verse": return t("status_acompte");
+      case "payee_integralement": return t("status_payee");
+      case "acceptee": return t("status_acceptee");
+      case "en_preparation": return t("status_en_atelier");
+      case "en_cours_de_transport": return t("status_transit");
+      case "livre": return t("status_livre");
+      case "terminee": return t("status_terminee");
+      case "annulee": return t("status_cancelled");
+      default: return status;
     }
   };
 
-  // Chronological Active Orders
+  const handleAccept = async (id: string) => {
+    setActionLoading(id);
+    try { await onAccept(id); } catch (e: any) { alert(e.message); }
+    finally { setActionLoading(null); }
+  };
+
   const activeOrders = orders
     .filter(o => o.status !== "annulee")
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-  const pendingAcceptCount = activeOrders.filter(o => ["acompte_verse", "payee_integralement"].includes(o.status)).length;
+  const toAcceptCount = activeOrders.filter(o => ["acompte_verse", "payee_integralement"].includes(o.status)).length;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}
-    >
-      {/* ─── 1. PORTEFEUILLE DUEL (WALLETS BLOQUÉ vs LIBRE) ─────────────────── */}
-      <motion.div
-        whileHover={{ scale: 1.005 }}
-        style={{
-          background: "linear-gradient(135deg, #1A2A3A 0%, #101B26 100%)",
-          borderRadius: 28,
-          padding: "var(--space-5)",
-          color: "#FFFFFF",
-          boxShadow: "0 14px 36px rgba(26, 42, 58, 0.28)",
-          position: "relative",
-          overflow: "hidden",
-          border: "1px solid rgba(212, 175, 55, 0.3)",
-        }}
-      >
-        {/* Animated Zellige Signature Element */}
-        <div style={{ position: "absolute", top: 12, right: 12, pointerEvents: "none" }}>
-          <AnimatedZelligePattern size={52} color="var(--accent-premium)" />
-        </div>
+    <div className="app-view">
+      {/* ── Zellige corner watermarks */}
+      <div className="pattern-corner pattern-top-right" />
+      <div className="pattern-corner pattern-bottom-left" />
 
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--space-4)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-            <Wallet size={20} color="var(--accent-premium)" />
-            <span style={{
-              fontSize: "10px",
-              fontWeight: 800,
-              letterSpacing: "0.8px",
-              textTransform: "uppercase",
-              color: "var(--text-on-dark)",
-            }}>
-              Portefeuille Maâlem Vork
+      {/* ══ WALLET CARD ════════════════════════════════════════════════════ */}
+      <div className="wallet-card">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Wallet size={18} color="var(--accent-premium)" />
+            <span style={{ fontFamily: "var(--font-display)", fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.8)", letterSpacing: 0.4 }}>
+              {t("wallet_title")}
             </span>
           </div>
-          <span className="badge-pill" style={{ background: "rgba(212,175,55,0.18)", color: "var(--accent-premium)", border: "1px solid rgba(212,175,55,0.35)", marginRight: 42 }}>
-            ★ Séquestre Sécurisé
+          <span className="badge badge-gold" style={{ background: "rgba(212,175,55,0.18)", color: "var(--accent-premium)", border: "1px solid rgba(212,175,55,0.35)" }}>
+            {t("wallet_escrow_badge")}
           </span>
         </div>
 
-        {/* Dual Wallet Display (Partie Libre vs Partie Bloquée) */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)", marginBottom: "var(--space-4)" }}>
-          {/* Partie Libre / Disponible */}
-          <div style={{
-            background: "rgba(255,255,255,0.08)",
-            borderRadius: 18,
-            padding: "var(--space-3) var(--space-4)",
-            border: "1px solid rgba(255,255,255,0.14)",
-            backdropFilter: "blur(6px)",
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-1)", marginBottom: 4 }}>
-              <CheckCircle2 size={14} color="#34D399" />
-              <span style={{ fontSize: "10px", color: "rgba(244,241,234,0.8)", fontWeight: 700 }}>Partie Libre</span>
+        <div className="wallet-row">
+          {/* Partie Libre */}
+          <div className="wallet-half">
+            <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 5 }}>
+              <CheckCircle2 size={13} color="#34D399" />
+              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.7)", fontWeight: 600 }}>{t("wallet_available")}</span>
             </div>
-            <p style={{ fontFamily: "var(--font-display)", fontSize: "var(--font-lg)", fontWeight: 900, color: "#FFFFFF", margin: 0 }}>
-              {wallet?.availableBalance || 0} <span style={{ fontSize: "13px", color: "var(--accent-premium)" }}>MAD</span>
-            </p>
-            <p style={{ fontSize: "9px", color: "rgba(244,241,234,0.6)", margin: "2px 0 0" }}>
-              Disponible sur RIB
-            </p>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 800, color: "#fff" }}>
+              {wallet?.availableBalance ?? 0} <span style={{ fontSize: 12, color: "var(--accent-premium)", fontWeight: 500 }}>MAD</span>
+            </div>
+            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginTop: 2 }}>{t("wallet_available_sub")}</div>
           </div>
 
-          {/* Partie Bloquée (Confection / Transport / Retractation) */}
-          <div style={{
-            background: "rgba(255,255,255,0.08)",
-            borderRadius: 18,
-            padding: "var(--space-3) var(--space-4)",
-            border: "1px solid rgba(255,255,255,0.14)",
-            backdropFilter: "blur(6px)",
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-1)", marginBottom: 4 }}>
-              <Lock size={14} color="#60A5FA" />
-              <span style={{ fontSize: "10px", color: "rgba(244,241,234,0.8)", fontWeight: 700 }}>Partie Bloquée</span>
+          {/* Partie Bloquée */}
+          <div className="wallet-half">
+            <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 5 }}>
+              <Lock size={13} color="#93C5FD" />
+              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.7)", fontWeight: 600 }}>{t("wallet_guarantee")}</span>
             </div>
-            <p style={{ fontFamily: "var(--font-display)", fontSize: "var(--font-lg)", fontWeight: 900, color: "#FFFFFF", margin: 0 }}>
-              {wallet?.lockedEscrow || 0} <span style={{ fontSize: "13px", color: "#60A5FA" }}>MAD</span>
-            </p>
-            <p style={{ fontSize: "9px", color: "rgba(244,241,234,0.6)", margin: "2px 0 0" }}>
-              Confection & Rétractation
-            </p>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 800, color: "#fff" }}>
+              {wallet?.lockedEscrow ?? 0} <span style={{ fontSize: 12, color: "#93C5FD", fontWeight: 500 }}>MAD</span>
+            </div>
+            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginTop: 2 }}>{t("wallet_escrow_sub")}</div>
           </div>
         </div>
 
-        {/* Button Demander Virement */}
-        <motion.button
-          whileTap={{ scale: 0.97 }}
+        <button
+          className="btn-terracotta"
           onClick={onOpenWithdrawalModal}
           disabled={!wallet || wallet.availableBalance <= 0}
-          className="btn-mobile-terracotta"
-          style={{ width: "100%", justifyContent: "center", opacity: (!wallet || wallet.availableBalance <= 0) ? 0.6 : 1 }}
+          style={{ opacity: !wallet || wallet.availableBalance <= 0 ? 0.55 : 1 }}
         >
           <Landmark size={16} />
-          <span>Demander un Virement sur RIB (Art. 15)</span>
-        </motion.button>
-      </motion.div>
+          {t("wallet_withdraw_btn")}
+        </button>
+      </div>
 
-      {/* ─── 2. COMMANDES ACTIVES CHRONOLOGIQUES ───────────────────────────── */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      {/* ══ COMMANDES ACTIVES ══════════════════════════════════════════════ */}
+      <div className="section-header">
         <div>
-          <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 900, fontSize: "var(--font-md)", color: "var(--primary)", margin: 0 }}>
-            Commandes Actives ({activeOrders.length})
-          </h3>
-          <p style={{ fontSize: "11px", color: "var(--text-secondary)", margin: 0 }}>
-            Ordre chronologique de confection
-          </p>
+          <div className="section-title">
+            {toAcceptCount > 0 ? t("orders_to_treat") : t("orders_active_list")}
+          </div>
+          <div className="section-subtitle">
+            {activeOrders.length} {lang === "ar" ? "طلبات جارية" : `commande${activeOrders.length !== 1 ? "s" : ""} — ordre chronologique`}
+          </div>
         </div>
-
-        {pendingAcceptCount > 0 && (
-          <span className="badge-pill badge-urgent">
-            🚨 {pendingAcceptCount} À Valider
+        {toAcceptCount > 0 && (
+          <span className="badge badge-urgent">
+            ⚡ {toAcceptCount} {lang === "ar" ? "بحاجة لموافقتك" : "à valider"}
           </span>
         )}
       </div>
 
       {activeOrders.length === 0 ? (
-        <div className="artisan-card" style={{ padding: "44px 20px", textAlign: "center", color: "var(--text-secondary)" }}>
-          <Package size={38} style={{ opacity: 0.3, marginBottom: 8 }} />
-          <p style={{ fontSize: "13px", fontWeight: 700, margin: 0 }}>Aucune commande active actuellement.</p>
+        <div className="artisan-card" style={{ padding: "40px 20px", textAlign: "center" }}>
+          <Package size={36} color="var(--text-placeholder)" style={{ marginBottom: 8 }} />
+          <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-secondary)" }}>
+            {t("orders_empty")}
+          </p>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-          {activeOrders.map((order, idx) => {
-            const isToAccept = ["acompte_verse", "payee_integralement"].includes(order.status);
-            const isInPrep = order.status === "en_preparation";
-            const isInTransport = order.status === "en_cours_de_transport";
-            const isDelivered = ["livre", "terminee"].includes(order.status);
-            const hasPrepPhotos = order.prepPhotos && order.prepPhotos.length >= 4;
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {activeOrders.map((order, i) => {
+            const toAccept = ["acompte_verse", "payee_integralement"].includes(order.status);
+            const inPrep = order.status === "en_preparation";
+            const inTransit = order.status === "en_cours_de_transport";
+            const done = ["livre", "terminee"].includes(order.status);
+            const hasPhotos = (order.prepPhotos?.length ?? 0) >= 4;
 
             return (
               <motion.div
                 key={order.id}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.25, delay: idx * 0.05 }}
                 className="artisan-card"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.04, duration: 0.25 }}
+                style={{ padding: 16 }}
               >
-                {/* Order Header */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "var(--space-3)" }}>
+                {/* Order header */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                   <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: 2 }}>
-                      <strong style={{ fontFamily: "var(--font-display)", fontSize: "var(--font-md)", fontWeight: 900, color: "var(--primary)" }}>
-                        #{order.id}
-                      </strong>
-                      <span className={`badge-pill ${isToAccept ? "badge-urgent" : isInPrep ? "badge-warning" : isInTransport ? "badge-info" : "badge-success"}`}>
-                        {order.status.replace(/_/g, " ")}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
+                      <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 15, color: "var(--primary)" }}>
+                        {lang === "ar" ? `طلب #${order.id}` : `Commande #${order.id}`}
+                      </span>
+                      <span className={`badge badge-${toAccept ? "urgent" : inPrep ? "warning" : inTransit ? "info" : "success"}`}>
+                        {getStatusLabel(order.status)}
                       </span>
                     </div>
-                    <p style={{ fontSize: "11px", color: "var(--text-secondary)", margin: 0 }}>
-                      {new Date(order.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })} · {order.productType === "standard" ? "📦 Standard Sendit" : "🎨 Sur-Mesure Direct"}
-                    </p>
+                    <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                      {new Date(order.createdAt).toLocaleDateString(lang === "ar" ? "ar-MA" : "fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                      {" · "}
+                      {order.productType === "standard" 
+                        ? (lang === "ar" ? "شحن سينديت" : "Expédition Sendit")
+                        : (lang === "ar" ? "توصيل مباشر" : "Livraison Directe")}
+                    </div>
                   </div>
-
-                  <div style={{ textAlign: "right" }}>
-                    <p style={{ fontFamily: "var(--font-display)", fontSize: "var(--font-md)", fontWeight: 900, color: "var(--primary)", margin: 0 }}>
-                      {order.totalPrice} MAD
-                    </p>
-                    <p style={{ fontSize: "10px", color: "var(--accent-emerald)", fontWeight: 800, margin: 0 }}>
-                      Net: {Math.round(order.totalPrice * 0.90)} MAD
-                    </p>
+                  <div style={{ textAlign: lang === "ar" ? "left" : "right" }}>
+                    <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 16, color: "var(--primary)" }}>
+                      {order.totalPrice} <span style={{ fontSize: 11, fontWeight: 500, color: "var(--text-secondary)" }}>MAD</span>
+                    </div>
+                    <div style={{ fontSize: 10, color: "var(--accent-emerald)", fontWeight: 700 }}>
+                      {lang === "ar" ? `الصافي ≈ ${Math.round(order.totalPrice * 0.95)} درهم` : `Net ≈ ${Math.round(order.totalPrice * 0.95)} MAD`}
+                    </div>
                   </div>
                 </div>
 
-                {/* Progress Mini Step */}
+                {/* Progress steps */}
                 <div style={{
-                  background: "rgba(26,42,58,0.03)",
-                  borderRadius: 14,
-                  padding: "var(--space-2) var(--space-3)",
-                  marginBottom: "var(--space-3)",
+                  background: "rgba(26,42,58,0.04)",
+                  borderRadius: 12,
+                  padding: "8px 12px",
+                  marginBottom: 12,
                   display: "flex",
-                  justifyContent: "space-between",
                   alignItems: "center",
-                  fontSize: "10px",
+                  gap: 6,
+                  fontSize: 10,
                   color: "var(--text-secondary)",
-                  border: "1px solid var(--border-subtle)",
                 }}>
-                  <span>1. {isToAccept ? "⏳ À Valider (<72h)" : "✓ Acceptée"}</span>
-                  <ChevronRight size={12} opacity={0.4} />
-                  <span>2. {hasPrepPhotos ? "✓ 4 Photos Ok" : isInPrep ? "📸 4 Photos" : "Photos"}</span>
-                  <ChevronRight size={12} opacity={0.4} />
-                  <span>3. {isDelivered ? "✓ Livré" : isInTransport ? "🚚 Transit" : "Expédition"}</span>
+                  <span style={{ color: toAccept ? "var(--accent-warm)" : "var(--accent-emerald)", fontWeight: 700 }}>
+                    {toAccept ? (lang === "ar" ? "① بانتظار التأكيد" : "① À valider") : (lang === "ar" ? "① ✓ تم القبول" : "① ✓ Acceptée")}
+                  </span>
+                  <ChevronRight size={10} style={{ transform: lang === "ar" ? "rotate(180deg)" : "none" }} />
+                  <span style={{ color: inPrep ? "var(--accent-warm)" : (hasPhotos || done || inTransit) ? "var(--accent-emerald)" : "var(--text-placeholder)", fontWeight: 700 }}>
+                    {hasPhotos ? (lang === "ar" ? "② ✓ ٤ صور جاهزة" : "② ✓ Photos") : (lang === "ar" ? "② ٤ صور إعداد" : "② 4 Photos")}
+                  </span>
+                  <ChevronRight size={10} style={{ transform: lang === "ar" ? "rotate(180deg)" : "none" }} />
+                  <span style={{ color: done ? "var(--accent-emerald)" : inTransit ? "var(--accent-warm)" : "var(--text-placeholder)", fontWeight: 700 }}>
+                    {done ? (lang === "ar" ? "③ ✓ تم التسليم" : "③ ✓ Livré") : inTransit ? (lang === "ar" ? "③ في الطريق" : "③ Transit") : (lang === "ar" ? "③ الشحن" : "③ Expédition")}
+                  </span>
                 </div>
 
-                {/* Action Buttons (Min 44x44px Touch Target) */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-                  {/* Step 1 : Accept / Refuse */}
-                  {isToAccept && (
-                    <div style={{ display: "flex", gap: "var(--space-2)" }}>
-                      <motion.button
-                        whileTap={{ scale: 0.96 }}
-                        onClick={() => onOpenRefuseModal(order.id)}
-                        className="btn-mobile-outline"
-                        style={{ flex: 1, borderColor: "rgba(220,53,69,0.35)", color: "#DC3545" }}
-                      >
-                        <X size={15} /> Refuser
-                      </motion.button>
-                      <motion.button
-                        whileTap={{ scale: 0.96 }}
-                        onClick={() => handleAccept(order.id)}
-                        disabled={actionLoading === order.id}
-                        className="btn-mobile-terracotta"
-                        style={{ flex: 2 }}
-                      >
+                {/* Action buttons */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {toAccept && (
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button className="btn-outline" style={{ flex: 1, borderColor: "rgba(220,53,69,0.3)", color: "#DC3545" }} onClick={() => onOpenRefuseModal(order.id)}>
+                        <X size={15} /> {t("order_action_decline")}
+                      </button>
+                      <button className="btn-terracotta" style={{ flex: 2 }} disabled={actionLoading === order.id} onClick={() => handleAccept(order.id)}>
                         <Check size={16} />
-                        <span>{actionLoading === order.id ? "Validation..." : "Accepter (<72h)"}</span>
-                      </motion.button>
+                        {actionLoading === order.id ? (lang === "ar" ? "جارٍ القبول..." : "En cours...") : (lang === "ar" ? "قبول وبدء العمل" : "Accepter < 72h")}
+                      </button>
                     </div>
                   )}
 
-                  {/* Step 2 : Upload 4 Prep Photos */}
-                  {isInPrep && (
-                    <motion.button
-                      whileTap={{ scale: 0.98 }}
+                  {inPrep && (
+                    <button
+                      className="btn-outline"
+                      style={{ justifyContent: "space-between", borderColor: hasPhotos ? "var(--accent-emerald)" : "var(--accent-warm)", color: hasPhotos ? "var(--accent-emerald)" : "var(--accent-warm)" }}
                       onClick={() => onOpenPrepPhotosModal(order.id)}
-                      className="btn-mobile-outline"
-                      style={{
-                        width: "100%",
-                        justifyContent: "space-between",
-                        padding: "12px 16px",
-                        border: hasPrepPhotos ? "1.5px solid var(--accent-emerald)" : "1.5px solid var(--accent-warm)"
-                      }}
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <Camera size={16} color={hasPrepPhotos ? "var(--accent-emerald)" : "var(--accent-warm)"} />
-                        <span style={{ color: hasPrepPhotos ? "var(--accent-emerald)" : "var(--accent-warm)", fontWeight: 800 }}>
-                          {hasPrepPhotos ? `✓ ${order.prepPhotos?.length} Photos d'Atelier validées` : "Uploader les 4 Photos d'Atelier (Art. 8.1)"}
-                        </span>
+                        <Camera size={15} />
+                        {hasPhotos 
+                          ? (lang === "ar" ? `✓ تم إيداع ${order.prepPhotos?.length} صور للورشة` : `✓ ${order.prepPhotos?.length} photos d'atelier`) 
+                          : (lang === "ar" ? "إيداع ٤ صور لتوثيق الجاهزية (المادة ٨.١)" : "Uploader 4 photos d'atelier (Art. 8.1)")}
                       </div>
-                      <ChevronRight size={14} />
-                    </motion.button>
+                      <ChevronRight size={14} style={{ transform: lang === "ar" ? "rotate(180deg)" : "none" }} />
+                    </button>
                   )}
 
-                  {/* Step 3 : Shipping Action */}
-                  {isInPrep && (
-                    <>
-                      {order.productType === "standard" ? (
-                        <motion.button
-                          whileTap={{ scale: 0.97 }}
-                          onClick={() => onOpenSenditModal(order)}
-                          disabled={!hasPrepPhotos}
-                          className="btn-mobile-primary"
-                          style={{ opacity: !hasPrepPhotos ? 0.5 : 1 }}
-                        >
-                          <Truck size={16} />
-                          <span>Générer Bon Sendit (Étape 1 & 2)</span>
-                        </motion.button>
-                      ) : (
-                        <motion.button
-                          whileTap={{ scale: 0.97 }}
-                          onClick={() => onOpenDirectDeliveryModal(order)}
-                          disabled={!hasPrepPhotos}
-                          className="btn-mobile-primary"
-                          style={{ opacity: !hasPrepPhotos ? 0.5 : 1 }}
-                        >
-                          <FileSignature size={16} />
-                          <span>Déclarer Expédition Directe</span>
-                        </motion.button>
-                      )}
-                    </>
+                  {inPrep && (
+                    order.productType === "standard" ? (
+                      <button className="btn-primary" onClick={() => onOpenSenditModal(order)} disabled={!hasPhotos} style={{ opacity: hasPhotos ? 1 : 0.45 }}>
+                        <Truck size={16} /> {lang === "ar" ? "توليد بوليصة الشحن سينديت" : "Générer le Bon Sendit"}
+                      </button>
+                    ) : (
+                      <button className="btn-primary" onClick={() => onOpenDirectDeliveryModal(order)} disabled={!hasPhotos} style={{ opacity: hasPhotos ? 1 : 0.45 }}>
+                        <FileSignature size={16} /> {lang === "ar" ? "إقرار التسليم المباشر من المعلم" : "Déclarer Livraison Directe"}
+                      </button>
+                    )
                   )}
 
-                  {/* Direct Delivery Completion */}
-                  {isInTransport && order.productType !== "standard" && (
-                    <motion.button
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => onOpenDirectDeliveryModal(order)}
-                      className="btn-mobile-primary"
-                      style={{ background: "var(--accent-emerald)" }}
-                    >
-                      <FileSignature size={16} />
-                      <span>Valider Livraison avec Bordereau Signé (Art. 11.5)</span>
-                    </motion.button>
+                  {inTransit && order.productType !== "standard" && (
+                    <button className="btn-primary" style={{ background: "var(--accent-emerald)" }} onClick={() => onOpenDirectDeliveryModal(order)}>
+                      <FileSignature size={16} /> {lang === "ar" ? "تأكيد التسليم بالوصل الموقع (مادة ١١.٥)" : "Valider avec Bordereau Signé (Art. 11.5)"}
+                    </button>
                   )}
 
-                  {/* PDF Label Link */}
                   {order.senditDeliveryCode && (
                     <a
-                      href={`http://localhost:3001/api/artisan/orders/${order.id}/label?code=${order.senditDeliveryCode}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn-mobile-outline"
-                      style={{ textDecoration: "none", fontSize: 11, textAlign: "center", justifyContent: "center" }}
+                      className="btn-outline"
+                      href={`${getBackendUrl()}/artisan/orders/${order.id}/label?code=${order.senditDeliveryCode}`}
+                      target="_blank" rel="noopener noreferrer"
+                      style={{ textDecoration: "none", justifyContent: "center", fontSize: 12 }}
                     >
-                      <Printer size={14} /> Télécharger Étiquette Sendit PDF
+                      <Printer size={14} /> {lang === "ar" ? "تحميل وطباعة ملصق سينديت" : "Télécharger l'étiquette Sendit"}
                     </a>
                   )}
                 </div>
@@ -354,6 +270,6 @@ export const ArtisanHomeDashboardView: React.FC<ArtisanHomeDashboardViewProps> =
           })}
         </div>
       )}
-    </motion.div>
+    </div>
   );
 };

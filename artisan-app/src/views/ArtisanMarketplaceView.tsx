@@ -1,295 +1,203 @@
 import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { ShoppingBag, Send, CheckCircle2, MapPin, Clock, Tag, Sparkles, X } from "lucide-react";
+import { motion } from "framer-motion";
+import { ShoppingBag, MapPin, Clock, DollarSign, CheckCircle, Send, Tag } from "lucide-react";
 import type { CustomOrderRequest } from "../types/artisanTypes";
+import { useI18n } from "../services/i18n";
 
-interface ArtisanMarketplaceViewProps {
+interface Props {
   customRequests: CustomOrderRequest[];
   onSubmitQuote: (requestId: string, price: number, days: number, note: string) => Promise<void>;
 }
 
-export const ArtisanMarketplaceView: React.FC<ArtisanMarketplaceViewProps> = ({
-  customRequests,
-  onSubmitQuote,
-}) => {
-  const [selectedCategory, setSelectedCategory] = useState<string>("Toutes");
-  const [activeRequest, setActiveRequest] = useState<CustomOrderRequest | null>(null);
-  const [proposedPrice, setProposedPrice] = useState<string>("");
-  const [confectionDays, setConfectionDays] = useState<string>("7");
-  const [note, setNote] = useState<string>("");
-  const [submitting, setSubmitting] = useState<boolean>(false);
+export const ArtisanMarketplaceView: React.FC<Props> = ({ customRequests, onSubmitQuote }) => {
+  const { lang, t } = useI18n();
+  const [category, setCategory] = useState("all");
+  const [submittingId, setSubmittingId] = useState<string | null>(null);
+  const [quoteForm, setQuoteForm] = useState<{ price: string; days: string; note: string }>({ price: "", days: "", note: "" });
+  const [activeQuoteId, setActiveQuoteId] = useState<string | null>(null);
 
-  const categories = ["Toutes", "Céramique & Poterie", "Cuir & Maroquinerie", "Textile & Caftans", "Bois & Zellige"];
+  const CATEGORIES = [
+    { id: "all", label: t("market_cat_all") },
+    { id: "Cuivre", label: lang === "ar" ? "النحاسيات" : "Cuivre" },
+    { id: "Zellige", label: lang === "ar" ? "الزليج والفخار" : "Zellige" },
+    { id: "Tapis", label: lang === "ar" ? "الزرابي والنسيج" : "Tapis" },
+    { id: "Cuir", label: lang === "ar" ? "المصنوعات الجلدية" : "Cuir" },
+    { id: "Bois", label: lang === "ar" ? "النجارة الفنية والعود" : "Bois" },
+    { id: "Textile", label: lang === "ar" ? "الأثواب والقفطان" : "Textile" },
+    { id: "Céramique", label: lang === "ar" ? "الخزف الفني" : "Céramique" },
+  ];
 
-  const filteredRequests = customRequests.filter((r) => {
-    if (selectedCategory === "Toutes") return true;
-    return r.category.toLowerCase().includes(selectedCategory.toLowerCase());
-  });
+  const filtered = customRequests.filter(r =>
+    category === "all" || r.category === category
+  );
 
-  const handleOpenQuoteModal = (reqItem: CustomOrderRequest) => {
-    setActiveRequest(reqItem);
-    setProposedPrice(reqItem.budget.replace(/\D/g, "") || "1500");
-    setConfectionDays("7");
-    setNote("Exécution artisanale dans notre atelier de Fès avec finitions traditionnelles à la main.");
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!activeRequest || !proposedPrice || !confectionDays) return;
-    setSubmitting(true);
+  const handleSubmitQuote = async (requestId: string) => {
+    const price = Number(quoteForm.price);
+    const days = Number(quoteForm.days);
+    if (!price || !days) return;
+    setSubmittingId(requestId);
     try {
-      await onSubmitQuote(
-        activeRequest.id,
-        Number(proposedPrice),
-        Number(confectionDays),
-        note.trim()
-      );
-      setActiveRequest(null);
-    } catch (err: any) {
-      alert(err.message || "Erreur lors de l'envoi du devis.");
-    } finally {
-      setSubmitting(false);
-    }
+      await onSubmitQuote(requestId, price, days, quoteForm.note);
+      setActiveQuoteId(null);
+      setQuoteForm({ price: "", days: "", note: "" });
+    } catch (e: any) { alert(e.message); }
+    finally { setSubmittingId(null); }
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}
-    >
-      {/* Header Info Banner */}
-      <div className="artisan-card" style={{ background: "linear-gradient(135deg, rgba(184, 98, 63, 0.08), rgba(212, 175, 55, 0.04))", border: "1px solid rgba(184, 98, 63, 0.25)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: 4 }}>
-          <ShoppingBag size={20} color="var(--accent-warm)" />
-          <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 900, fontSize: "var(--font-md)", color: "var(--primary)", margin: 0 }}>
-            Marché des Commandes Sur-Mesure
-          </h3>
-        </div>
-        <p style={{ fontSize: "11px", color: "var(--text-secondary)", margin: 0, lineHeight: 1.4 }}>
-          Annonces personnalisées des clients. Soumettez votre devis (prix et délai) pour fabriquer la pièce.
-        </p>
-      </div>
+    <div className="app-view">
+      <div className="pattern-corner pattern-top-right" />
 
-      {/* Category Pills Slider */}
-      <div style={{ display: "flex", gap: "var(--space-2)", overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
-        {categories.map((cat) => (
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            key={cat}
-            onClick={() => setSelectedCategory(cat)}
-            style={{
-              padding: "8px 16px",
-              borderRadius: 22,
-              border: selectedCategory === cat ? "1.5px solid var(--primary)" : "1px solid var(--border)",
-              background: selectedCategory === cat ? "var(--primary)" : "var(--surface)",
-              color: selectedCategory === cat ? "#FFFFFF" : "var(--text-secondary)",
-              fontFamily: "var(--font-display)",
-              fontSize: "11px",
-              fontWeight: 800,
-              cursor: "pointer",
-              whiteSpace: "nowrap",
-              boxShadow: selectedCategory === cat ? "var(--shadow-sm)" : "none",
-            }}
-          >
-            {cat}
-          </motion.button>
+      {/* Category Pills */}
+      <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 14, scrollbarWidth: "none", marginBottom: 4 }}>
+        {CATEGORIES.map(cat => (
+          <button key={cat.id} className={`pill-tab ${category === cat.id ? "active" : ""}`} onClick={() => setCategory(cat.id)}>
+            {cat.label}
+          </button>
         ))}
       </div>
 
-      {/* Requests Feed */}
-      {filteredRequests.length === 0 ? (
-        <div className="artisan-card" style={{ padding: "44px 20px", textAlign: "center", color: "var(--text-secondary)" }}>
-          <ShoppingBag size={38} style={{ opacity: 0.3, marginBottom: 8 }} />
-          <p style={{ fontSize: "13px", fontWeight: 700, margin: 0 }}>Aucune annonce sur-mesure dans cette catégorie.</p>
+      {/* Section Header */}
+      <div className="section-header">
+        <div>
+          <div className="section-title">{t("market_title")}</div>
+          <div className="section-subtitle">{filtered.length} {t("market_subtitle")}</div>
+        </div>
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="artisan-card" style={{ padding: "48px 20px", textAlign: "center" }}>
+          <ShoppingBag size={38} color="var(--text-placeholder)" style={{ marginBottom: 10 }} />
+          <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-secondary)" }}>{t("market_empty_title")}</p>
+          <p style={{ fontSize: 12, color: "var(--text-placeholder)", marginTop: 4 }}>{t("market_empty_sub")}</p>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-          {filteredRequests.map((reqItem, idx) => {
-            const hasMyQuote = reqItem.quotes.some(q => q.artisanName.includes("Abdelkader"));
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {filtered.map((req, i) => {
+            const hasAlreadyQuoted = req.quotes?.some(q => q.artisanName);
+            const isExpanded = activeQuoteId === req.id;
 
             return (
               <motion.div
-                key={reqItem.id}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.25, delay: idx * 0.05 }}
+                key={req.id}
                 className="artisan-card"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.04 }}
+                style={{ overflow: "hidden" }}
               >
-                <div style={{ display: "flex", gap: "var(--space-3)", marginBottom: "var(--space-3)" }}>
-                  {/* Photo with Section 7 Treatment (Overlay 15% + 90% desaturation) */}
-                  <div className="artisan-photo-wrapper" style={{ width: 84, height: 84, flexShrink: 0, border: "1px solid var(--border)" }}>
-                    <img src={reqItem.image} alt={reqItem.title} />
+                {/* Card header row */}
+                <div style={{ display: "flex", gap: 12, padding: 14, alignItems: "stretch" }}>
+                  {/* Thumbnail */}
+                  <div style={{ width: 72, height: 72, borderRadius: 14, overflow: "hidden", flexShrink: 0 }} className="artisan-photo-wrapper">
+                    {req.image ? (
+                      <img src={req.image} alt={req.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    ) : (
+                      <div className="skeleton-box" style={{ width: "100%", height: "100%", borderRadius: 0, background: "var(--border)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <Tag size={20} color="var(--text-placeholder)" />
+                      </div>
+                    )}
                   </div>
 
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
-                      <span className="badge-pill badge-info" style={{ fontSize: 9 }}>
-                        {reqItem.category}
-                      </span>
-                      <span style={{ fontSize: 10, color: "var(--text-tertiary)" }}>
-                        {new Date(reqItem.createdAt).toLocaleDateString("fr-FR")}
-                      </span>
+                  {/* Info */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14, color: "var(--primary)", marginBottom: 4, lineHeight: 1.3 }}>
+                      {req.title}
                     </div>
-
-                    <h4 style={{ fontFamily: "var(--font-display)", fontSize: "var(--font-sm)", fontWeight: 900, color: "var(--primary)", margin: "2px 0 4px" }}>
-                      {reqItem.title}
-                    </h4>
-
-                    <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
-                      <span>👤 {reqItem.clientName}</span>
-                      <span>•</span>
-                      <span style={{ display: "flex", alignItems: "center", gap: 2 }}>
-                        <MapPin size={10} /> {reqItem.deliveryCity}
-                      </span>
-                    </p>
+                    <div style={{ display: "flex", gap: 10, marginBottom: 4 }}>
+                      <span className="badge badge-info"><Tag size={9} /> {req.category}</span>
+                      {req.deliveryCity && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                          <MapPin size={10} color="var(--text-secondary)" />
+                          <span style={{ fontSize: 10, color: "var(--text-secondary)" }}>{req.deliveryCity}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                      {req.budget && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                          <DollarSign size={10} color="var(--accent-warm)" />
+                          <span style={{ fontSize: 10, color: "var(--accent-warm)", fontWeight: 700 }}>{t("market_budget")} : {req.budget} {t("currency_mad")}</span>
+                        </div>
+                      )}
+                      <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                        <Clock size={10} color="var(--text-secondary)" />
+                        <span style={{ fontSize: 10, color: "var(--text-secondary)" }}>
+                          {new Date(req.createdAt).toLocaleDateString(lang === "ar" ? "ar-MA" : "fr-FR", { day: "numeric", month: "short" })}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <p style={{ fontSize: 11, color: "var(--primary)", margin: "0 0 12px", lineHeight: 1.5, background: "rgba(26,42,58,0.03)", padding: 10, borderRadius: 12, fontStyle: "italic" }}>
-                  "{reqItem.description}"
-                </p>
-
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 10, borderTop: "1px solid var(--border-subtle)" }}>
-                  <div>
-                    <span style={{ fontSize: 10, color: "var(--text-tertiary)", fontWeight: 600 }}>Budget Client :</span>
-                    <p style={{ fontFamily: "var(--font-display)", fontSize: "var(--font-md)", fontWeight: 900, color: "var(--accent-warm)", margin: 0 }}>
-                      {reqItem.budget}
+                {/* Description */}
+                {req.description && (
+                  <div style={{ paddingInlineStart: 14, paddingInlineEnd: 14, paddingBottom: 10 }}>
+                    <p style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5, margin: 0 }}>
+                      {req.description}
                     </p>
                   </div>
+                )}
 
-                  {hasMyQuote ? (
-                    <span className="badge-pill badge-success" style={{ padding: "6px 14px" }}>
-                      ✓ Devis Transmis
+                {/* Existing quotes count */}
+                {req.quotes?.length > 0 && (
+                  <div style={{ paddingInlineStart: 14, paddingInlineEnd: 14, paddingBottom: 10 }}>
+                    <span className="badge badge-gold">
+                      <CheckCircle size={9} /> {req.quotes.length} {lang === "ar" ? "عرض سعر مقدم" : "devis proposé(s)"}
                     </span>
-                  ) : (
-                    <motion.button
-                      whileTap={{ scale: 0.96 }}
-                      onClick={() => handleOpenQuoteModal(reqItem)}
-                      className="btn-mobile-terracotta"
-                      style={{ width: "auto", padding: "9px 16px", fontSize: 11 }}
+                  </div>
+                )}
+
+                {/* Quote Form (expandable) */}
+                {isExpanded ? (
+                  <div style={{ borderTop: "1px solid var(--border)", padding: 14 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+                      <div>
+                        <label className="form-label">{t("market_quote_price")}</label>
+                        <input
+                          type="number" className="form-input" placeholder="1000" min={50}
+                          value={quoteForm.price} onChange={e => setQuoteForm(p => ({ ...p, price: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <label className="form-label">{t("market_quote_days")}</label>
+                        <input
+                          type="number" className="form-input" placeholder="7" min={1}
+                          value={quoteForm.days} onChange={e => setQuoteForm(p => ({ ...p, days: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                    <div style={{ marginBottom: 10 }}>
+                      <label className="form-label">{t("market_quote_note")}</label>
+                      <textarea
+                        className="form-input" rows={2} style={{ resize: "none" }}
+                        placeholder={lang === "ar" ? "اشرح مقاربتك الحرفية والمواد..." : "Expliquez votre approche artisanale…"}
+                        value={quoteForm.note} onChange={e => setQuoteForm(p => ({ ...p, note: e.target.value }))}
+                      />
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button className="btn-outline" style={{ flex: 1 }} onClick={() => setActiveQuoteId(null)}>{t("cancel")}</button>
+                      <button className="btn-terracotta" style={{ flex: 2 }} onClick={() => handleSubmitQuote(req.id)} disabled={submittingId === req.id}>
+                        <Send size={14} /> {submittingId === req.id ? t("loading") : t("market_submit_quote")}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ borderTop: "1px solid var(--border)", padding: "10px 14px" }}>
+                    <button
+                      className={hasAlreadyQuoted ? "btn-outline" : "btn-primary"}
+                      style={{ fontSize: 12, padding: "9px 14px" }}
+                      onClick={() => setActiveQuoteId(req.id)}
                     >
-                      <Send size={13} /> Soumettre un Devis
-                    </motion.button>
-                  )}
-                </div>
+                      <Send size={14} /> {hasAlreadyQuoted ? (lang === "ar" ? "تعديل عرض السعر" : "Modifier mon devis") : t("market_propose_quote")}
+                    </button>
+                  </div>
+                )}
               </motion.div>
             );
           })}
         </div>
       )}
-
-      {/* Quote Submission Glass Sheet Drawer */}
-      <AnimatePresence>
-        {activeRequest && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            style={{
-              position: "fixed",
-              inset: 0,
-              background: "rgba(0,0,0,0.6)",
-              backdropFilter: "blur(6px)",
-              zIndex: 200,
-              display: "flex",
-              alignItems: "flex-end",
-              justifyContent: "center",
-            }}
-          >
-            <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 26, stiffness: 320 }}
-              className="glass-overlay"
-              style={{
-                background: "#FCFBF9",
-                width: "100%",
-                maxWidth: 440,
-                borderRadius: "28px 28px 0 0",
-                padding: "var(--space-5) var(--space-5) var(--space-7)",
-                boxShadow: "0 -14px 40px rgba(0,0,0,0.35)",
-              }}
-            >
-              <div style={{ width: 40, height: 4, background: "#CBD5E1", borderRadius: 2, margin: "0 auto var(--space-4)" }} />
-
-              <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 900, fontSize: "var(--font-md)", color: "var(--primary)", marginBottom: 2 }}>
-                📜 Transmettre un Devis Vendeur
-              </h3>
-              <p style={{ fontSize: "11px", color: "var(--text-secondary)", marginBottom: 16 }}>
-                Pour l'annonce : <strong>{activeRequest.title}</strong>
-              </p>
-
-              <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)" }}>
-                  <div>
-                    <label style={{ fontSize: 10, fontWeight: 800, color: "var(--text-secondary)", display: "block", marginBottom: 4 }}>
-                      Prix Proposé (MAD) *
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      min={100}
-                      value={proposedPrice}
-                      onChange={(e) => setProposedPrice(e.target.value)}
-                      style={{ width: "100%", padding: "12px", borderRadius: 12, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 14, fontWeight: 900, color: "var(--primary)" }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: 10, fontWeight: 800, color: "var(--text-secondary)", display: "block", marginBottom: 4 }}>
-                      Délai Confection (Jours) *
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      min={1}
-                      value={confectionDays}
-                      onChange={(e) => setConfectionDays(e.target.value)}
-                      style={{ width: "100%", padding: "12px", borderRadius: 12, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 14, fontWeight: 900, color: "var(--primary)" }}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label style={{ fontSize: 10, fontWeight: 800, color: "var(--text-secondary)", display: "block", marginBottom: 4 }}>
-                    Note explicative au Client
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    placeholder="Expliquez la qualité des matériaux et les finitions faites main..."
-                    style={{ width: "100%", padding: "12px", borderRadius: 12, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 12, color: "var(--primary)" }}
-                  />
-                </div>
-
-                <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
-                  <button
-                    type="button"
-                    onClick={() => setActiveRequest(null)}
-                    className="btn-mobile-outline"
-                    style={{ flex: 1 }}
-                  >
-                    Annuler
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="btn-mobile-terracotta"
-                    style={{ flex: 2 }}
-                  >
-                    <Send size={15} />
-                    <span>{submitting ? "Transmission..." : "Envoyer le Devis"}</span>
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
+    </div>
   );
 };

@@ -7,8 +7,10 @@ import { montantAPayer } from "../../core/types.js";
 import { MockCmiProvider } from "../../core/paymentProviders/MockCmiProvider.js";
 import { cancelOrder, deliverOrder } from "../services/clientPaymentService.js";
 import { requestReturn } from "../services/clientReturnService.js";
+import { optionalAuthMiddleware } from "../../middleware/auth.middleware.js";
 
 const router = Router();
+router.use(optionalAuthMiddleware);
 const provider = new MockCmiProvider();
 
 const createOrderSchema = z.object({
@@ -34,7 +36,7 @@ const withdrawSchema = z.object({
  * [CLIENT API] Récupérer la liste des commandes du client.
  */
 router.get("/orders", (req, res) => {
-  const clientRef = req.query.clientRef ? String(req.query.clientRef) : "client-me";
+  const clientRef = req.userId || (req.query.clientRef ? String(req.query.clientRef) : "client-me");
   console.log(`\n[VORK-API] 📥 GET /orders - Fetching for client: ${clientRef}`);
   const list = db.select().from(orders).where(eq(orders.clientRef, clientRef)).all();
   console.log(`[VORK-API] ✅ Found ${list.length} orders`);
@@ -60,7 +62,7 @@ router.post("/orders", (req, res) => {
   db.insert(orders)
     .values({
       id,
-      clientRef: parsed.data.clientRef,
+      clientRef: req.userId || parsed.data.clientRef,
       artisanRef: parsed.data.artisanRef ?? "artisan-1",
       totalPrice: parsed.data.totalPrice,
       productType,

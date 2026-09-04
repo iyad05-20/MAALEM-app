@@ -11,6 +11,7 @@ import {
   returnRequests 
 } from "../core/db/schema.js";
 import { recordVendorWarning } from "../client/services/artisanOrderService.js";
+import { getDbMode, setDbMode, checkDbHealth } from "../services/dbSwitchService.js";
 
 export const adminRouter = express.Router();
 
@@ -387,3 +388,39 @@ adminRouter.get("/logistics", async (req, res) => {
     return res.status(500).json({ success: false, error: err.message });
   }
 });
+
+/**
+ * GET /api/admin/config/db-mode
+ * Récupère le mode de BDD actif (dev SQLite vs prod Supabase) et la santé des connexions.
+ */
+adminRouter.get("/config/db-mode", async (req, res) => {
+  try {
+    const health = await checkDbHealth();
+    return res.json({ success: true, ...health });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * POST /api/admin/config/db-mode
+ * Bascule le mode de BDD ('dev' ou 'prod').
+ */
+adminRouter.post("/config/db-mode", async (req, res) => {
+  const { mode } = req.body;
+  if (!mode || (mode !== "dev" && mode !== "prod")) {
+    return res.status(400).json({ success: false, error: "Mode invalide. Valeurs permises: 'dev' ou 'prod'." });
+  }
+  try {
+    const newMode = setDbMode(mode);
+    const health = await checkDbHealth();
+    return res.json({ 
+      success: true, 
+      message: `Base de données basculée en mode [${newMode.toUpperCase()}].`,
+      ...health 
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+

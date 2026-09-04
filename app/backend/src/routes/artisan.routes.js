@@ -11,6 +11,7 @@ import {
   returnRequests 
 } from "../core/db/schema.js";
 import { getAllProducts } from "../db/products.repository.js";
+import { optionalAuthMiddleware } from "../middleware/auth.middleware.js";
 import { 
   acceptOrder, 
   uploadPrepPhotos, 
@@ -22,8 +23,13 @@ import {
 } from "../client/services/artisanOrderService.js";
 
 export const artisanRouter = express.Router();
+artisanRouter.use(optionalAuthMiddleware);
 
 const DEFAULT_ARTISAN_REF = "artisan-1";
+
+export const getArtisanRef = (req) => {
+  return req.userId || (req.query?.artisanRef ? String(req.query.artisanRef) : (req.body?.artisanRef ? String(req.body.artisanRef) : DEFAULT_ARTISAN_REF));
+};
 
 /**
  * GET /api/artisan/orders
@@ -31,7 +37,7 @@ const DEFAULT_ARTISAN_REF = "artisan-1";
  */
 artisanRouter.get("/orders", async (req, res) => {
   try {
-    const artisanRef = req.query.artisanRef ? String(req.query.artisanRef) : DEFAULT_ARTISAN_REF;
+    const artisanRef = getArtisanRef(req);
     const list = db.select().from(orders).where(eq(orders.artisanRef, artisanRef)).orderBy(desc(orders.createdAt)).all();
 
     const enriched = list.map(o => ({
@@ -296,7 +302,7 @@ artisanRouter.post("/disputes/:id/respond", async (req, res) => {
  * Portefeuille financier du Maâlem (Ventes nettes, Séquestre, Historique).
  */
 artisanRouter.get("/wallet", async (req, res) => {
-  const artisanRef = req.query.artisanRef ? String(req.query.artisanRef) : DEFAULT_ARTISAN_REF;
+  const artisanRef = getArtisanRef(req);
   try {
     const allOrders = db.select().from(orders).where(eq(orders.artisanRef, artisanRef)).all();
     const allWithdrawals = db.select().from(withdrawalRequests).where(eq(withdrawalRequests.userId, artisanRef)).all();
@@ -306,7 +312,8 @@ artisanRouter.get("/wallet", async (req, res) => {
     let totalGrossSales = 0;
 
     allOrders.forEach(o => {
-      const netAmount = Math.round(o.totalPrice * 0.90 * 100) / 100; // 90% pour l'artisan (-10% Vork)
+      // Formule exacte Vork : Prix Client TTC = Prix Net Artisan + 5% Comm HT + 20% TVA sur Comm (Majoration 6%)
+      const netAmount = Math.round((o.totalPrice / 1.06) * 100) / 100;
       totalGrossSales += o.totalPrice;
 
       if (o.escrowReleasedAt) {
@@ -318,20 +325,22 @@ artisanRouter.get("/wallet", async (req, res) => {
 
     // Déduction des retraits bancaires déjà validés ou en cours
     const processedWithdrawals = allWithdrawals
-      .filter(w => ["processed", "pending"].includes(w.status))
+      .filter(w => ["processed", "pending", "en_attente_lot_vendredi"].includes(w.status))
       .reduce((sum, w) => sum + w.amount, 0);
 
     availableBalance = Math.max(0, Math.round((availableBalance - processedWithdrawals) * 100) / 100);
+    const totalNetEarnings = Math.round((totalGrossSales / 1.06) * 100) / 100;
+    const vorkPlatformFeesTotal = Math.round((totalGrossSales - totalNetEarnings) * 100) / 100;
 
     return res.json({
       success: true,
       wallet: {
         artisanRef,
         availableBalance,
-        lockedEscrow,
-        totalGrossSales,
-        totalNetEarnings: Math.round(totalGrossSales * 0.90),
-        vorkPlatformFeesTotal: Math.round(totalGrossSales * 0.10),
+        lockedEscrow: Math.round(lockedEscrow * 100) / 100,
+        totalGrossSales: Math.round(totalGrossSales * 100) / 100,
+        totalNetEarnings,
+        vorkPlatformFeesTotal,
         withdrawals: allWithdrawals,
       }
     });
@@ -345,7 +354,7 @@ artisanRouter.get("/wallet", async (req, res) => {
  * Demande de virement des gains sur RIB marocain (24 chiffres - Art. 15).
  */
 artisanRouter.post("/wallet/withdraw", async (req, res) => {
-  const { artisanRef = DEFAULT_ARTISAN_REF, amount, rib } = req.body;
+  const artisanRef = req.body.artisanRef || getArtisanRef(req);
 
   if (!rib || rib.length !== 24 || !/^\d+$/.test(rib)) {
     return res.status(400).json({ success: false, error: "Le RIB bancaire marocain doit comporter exactement 24 chiffres." });
@@ -365,13 +374,13 @@ artisanRouter.post("/wallet/withdraw", async (req, res) => {
       userId: artisanRef,
       amount: numericAmount,
       rib,
-      status: "pending",
+      status: "en_attente_lot_vendredi",
       createdAt: now,
     }).run();
 
     return res.json({
       success: true,
-      message: `Demande de virement de ${numericAmount} MAD enregistrée. Virement sous 3 à 5 jours ouvrés.`,
+      message: `Demande de virement de ${numericAmount} MAD enregistrée. Exécution automatique lors du prochain lot hebdomadaire (Vendredi à 10h00).`,
       withdrawalId,
     });
   } catch (err) {
@@ -384,7 +393,7 @@ artisanRouter.post("/wallet/withdraw", async (req, res) => {
  * Santé de la boutique & Compteur d'avertissements (Art. 19 & 22).
  */
 artisanRouter.get("/profile/health", async (req, res) => {
-  const artisanRef = req.query.artisanRef ? String(req.query.artisanRef) : DEFAULT_ARTISAN_REF;
+  const artisanRef = getArtisanRef(req);
   try {
     let profile = db.select().from(vendorProfiles).where(eq(vendorProfiles.id, artisanRef)).get();
     if (!profile) {
@@ -410,12 +419,126 @@ artisanRouter.get("/profile/health", async (req, res) => {
  * GET /api/artisan/products & POST /api/artisan/products
  * Gestion du Catalogue de l'Artisan (Art. 4).
  */
+let artisanProductsList = [
+  {
+    id: "prd-001",
+    title: "Tajine Fassi Émaillé Bleu de Fès",
+    description: "Céramique traditionnelle cuite au four à bois, décorée à la main avec les émaux naturels de Fès.",
+    price: 350,
+    clientPrice: Math.round(350 * 1.06),
+    productType: "standard",
+    image: "https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?w=600",
+    artisanName: "Maâlem Abdelkader",
+    category: "Céramique & Poterie",
+    rating: 4.9,
+    reviewCount: 24,
+    inStock: true,
+    manufacturingDays: 3,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "prd-002",
+    title: "Vase Amphore Zellige Traditionnel",
+    description: "Grande jarre décorative avec motifs géométriques complexes et finition vernissée.",
+    price: 520,
+    clientPrice: Math.round(520 * 1.06),
+    productType: "standard",
+    image: "https://images.unsplash.com/photo-1583521214690-73421a1829a9?w=600",
+    artisanName: "Maâlem Abdelkader",
+    category: "Céramique & Poterie",
+    rating: 4.8,
+    reviewCount: 17,
+    inStock: true,
+    manufacturingDays: 5,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "prd-003",
+    title: "Service de 6 Assiettes Plates Fassi",
+    description: "Ensemble de 6 assiettes plates artisanales pour table de réception marocaine.",
+    price: 780,
+    clientPrice: Math.round(780 * 1.06),
+    productType: "personnalise",
+    image: "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=600",
+    artisanName: "Maâlem Abdelkader",
+    category: "Céramique & Poterie",
+    rating: 5.0,
+    reviewCount: 31,
+    inStock: true,
+    manufacturingDays: 7,
+    createdAt: new Date().toISOString(),
+  }
+];
+
+artisanRouter.get("/products", async (req, res) => {
+  try {
+    return res.json({ success: true, count: artisanProductsList.length, products: artisanProductsList });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+artisanRouter.post("/products", async (req, res) => {
+  const { title, description, price, productType = "standard", category, image, manufacturingDays = 5 } = req.body;
+
+  if (!title || !price) {
+    return res.status(400).json({ success: false, error: "Le titre et le prix net sont obligatoires." });
+  }
+
+  const numNet = Number(price);
+  const commissionHt = Math.round(numNet * 0.05);
+  const tvaVal = Math.round(commissionHt * 0.20);
+  const clientPrice = numNet + commissionHt + tvaVal;
+
+  const newProduct = {
+    id: `prd-${Date.now()}`,
+    title: String(title).trim(),
+    description: String(description || "").trim(),
+    price: numNet,
+    clientPrice,
+    productType,
+    category: category || "Céramique & Poterie",
+    image: image || "https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?w=600",
+    artisanName: "Maâlem Abdelkader",
+    rating: 5.0,
+    reviewCount: 0,
+    inStock: true,
+    manufacturingDays: Number(manufacturingDays) || 5,
+    createdAt: new Date().toISOString(),
+  };
+
+  artisanProductsList.unshift(newProduct);
+
+  return res.status(201).json({
+    success: true,
+    message: "Création publiée au catalogue Vork avec succès !",
+    product: newProduct,
+  });
+});
+
+artisanRouter.put("/products/:id", async (req, res) => {
+  const { id } = req.params;
+  const updates = req.body;
+  const index = artisanProductsList.findIndex(p => p.id === id);
+
+  if (index === -1) {
+    return res.status(404).json({ success: false, error: "Produit introuvable." });
+  }
+
+  artisanProductsList[index] = { ...artisanProductsList[index], ...updates };
+  return res.json({
+    success: true,
+    message: "Produit mis à jour avec succès !",
+    product: artisanProductsList[index],
+  });
+});
+
 /**
  * GET /api/artisan/notifications & POST /api/artisan/notifications/:id/read
  * Centre de Notifications Artisan.
  */
 artisanRouter.get("/notifications", async (req, res) => {
-  const artisanRef = req.query.artisanRef ? String(req.query.artisanRef) : DEFAULT_ARTISAN_REF;
+  const artisanRef = getArtisanRef(req);
   try {
     const allOrders = db.select().from(orders).where(eq(orders.artisanRef, artisanRef)).all();
     const allDisputes = db.select().from(disputes).all();
@@ -521,7 +644,12 @@ let memoryProfileData = {
 };
 
 artisanRouter.get("/profile/details", async (req, res) => {
-  return res.json({ success: true, profileDetails: memoryProfileData });
+  const currentProfile = {
+    ...memoryProfileData,
+    artisanName: req.userProfile?.fullName || req.user?.email || memoryProfileData.artisanName,
+    phone: req.userProfile?.phone || memoryProfileData.phone,
+  };
+  return res.json({ success: true, profileDetails: currentProfile });
 });
 
 artisanRouter.put("/profile/details", async (req, res) => {
@@ -535,7 +663,7 @@ artisanRouter.put("/profile/details", async (req, res) => {
  * Statistiques & Performance de vente pour l'artisan.
  */
 artisanRouter.get("/stats", async (req, res) => {
-  const artisanRef = req.query.artisanRef ? String(req.query.artisanRef) : DEFAULT_ARTISAN_REF;
+  const artisanRef = getArtisanRef(req);
   try {
     const allOrders = db.select().from(orders).where(eq(orders.artisanRef, artisanRef)).all();
 

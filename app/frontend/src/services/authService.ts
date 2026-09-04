@@ -104,6 +104,14 @@ class AuthService {
   }
 
   /**
+   * En-têtes d'authentification Bearer JWT
+   */
+  getAuthHeaders(): Record<string, string> {
+    const token = this.getToken();
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  }
+
+  /**
    * Récupération de l'utilisateur en cache local
    */
   getStoredUser(): UserProfile | null {

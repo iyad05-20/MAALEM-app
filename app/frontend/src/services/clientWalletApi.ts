@@ -1,7 +1,16 @@
 import type { ClientOrder, ClientWallet, WalletTransaction } from "../types/clientPayment";
+import { authService } from "./authService";
 
 const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001/api';
 const BACKEND_ROOT = API_BASE.replace(/\/api\/?$/, '');
+
+function getHeaders(extra: Record<string, string> = {}): Record<string, string> {
+  return {
+    "Content-Type": "application/json",
+    ...authService.getAuthHeaders(),
+    ...extra
+  };
+}
 
 const LOCAL_STORAGE_KEY_ORDERS = "vork_client_orders_v2";
 const LOCAL_STORAGE_KEY_WALLET = "vork_client_wallet_v2";
@@ -96,7 +105,9 @@ function saveWallet(wallet: ClientWallet): void {
 export const clientWalletAPI = {
   async fetchOrders(_clientRef = "client-me"): Promise<ClientOrder[]> {
     try {
-      const res = await fetch(`${API_BASE}/client/orders?clientRef=${_clientRef}`);
+      const res = await fetch(`${API_BASE}/client/orders?clientRef=${_clientRef}`, {
+        headers: getHeaders()
+      });
       if (res.ok) {
         const data = await res.json() as ClientOrder[];
         if (data && data.length > 0) return data;
@@ -119,7 +130,7 @@ export const clientWalletAPI = {
     try {
       const res = await fetch(`${API_BASE}/client/orders`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getHeaders(),
         body: JSON.stringify({ clientRef, artisanRef, totalPrice, productType }),
       });
       if (res.ok) {
@@ -162,7 +173,7 @@ export const clientWalletAPI = {
     try {
       const res = await fetch(`${API_BASE}/client/orders/${orderId}/pay`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getHeaders(),
         body: JSON.stringify({ choice }),
       });
       if (res.ok) return await res.json() as { success: boolean; redirectUrl: string; amount: number; tranche: string };
@@ -187,7 +198,10 @@ export const clientWalletAPI = {
 
   async cancelOrder(orderId: string): Promise<{ success: boolean; refundAmount: number }> {
     try {
-      const res = await fetch(`${API_BASE}/client/orders/${orderId}/cancel`, { method: "POST", headers: { "Content-Type": "application/json" } });
+      const res = await fetch(`${API_BASE}/client/orders/${orderId}/cancel`, { 
+        method: "POST", 
+        headers: getHeaders() 
+      });
       if (res.ok) return await res.json() as { success: boolean; refundAmount: number };
     } catch {
       // Fallback local dev
@@ -230,7 +244,11 @@ export const clientWalletAPI = {
 
   async requestReturn(orderId: string, mode: "sendit" | "propres_moyens", returnShippingFee = 35): Promise<{ success: boolean; returnId: string }> {
     try {
-      const res = await fetch(`${API_BASE}/client/orders/${orderId}/return`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode, returnShippingFee }) });
+      const res = await fetch(`${API_BASE}/client/orders/${orderId}/return`, {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify({ mode, returnShippingFee })
+      });
       if (res.ok) return await res.json() as { success: boolean; returnId: string };
     } catch {
       // Fallback local dev
@@ -254,7 +272,7 @@ export const clientWalletAPI = {
     try {
       const res = await fetch(`${API_BASE}/client/orders/${orderId}/dispute`, { 
         method: "POST", 
-        headers: { "Content-Type": "application/json" }, 
+        headers: getHeaders(), 
         body: JSON.stringify({ type, reason, clientEvidencePhotos: photos }) 
       });
       if (res.ok) return await res.json() as { success: boolean; disputeId: string };
@@ -275,7 +293,9 @@ export const clientWalletAPI = {
 
   async getWallet(userId = "client-me"): Promise<ClientWallet> {
     try {
-      const res = await fetch(`${API_BASE}/client/wallet/${userId}/balance`);
+      const res = await fetch(`${API_BASE}/client/wallet/${userId}/balance`, {
+        headers: getHeaders()
+      });
       if (res.ok) {
         const data = await res.json() as { balance: number };
         return { userId, balance: data.balance, pendingWithdrawals: 0, transactions: [] };
@@ -291,7 +311,11 @@ export const clientWalletAPI = {
     if (amount <= 0) throw new Error("Montant invalide.");
 
     try {
-      const res = await fetch(`${API_BASE}/client/wallet/${userId}/withdraw`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ amount, rib }) });
+      const res = await fetch(`${API_BASE}/client/wallet/${userId}/withdraw`, {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify({ amount, rib })
+      });
       if (res.ok) return await res.json() as { success: boolean; withdrawalId: string };
     } catch {
       // Fallback local dev
@@ -323,7 +347,7 @@ export const clientWalletAPI = {
     try {
       const res = await fetch(`${API_BASE}/client/orders/${orderId}/extend-deadline`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getHeaders(),
         body: JSON.stringify({ hours }),
       });
       if (res.ok) return await res.json() as { success: boolean; extendedHours: number };
@@ -341,7 +365,7 @@ export const clientWalletAPI = {
     try {
       const res = await fetch(`${API_BASE}/client/orders/${orderId}/cancel-return`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getHeaders(),
       });
       if (res.ok) return await res.json() as { success: boolean };
     } catch {
@@ -360,7 +384,7 @@ export const clientWalletAPI = {
     try {
       const res = await fetch(`${API_BASE}/client/orders/${orderId}/validate-delivery`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getHeaders(),
       });
       if (res.ok) return await res.json() as { success: boolean };
     } catch {
@@ -379,7 +403,7 @@ export const clientWalletAPI = {
     try {
       const res = await fetch(`${API_BASE}/client/orders/${orderId}/declare-not-received`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getHeaders(),
       });
       if (res.ok) return await res.json() as { success: boolean };
     } catch {
@@ -617,7 +641,7 @@ export const clientWalletAPI = {
     try {
       const res = await fetch(`${API_BASE}/client/orders/${orderId}/claim-non-reception`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getHeaders(),
         body: JSON.stringify({ reason }),
       });
       if (res.ok) return await res.json();

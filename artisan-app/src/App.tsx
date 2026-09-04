@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { ArtisanBottomNav, type MobileArtisanTab } from "./components/ArtisanBottomNav";
 import { ArtisanMobileHeader } from "./components/ArtisanMobileHeader";
+import { useI18n } from "./services/i18n";
 
 import { ArtisanHomeDashboardView } from "./views/ArtisanHomeDashboardView";
 import { ArtisanMarketplaceView } from "./views/ArtisanMarketplaceView";
@@ -17,7 +18,9 @@ import { DirectDeliveryModal } from "./components/DirectDeliveryModal";
 import { RefuseOrderModal } from "./components/RefuseOrderModal";
 import { DisputeReplyModal } from "./components/DisputeReplyModal";
 import { WithdrawalModal } from "./components/WithdrawalModal";
-
+import { CGVModalSheet } from "./components/CGVModalSheet";
+import { ArtisanAuthView } from "./views/ArtisanAuthView";
+import { artisanAuthService, type ArtisanUser } from "./services/artisanAuthService";
 import { artisanAPI } from "./services/artisanApi";
 import type { 
   ArtisanOrder, 
@@ -33,6 +36,9 @@ import type {
 } from "./types/artisanTypes";
 
 export const App: React.FC = () => {
+  const [currentUser, setCurrentUser] = useState<ArtisanUser | null>(null);
+  const [checkingAuth, setCheckingAuth] = useState<boolean>(true);
+
   const [currentTab, setCurrentTab] = useState<MobileArtisanTab>("home");
   const [orders, setOrders] = useState<ArtisanOrder[]>([]);
   const [returns, setReturns] = useState<ArtisanReturn[]>([]);
@@ -58,6 +64,7 @@ export const App: React.FC = () => {
   const [refuseOrderId, setRefuseOrderId] = useState<string | null>(null);
   const [replyDispute, setReplyDispute] = useState<ArtisanDispute | null>(null);
   const [showWithdrawalModal, setShowWithdrawalModal] = useState<boolean>(false);
+  const [showCGVModal, setShowCGVModal] = useState<boolean>(false);
 
   const loadAllData = async () => {
     setLoading(true);
@@ -96,8 +103,31 @@ export const App: React.FC = () => {
   };
 
   useEffect(() => {
-    loadAllData();
+    const initAuth = async () => {
+      try {
+        const user = await artisanAuthService.checkSession();
+        setCurrentUser(user);
+        if (user) {
+          await loadAllData();
+        }
+      } catch (err) {
+        console.error("Erreur initialisation session:", err);
+      } finally {
+        setCheckingAuth(false);
+      }
+    };
+    initAuth();
   }, []);
+
+  const handleAuthSuccess = async (user: ArtisanUser) => {
+    setCurrentUser(user);
+    await loadAllData();
+  };
+
+  const handleLogout = () => {
+    artisanAuthService.logout();
+    setCurrentUser(null);
+  };
 
   // Handlers
   const handleTabChange = (tab: MobileArtisanTab) => {
@@ -182,13 +212,15 @@ export const App: React.FC = () => {
     setProfileDetails(updated);
   };
 
+  const { t } = useI18n();
+
   const getHeaderTitle = () => {
     switch (currentTab) {
-      case "home": return "Accueil & Commandes";
-      case "market": return "Marché Sur-Mesure";
-      case "create": return "Publier un Post";
-      case "posts": return "Mes Posts & Catalogue";
-      case "profile": return "Profil & Paramètres";
+      case "home": return t("header_workshop");
+      case "market": return t("header_market");
+      case "create": return t("create_post_title");
+      case "posts": return t("header_posts");
+      case "profile": return t("header_profile");
     }
   };
 
@@ -196,6 +228,29 @@ export const App: React.FC = () => {
   const openDisputesCount = disputes.filter(d => !d.status.startsWith("resolu") && d.status !== "rejete").length;
   const pendingReturnsCount = returns.filter(r => r.status === "initie").length;
   const unreadNotifsCount = notifications.filter(n => !n.read).length;
+
+  if (checkingAuth) {
+    return (
+      <div className="phone-shell" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
+        <div style={{ textAlign: "center", padding: 24 }}>
+          <div style={{ width: 36, height: 36, border: "3px solid rgba(184,98,63,0.2)", borderTopColor: "var(--accent-warm)", borderRadius: "50%", margin: "0 auto 16px", animation: "spin 0.8s linear infinite" }} />
+          <p style={{ fontFamily: "var(--font-display)", color: "var(--primary)", fontWeight: 700, fontSize: 14 }}>
+            {t("loading")}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <div className="phone-shell">
+        <div className="pattern-corner pattern-top-right" />
+        <div className="pattern-corner pattern-bottom-left" />
+        <ArtisanAuthView onAuthSuccess={handleAuthSuccess} />
+      </div>
+    );
+  }
 
   return (
     <div className="phone-shell">
@@ -251,9 +306,12 @@ export const App: React.FC = () => {
             stats={stats}
             returns={returns}
             disputes={disputes}
+            currentUser={currentUser}
+            onLogout={handleLogout}
             onUpdateProfile={handleUpdateProfile}
             onOpenReturns={() => setShowReturnsDrawer(true)}
             onOpenDisputes={() => setShowDisputesDrawer(true)}
+            onOpenCGV={() => setShowCGVModal(true)}
           />
         )}
       </main>
@@ -292,7 +350,7 @@ export const App: React.FC = () => {
               }}
             />
             <button onClick={() => setShowNotificationsModal(false)} className="btn-mobile-outline" style={{ width: "100%", marginTop: 14 }}>
-              Fermer
+              {t("close")}
             </button>
           </div>
         </div>
@@ -308,7 +366,7 @@ export const App: React.FC = () => {
               onConfirmReturn={handleConfirmReturn}
             />
             <button onClick={() => setShowReturnsDrawer(false)} className="btn-mobile-outline" style={{ width: "100%", marginTop: 14 }}>
-              Fermer
+              {t("close")}
             </button>
           </div>
         </div>
@@ -327,7 +385,7 @@ export const App: React.FC = () => {
               }}
             />
             <button onClick={() => setShowDisputesDrawer(false)} className="btn-mobile-outline" style={{ width: "100%", marginTop: 14 }}>
-              Fermer
+              {t("close")}
             </button>
           </div>
         </div>
@@ -344,6 +402,7 @@ export const App: React.FC = () => {
       {senditModalOrder && (
         <SenditShippingModal
           order={senditModalOrder}
+          defaultAddress={profileDetails?.pickupAddress}
           onClose={() => setSenditModalOrder(null)}
           onStep1={handleSenditStep1}
           onStep2={handleSenditStep2}
@@ -378,8 +437,15 @@ export const App: React.FC = () => {
       {showWithdrawalModal && wallet && (
         <WithdrawalModal
           availableBalance={wallet.availableBalance}
+          defaultRib={profileDetails?.defaultRib}
           onClose={() => setShowWithdrawalModal(false)}
           onRequestWithdrawal={handleRequestWithdrawal}
+        />
+      )}
+
+      {showCGVModal && (
+        <CGVModalSheet
+          onClose={() => setShowCGVModal(false)}
         />
       )}
     </div>

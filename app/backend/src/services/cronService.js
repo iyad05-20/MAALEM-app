@@ -1,6 +1,6 @@
 import { eq, and, isNull, inArray, lte } from "drizzle-orm";
 import { db } from "../core/db/index.js";
-import { orders, returnRequests, vendorProfiles, cronExecutions } from "../core/db/schema.js";
+import { orders, returnRequests, vendorProfiles, cronExecutions, withdrawalRequests } from "../core/db/schema.js";
 import { recordVendorWarning } from "../client/services/artisanOrderService.js";
 
 /**
@@ -288,7 +288,46 @@ export async function runMonthlyWarningResetJob() {
 }
 
 /**
- * Exécute l'ensemble des 5 jobs séquentiellement.
+ * Job 6 : Traitement du Lot Hebdomadaire des Virements Artisans (Vendredi à 10h00)
+ * - Rassemble toutes les demandes de virement en attente.
+ * - Simule l'exécution du virement interbancaire marocain (RIB 24 chiffres).
+ * - Clôture les demandes au statut 'processed'.
+ */
+export async function runWeeklyWithdrawalBatchJob() {
+  console.log("[CRON] ⏰ Démarrage du Job 6 : Lot Hebdomadaire des Virements du Vendredi 10h00...");
+  const now = new Date();
+  let processedCount = 0;
+  let totalAmount = 0;
+  const logs = [];
+
+  try {
+    const allPending = db.select().from(withdrawalRequests).where(
+      inArray(withdrawalRequests.status, ["pending", "en_attente_lot_vendredi"])
+    ).all();
+
+    for (const req of allPending) {
+      db.update(withdrawalRequests).set({
+        status: "processed",
+        processedAt: now.toISOString(),
+      }).where(eq(withdrawalRequests.id, req.id)).run();
+
+      processedCount++;
+      totalAmount += req.amount;
+      logs.push(`Virement #${req.id} de ${req.amount} MAD exécuté vers le RIB ${req.rib.slice(0, 4)}...${req.rib.slice(-4)} (${req.userId}).`);
+    }
+
+    await logCronExecution("virements-vendredi", "success", processedCount, { totalAmount, logs });
+    console.log(`[CRON] ✅ Job 6 terminé (${processedCount} virements traités pour un total de ${totalAmount} MAD).`);
+    return { success: true, processedCount, totalAmount, logs };
+  } catch (err) {
+    console.error("[CRON] ❌ Erreur Job 6 :", err);
+    await logCronExecution("virements-vendredi", "failed", 0, err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Exécute l'ensemble des 6 jobs séquentiellement.
  */
 export async function runAllCronJobs() {
   console.log("[CRON] 🚀 Lancement global de toutes les tâches planifiées CGV...");
@@ -298,6 +337,7 @@ export async function runAllCronJobs() {
     job3_escrowRelease: await runEscrowReleaseJob(),
     job4_expiredReturns: await runExpiredReturnsJob(),
     job5_monthlyReset: await runMonthlyWarningResetJob(),
+    job6_weeklyWithdrawals: await runWeeklyWithdrawalBatchJob(),
   };
   return results;
 }
@@ -316,9 +356,12 @@ export function startCronScheduler(intervalMinutes = 60) {
       const currentHour = now.getHours();
       const currentDay = now.getDate();
 
-      // Relance J+2 exécutée à 10h00
+      // Relance J+2 exécutée à 10h00 & Virement hebdomadaire chaque vendredi à 10h00
       if (currentHour === 10) {
         await runJ2RelanceJob();
+        if (now.getDay() === 5) {
+          await runWeeklyWithdrawalBatchJob();
+        }
       }
 
       // Auto-validation et Libération Escrow exécutées à minuit (00h00)

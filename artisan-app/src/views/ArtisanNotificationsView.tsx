@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import { Bell, Package, Scale, RotateCcw, Wallet, CheckCircle2, ChevronRight } from "lucide-react";
 import type { ArtisanNotification } from "../types/artisanTypes";
+import { useI18n } from "../services/i18n";
 
 interface ArtisanNotificationsViewProps {
   notifications: ArtisanNotification[];
@@ -11,6 +12,16 @@ export const ArtisanNotificationsView: React.FC<ArtisanNotificationsViewProps> =
   notifications,
   onNavigateTab,
 }) => {
+  const { lang, isRTL, t } = useI18n();
+  const [filter, setFilter] = useState<"all" | "orders" | "disputes" | "wallet">("all");
+
+  const filteredNotifications = notifications.filter(n => {
+    if (filter === "orders") return n.type === "new_order";
+    if (filter === "disputes") return n.type === "dispute" || n.type === "return";
+    if (filter === "wallet") return n.type === "escrow_released" || n.type === "withdrawal";
+    return true;
+  });
+
   const getIcon = (type: string) => {
     switch (type) {
       case "new_order": return <Package size={18} color="var(--accent-warm)" />;
@@ -21,6 +32,13 @@ export const ArtisanNotificationsView: React.FC<ArtisanNotificationsViewProps> =
       default: return <Bell size={18} color="var(--primary)" />;
     }
   };
+
+  const categories = [
+    { id: "all", label: t("notif_filter_all") },
+    { id: "orders", label: t("notif_filter_orders") },
+    { id: "disputes", label: t("notif_filter_disputes") },
+    { id: "wallet", label: t("notif_filter_wallet") },
+  ];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -39,22 +57,36 @@ export const ArtisanNotificationsView: React.FC<ArtisanNotificationsViewProps> =
         </div>
         <div>
           <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 14, color: "var(--primary)", margin: 0 }}>
-            Centre de Notifications
+            {t("notif_center_title")}
           </h3>
           <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: 0 }}>
-            Alertes commandes, relances J+2, litiges 48h et virements
+            {t("notif_center_sub")}
           </p>
         </div>
       </div>
 
-      {notifications.length === 0 ? (
+      {/* Category Filter Pills */}
+      <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4 }}>
+        {categories.map(cat => (
+          <button
+            key={cat.id}
+            onClick={() => setFilter(cat.id as any)}
+            className={`pill-tab ${filter === cat.id ? "active" : ""}`}
+            style={{ padding: "6px 12px", fontSize: 11, whiteSpace: "nowrap" }}
+          >
+            {cat.label}
+          </button>
+        ))}
+      </div>
+
+      {filteredNotifications.length === 0 ? (
         <div className="artisan-card" style={{ padding: "40px 20px", textAlign: "center", color: "var(--text-secondary)" }}>
           <Bell size={36} style={{ opacity: 0.3, marginBottom: 8 }} />
-          <p style={{ fontSize: 13, fontWeight: 600, margin: 0 }}>Aucune notification pour le moment.</p>
+          <p style={{ fontSize: 13, fontWeight: 600, margin: 0 }}>{t("notif_empty")}</p>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {notifications.map((n) => (
+          {filteredNotifications.map((n) => (
             <div
               key={n.id}
               onClick={() => onNavigateTab(n.linkTab)}
@@ -62,7 +94,7 @@ export const ArtisanNotificationsView: React.FC<ArtisanNotificationsViewProps> =
               style={{
                 cursor: "pointer",
                 padding: 14,
-                borderLeft: !n.read ? "3.5px solid var(--accent-warm)" : "1px solid var(--border)",
+                borderInlineStart: !n.read ? "3.5px solid var(--accent-warm)" : "1px solid var(--border)",
                 background: !n.read ? "linear-gradient(135deg, rgba(204,119,85,0.04), var(--surface))" : "var(--surface)",
               }}
             >
@@ -74,17 +106,17 @@ export const ArtisanNotificationsView: React.FC<ArtisanNotificationsViewProps> =
                   </h4>
                 </div>
                 <span style={{ fontSize: 10, color: "var(--text-secondary)" }}>
-                  {new Date(n.date).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+                  {new Date(n.date).toLocaleTimeString(lang === "ar" ? "ar-MA" : "fr-FR", { hour: "2-digit", minute: "2-digit" })}
                 </span>
               </div>
 
-              <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: "0 0 8px", lineHeight: 1.4, paddingLeft: 26 }}>
+              <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: "0 0 8px", lineHeight: 1.4, paddingInlineStart: 26 }}>
                 {n.message}
               </p>
 
               <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 4, fontSize: 10, color: "var(--accent-warm)", fontWeight: 700 }}>
-                <span>Voir le dossier</span>
-                <ChevronRight size={12} />
+                <span>{lang === "ar" ? "معاينة الملف" : "Voir le dossier"}</span>
+                <ChevronRight size={12} style={{ transform: isRTL ? "rotate(180deg)" : "none" }} />
               </div>
             </div>
           ))}

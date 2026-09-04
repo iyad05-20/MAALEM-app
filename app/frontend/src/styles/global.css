@@ -3,7 +3,7 @@
    Migrated from vanilla CSS → React global styles
    ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Cairo:wght@400;500;600;700;800&display=swap');
 
 /* ─── Design Tokens ─────────────────────────────────────────────────────── */
 :root {
@@ -22,10 +22,20 @@
 
   --font-display: 'Plus Jakarta Sans', sans-serif;
   --font-body: 'Manrope', sans-serif;
+  --font-arabic: 'Cairo', 'Plus Jakarta Sans', sans-serif;
 
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
   --shadow-md: 0 8px 24px rgba(26, 42, 58, 0.06);
   --shadow-lg: 0 16px 32px rgba(26, 42, 58, 0.08);
+}
+
+html[dir="rtl"], body.font-arabic {
+  font-family: var(--font-arabic) !important;
+}
+
+html[dir="rtl"] h1, html[dir="rtl"] h2, html[dir="rtl"] h3, html[dir="rtl"] h4, html[dir="rtl"] h5, html[dir="rtl"] h6,
+html[dir="rtl"] .brand-logo, html[dir="rtl"] .chapter-title, html[dir="rtl"] .hero-title {
+  font-family: var(--font-arabic) !important;
 }
 
 /* ─── Reset ─────────────────────────────────────────────────────────────── */

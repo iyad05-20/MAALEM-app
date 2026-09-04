@@ -45,7 +45,9 @@ export async function senditWebhookHandler(req, res) {
     return res.status(200).json({ success: true, message: "Ignored unhandled event type" });
   }
 
-  const { code, newStatus, proofImage, counterUnreachable, lastActionAt } = payload;
+  const statusKey = payload.newStatus || payload.status;
+  const { code, proofImage, counterUnreachable, lastActionAt } = payload;
+  const newStatus = statusKey;
 
   try {
     // Find corresponding Vork order

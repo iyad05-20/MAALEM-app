@@ -1,48 +1,63 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Check, Camera, Sparkles, X, Info } from "lucide-react";
+import { Check, X, Info, ChevronDown, Package } from "lucide-react";
+import { useI18n } from "../services/i18n";
 
 interface CreatePostModalSheetProps {
   onClose: () => void;
   onCreateProduct: (productData: any) => Promise<void>;
 }
 
+const CATEGORIES = [
+  { key: "ceramique", fr: "Céramique & Poterie", ar: "فخار وخزف" },
+  { key: "cuir", fr: "Cuir & Maroquinerie", ar: "مصنوعات جلدية" },
+  { key: "textile", fr: "Textile & Caftans", ar: "نسيج وقفطان" },
+  { key: "bois", fr: "Bois & Zellige", ar: "خشب وزليج" },
+  { key: "cuivre", fr: "Cuivre & Métal", ar: "نحاسيات ومعادن" },
+  { key: "tapis", fr: "Tapis & Broderie", ar: "زرابي وطرز" },
+  { key: "bijoux", fr: "Bijoux & Accessoires", ar: "حلي وإكسسوارات" },
+];
+
 export const CreatePostModalSheet: React.FC<CreatePostModalSheetProps> = ({
   onClose,
   onCreateProduct,
 }) => {
+  const { t, lang } = useI18n();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [netPrice, setNetPrice] = useState("");
   const [productType, setProductType] = useState<"standard" | "personnalise">("standard");
-  const [category, setCategory] = useState("Céramique & Poterie");
-  const [image, setImage] = useState("https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?w=600");
+  const [categoryKey, setCategoryKey] = useState(CATEGORIES[0].key);
+  const [image, setImage] = useState("");
   const [manufacturingDays, setManufacturingDays] = useState(5);
   const [loading, setLoading] = useState(false);
 
-  // New Pricing Formula: 5% Commission + 20% TVA on Commission
+  // Pricing formula: artisan saisit son prix NET
+  // Platform adds: 5% commission HT + 20% TVA on 5% commission
   const numNet = Number(netPrice) || 0;
-  const commissionHt = Math.round(numNet * 0.05);
-  const tvaVal = Math.round(commissionHt * 0.20);
-  const clientDisplayedPrice = numNet > 0 ? numNet + commissionHt + tvaVal : 0;
+  const commissionHt = Math.round(numNet * 0.05);   // 5% frais Vork HT
+  const tvaVal      = Math.round(commissionHt * 0.20); // 20% TVA sur commission seulement
+  const clientPrice = numNet > 0 ? numNet + commissionHt + tvaVal : 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !netPrice) return;
     setLoading(true);
     try {
+      const selectedCat = CATEGORIES.find(c => c.key === categoryKey);
       await onCreateProduct({
         title: title.trim(),
         description: description.trim(),
-        price: numNet, // Store net price requested by artisan
+        price: numNet,         // net artisan stocké
+        clientPrice,           // prix affiché client
         productType,
-        category,
+        category: selectedCat ? (lang === "ar" ? selectedCat.ar : selectedCat.fr) : categoryKey,
         image,
         manufacturingDays: Number(manufacturingDays),
       });
       onClose();
     } catch (err: any) {
-      alert(err.message || "Erreur lors de la publication du post.");
+      alert(err.message || "Erreur lors de la publication.");
     } finally {
       setLoading(false);
     }
@@ -54,168 +69,230 @@ export const CreatePostModalSheet: React.FC<CreatePostModalSheetProps> = ({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        style={{
-          position: "fixed",
-          inset: 0,
-          background: "rgba(0,0,0,0.6)",
-          backdropFilter: "blur(6px)",
-          zIndex: 200,
-          display: "flex",
-          alignItems: "flex-end",
-          justifyContent: "center",
-        }}
+        className="sheet-backdrop"
+        onClick={onClose}
       >
         <motion.div
           initial={{ y: "100%" }}
           animate={{ y: 0 }}
           exit={{ y: "100%" }}
           transition={{ type: "spring", damping: 26, stiffness: 320 }}
-          className="glass-overlay"
-          style={{
-            background: "#FCFBF9",
-            width: "100%",
-            maxWidth: 440,
-            borderRadius: "28px 28px 0 0",
-            padding: "var(--space-5) var(--space-5) var(--space-7)",
-            maxHeight: "90vh",
-            overflowY: "auto",
-            boxShadow: "0 -14px 40px rgba(0,0,0,0.35)",
-          }}
+          className="sheet-panel"
+          onClick={e => e.stopPropagation()}
+          style={{ maxWidth: 390 }}
         >
-          <div style={{ width: 40, height: 4, background: "#CBD5E1", borderRadius: 2, margin: "0 auto var(--space-4)" }} />
+          <div className="sheet-handle" />
 
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          {/* Header */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 }}>
             <div>
-              <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 900, fontSize: "var(--font-md)", color: "var(--primary)", margin: 0 }}>
-                ✨ Publier une Création d'Atelier
-              </h3>
-              <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: 0 }}>
-                Ajoutez un produit d'artisanat sur la marketplace Vork
-              </p>
+              <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 3 }}>
+                <Package size={16} color="var(--accent-warm)" />
+                <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 17, color: "var(--primary)" }}>
+                  {t("create_post_title")}
+                </span>
+              </div>
+              <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                {t("create_post_subtitle")}
+              </div>
             </div>
-
-            <button
-              onClick={onClose}
-              style={{ background: "rgba(0,0,0,0.06)", border: "none", width: 34, height: 34, borderRadius: "50%", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--primary)" }}
-            >
-              <X size={18} />
+            <button className="icon-btn" onClick={onClose}>
+              <X size={17} />
             </button>
           </div>
 
           <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+
+            {/* Title */}
             <div>
-              <label style={{ fontSize: 10, fontWeight: 800, color: "var(--text-secondary)", display: "block", marginBottom: 4 }}>
-                Titre de la création d'artisanat *
-              </label>
+              <label className="form-label">{t("create_title_label")}</label>
               <input
+                className="form-input"
                 type="text"
                 required
-                placeholder="Ex: Tajine Fassi en Céramique Bleue Peint à la Main"
+                placeholder={t("create_title_placeholder")}
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                style={{ width: "100%", padding: "12px", borderRadius: 12, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 13, color: "var(--primary)" }}
+                onChange={e => setTitle(e.target.value)}
               />
             </div>
 
-            {/* Pricing Section showing Net Artisan vs Client Price */}
-            <div style={{ background: "rgba(184, 98, 63, 0.06)", padding: "14px", borderRadius: 16, border: "1px solid rgba(184, 98, 63, 0.2)" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 8 }}>
+            {/* Type toggle */}
+            <div>
+              <label className="form-label">{t("create_type_label")}</label>
+              <div style={{ display: "flex", gap: 8 }}>
+                {(["standard", "personnalise"] as const).map(pType => (
+                  <button
+                    key={pType}
+                    type="button"
+                    className={`pill-tab ${productType === pType ? "active" : ""}`}
+                    onClick={() => setProductType(pType)}
+                    style={{ flex: 1, padding: "10px 8px" }}
+                  >
+                    {pType === "standard" ? t("create_type_standard") : t("create_type_custom")}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* ── PRICING BOX (core feature) ───────────────────────────── */}
+            <div style={{
+              background: "rgba(184, 98, 63, 0.05)",
+              border: "1px solid rgba(184, 98, 63, 0.2)",
+              borderRadius: 18,
+              padding: 16,
+            }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+                {/* NET Price (artisan input) */}
                 <div>
-                  <label style={{ fontSize: 10, fontWeight: 800, color: "var(--accent-warm)", display: "block", marginBottom: 4 }}>
-                    Prix Net Maâlem (MAD) *
+                  <label style={{ fontSize: 10, fontWeight: 800, color: "var(--accent-warm)", display: "block", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                    {t("create_breakdown_net")} *
                   </label>
-                  <input
-                    type="number"
-                    required
-                    min={50}
-                    placeholder="1000"
-                    value={netPrice}
-                    onChange={(e) => setNetPrice(e.target.value)}
-                    style={{ width: "100%", padding: "12px", borderRadius: 12, border: "1.5px solid var(--accent-warm)", background: "var(--surface)", fontSize: 16, fontWeight: 900, fontFamily: "var(--font-display)", color: "var(--primary)" }}
-                  />
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type="number"
+                      required
+                      min={50}
+                      placeholder="1000"
+                      value={netPrice}
+                      onChange={e => setNetPrice(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "11px 40px 11px 14px",
+                        borderRadius: 14,
+                        border: "1.5px solid var(--accent-warm)",
+                        background: "var(--surface)",
+                        fontSize: 18,
+                        fontWeight: 900,
+                        fontFamily: "var(--font-display)",
+                        color: "var(--primary)",
+                        outline: "none",
+                      }}
+                    />
+                    <span style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "var(--text-secondary)", fontWeight: 700 }}>
+                      {t("currency_mad")}
+                    </span>
+                  </div>
                 </div>
 
+                {/* Client Displayed Price (computed) */}
                 <div>
-                  <label style={{ fontSize: 10, fontWeight: 800, color: "var(--text-secondary)", display: "block", marginBottom: 4 }}>
-                    Prix Affiché Client (TTC)
+                  <label style={{ fontSize: 10, fontWeight: 800, color: "var(--accent-emerald)", display: "block", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                    {t("create_breakdown_client")}
                   </label>
-                  <div style={{ width: "100%", padding: "12px", borderRadius: 12, border: "1px solid var(--border)", background: "rgba(255,255,255,0.7)", fontSize: 16, fontWeight: 900, fontFamily: "var(--font-display)", color: "var(--accent-emerald)" }}>
-                    {clientDisplayedPrice} MAD
+                  <div style={{
+                    padding: "11px 14px",
+                    borderRadius: 14,
+                    border: "1.5px solid rgba(45,106,79,0.35)",
+                    background: numNet > 0 ? "rgba(45,106,79,0.06)" : "rgba(0,0,0,0.03)",
+                    fontSize: 18,
+                    fontWeight: 900,
+                    fontFamily: "var(--font-display)",
+                    color: numNet > 0 ? "var(--accent-emerald)" : "var(--text-placeholder)",
+                  }}>
+                    {numNet > 0 ? `${clientPrice} ${t("currency_mad")}` : `— ${t("currency_mad")}`}
                   </div>
                 </div>
               </div>
 
+              {/* Breakdown detail */}
               {numNet > 0 && (
-                <p style={{ fontSize: 10, color: "var(--text-secondary)", margin: 0, display: "flex", alignItems: "center", gap: 4 }}>
-                  <Info size={12} color="var(--accent-warm)" />
-                  <span>Vous recevrez exactement <strong>{numNet} MAD NET</strong> (5% frais Vork = {commissionHt} MAD, TVA = {tvaVal} MAD).</span>
-                </p>
+                <div style={{ background: "rgba(255,255,255,0.7)", borderRadius: 12, padding: "10px 12px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 6 }}>
+                    <Info size={12} color="var(--accent-warm)" />
+                    <span style={{ fontSize: 10, fontWeight: 700, color: "var(--accent-warm)", textTransform: "uppercase", letterSpacing: 0.3 }}>
+                      {t("create_breakdown_title")}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                    {[
+                      { label: t("create_breakdown_net"), value: `${numNet} ${t("currency_mad")}`, color: "var(--primary)" },
+                      { label: t("create_breakdown_commission"), value: `+ ${commissionHt} ${t("currency_mad")}`, color: "var(--text-secondary)" },
+                      { label: t("create_breakdown_tva"), value: `+ ${tvaVal} ${t("currency_mad")}`, color: "var(--text-secondary)" },
+                    ].map(row => (
+                      <div key={row.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ fontSize: 10, color: "var(--text-secondary)" }}>{row.label}</span>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: row.color }}>{row.value}</span>
+                      </div>
+                    ))}
+                    <div style={{ borderTop: "1px solid var(--border)", paddingTop: 5, marginTop: 2, display: "flex", justifyContent: "space-between" }}>
+                      <span style={{ fontSize: 10, fontWeight: 800, color: "var(--accent-emerald)" }}>{t("create_breakdown_client")}</span>
+                      <span style={{ fontSize: 11, fontWeight: 900, fontFamily: "var(--font-display)", color: "var(--accent-emerald)" }}>{clientPrice} {t("currency_mad")}</span>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
 
+            {/* Category + Délai */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <div>
-                <label style={{ fontSize: 10, fontWeight: 800, color: "var(--text-secondary)", display: "block", marginBottom: 4 }}>
-                  Catégorie d'artisanat *
-                </label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  style={{ width: "100%", padding: "12px", borderRadius: 12, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 11, fontWeight: 800, color: "var(--primary)" }}
-                >
-                  <option value="Céramique & Poterie">Céramique & Poterie</option>
-                  <option value="Cuir & Maroquinerie">Cuir & Maroquinerie</option>
-                  <option value="Textile & Caftans">Textile & Caftans</option>
-                  <option value="Bois & Zellige">Bois & Zellige</option>
-                </select>
+                <label className="form-label">{t("create_category_label")}</label>
+                <div style={{ position: "relative" }}>
+                  <select
+                    value={categoryKey}
+                    onChange={e => setCategoryKey(e.target.value)}
+                    className="form-input"
+                    style={{ paddingRight: 32, appearance: "none", cursor: "pointer" }}
+                  >
+                    {CATEGORIES.map(c => (
+                      <option key={c.key} value={c.key}>
+                        {lang === "ar" ? c.ar : c.fr}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} color="var(--text-secondary)" style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+                </div>
               </div>
-
               <div>
-                <label style={{ fontSize: 10, fontWeight: 800, color: "var(--text-secondary)", display: "block", marginBottom: 4 }}>
-                  Délai Confection (Jours)
-                </label>
+                <label className="form-label">{t("create_lead_time_label")}</label>
                 <input
                   type="number"
                   min={1}
                   value={manufacturingDays}
-                  onChange={(e) => setManufacturingDays(Number(e.target.value))}
-                  style={{ width: "100%", padding: "12px", borderRadius: 12, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 13, fontWeight: 900, color: "var(--primary)" }}
+                  onChange={e => setManufacturingDays(Number(e.target.value))}
+                  className="form-input"
                 />
               </div>
             </div>
 
+            {/* Image URL */}
             <div>
-              <label style={{ fontSize: 10, fontWeight: 800, color: "var(--text-secondary)", display: "block", marginBottom: 4 }}>
-                URL Photo de la création
-              </label>
+              <label className="form-label">{t("create_photo_label")}</label>
               <input
                 type="text"
                 value={image}
-                onChange={(e) => setImage(e.target.value)}
-                style={{ width: "100%", padding: "12px", borderRadius: 12, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 11, color: "var(--primary)" }}
+                onChange={e => setImage(e.target.value)}
+                className="form-input"
+                placeholder="https://..."
               />
+              {image && (
+                <div style={{ marginTop: 8, borderRadius: 12, overflow: "hidden", height: 100 }}>
+                  <img src={image} alt="preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                </div>
+              )}
             </div>
 
+            {/* Description */}
             <div>
-              <label style={{ fontSize: 10, fontWeight: 800, color: "var(--text-secondary)", display: "block", marginBottom: 4 }}>
-                Description détaillée de la pièce
-              </label>
+              <label className="form-label">{t("create_description_label")}</label>
               <textarea
                 rows={3}
-                placeholder="Décrivez les matériaux naturels (cuir végétal, argile de Fès), la technique de fabrication traditionnelle..."
+                placeholder={t("create_desc_placeholder")}
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                style={{ width: "100%", padding: "12px", borderRadius: 12, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 12, color: "var(--primary)" }}
+                onChange={e => setDescription(e.target.value)}
+                className="form-input"
+                style={{ resize: "none", lineHeight: 1.5 }}
               />
             </div>
 
-            <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
-              <button type="button" onClick={onClose} className="btn-mobile-outline" style={{ flex: 1 }}>
-                Annuler
+            {/* Action buttons */}
+            <div style={{ display: "flex", gap: 10 }}>
+              <button type="button" className="btn-outline" style={{ flex: 1 }} onClick={onClose}>
+                {t("cancel")}
               </button>
-              <button type="submit" disabled={loading} className="btn-mobile-terracotta" style={{ flex: 2 }}>
+              <button type="submit" className="btn-terracotta" style={{ flex: 2 }} disabled={loading}>
                 <Check size={16} />
-                <span>{loading ? "Publication..." : "Publier sur Vork"}</span>
+                {loading ? t("create_submitting") : t("create_submit_btn")}
               </button>
             </div>
           </form>

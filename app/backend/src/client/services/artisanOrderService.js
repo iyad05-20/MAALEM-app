@@ -88,31 +88,36 @@ export async function prepareSenditShipping(orderId, deliveryData) {
     throw new Error("sendit_interdit_produits_personnalises_sur_commande");
   }
 
+  const isSimulation = process.env.SENDIT_SIMULATION === "true" || !process.env.SENDIT_API_TOKEN;
   let senditDeliveryCode;
   let waybillUrl = "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
 
-  try {
-    const senditResult = await senditClient.createDelivery({
-      pickup_district_id: Number(deliveryData.pickup_district_id || 46),
-      district_id: Number(deliveryData.district_id || 1),
-      name: deliveryData.name || "Client Destinataire",
-      amount: order.totalPrice,
-      address: deliveryData.address || "Adresse Client",
-      phone: deliveryData.phone || "0600000000",
-      reference: order.id,
-      allow_open: order.allowOpen ?? 1,
-      allow_try: order.allowTry ?? 0,
-    });
+  if (!isSimulation) {
+    try {
+      const senditResult = await senditClient.createDelivery({
+        pickup_district_id: Number(deliveryData.pickup_district_id || 46),
+        district_id: Number(deliveryData.district_id || 1),
+        name: deliveryData.name || "Client Destinataire",
+        amount: order.totalPrice,
+        address: deliveryData.address || "Adresse Client",
+        phone: deliveryData.phone || "0600000000",
+        reference: order.id,
+        allow_open: order.allowOpen ?? 1,
+        allow_try: order.allowTry ?? 0,
+      });
 
-    if (senditResult.success && senditResult.data?.code) {
-      senditDeliveryCode = senditResult.data.code;
+      if (senditResult.success && senditResult.data?.code) {
+        senditDeliveryCode = senditResult.data.code;
+      }
+    } catch (err) {
+      console.warn(`[VORK-API] ⚠️ Sendit Real API call failed (${err.message}). Falling back to simulation code.`);
     }
-  } catch (err) {
-    console.warn(`[VORK-API] ⚠️ Sendit API call failed (${err.message}). Using mock code.`);
+  } else {
+    console.log(`[VORK-API] 🧪 Mode Sendit Simulation actif (SENDIT_SIMULATION=true).`);
   }
 
   if (!senditDeliveryCode) {
-    senditDeliveryCode = `SND-MOCK-${Date.now()}`;
+    senditDeliveryCode = `SND-SIM-${order.id.slice(-6).toUpperCase()}-${Date.now().toString().slice(-4)}`;
   }
 
   const now = new Date().toISOString();

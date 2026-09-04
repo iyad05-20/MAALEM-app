@@ -138,5 +138,39 @@ export const adminAPI = {
     const endpoint = jobName === "run-all" ? `${getCronBase()}/run-all` : `${getCronBase()}/run/${jobName}`;
     const res = await fetch(endpoint, { method: "POST" });
     return res.json();
+  },
+
+  async getDbMode(): Promise<{ success: boolean; activeMode: "dev" | "prod"; sqlite: any; supabase: any }> {
+    const res = await fetch(`${getApiBase()}/config/db-mode`);
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || "Erreur statut BDD.");
+    return data;
+  },
+
+  async setDbMode(mode: "dev" | "prod"): Promise<any> {
+    const res = await fetch(`${getApiBase()}/config/db-mode`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode }),
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || "Erreur bascule BDD.");
+    return data;
+  },
+
+  async simulateSenditWebhook(payload: any): Promise<any> {
+    const res = await fetch(`${getBackendUrl()}/webhooks/sendit`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-sendit-signature": "dummy_signature",
+      },
+      body: JSON.stringify({
+        event: "delivery.status.update",
+        ...payload,
+      }),
+    });
+    return res.json();
   }
 };
+

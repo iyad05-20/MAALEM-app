@@ -5,7 +5,8 @@ import {
   runAutoValidationJob, 
   runEscrowReleaseJob, 
   runExpiredReturnsJob, 
-  runMonthlyWarningResetJob 
+  runMonthlyWarningResetJob,
+  runWeeklyWithdrawalBatchJob 
 } from "../services/cronService.js";
 import { db } from "../core/db/index.js";
 import { cronExecutions } from "../core/db/schema.js";
@@ -64,10 +65,13 @@ cronRouter.post("/run/:jobName", async (req, res) => {
       case "reset-warnings":
         result = await runMonthlyWarningResetJob();
         break;
+      case "virements-vendredi":
+        result = await runWeeklyWithdrawalBatchJob();
+        break;
       default:
         return res.status(400).json({ 
           success: false, 
-          error: `Nom de job invalide : ${jobName}. Valeurs acceptées : relance-j2, auto-validation, release-escrow, expire-returns, reset-warnings` 
+          error: `Nom de job invalide : ${jobName}. Valeurs acceptées : relance-j2, auto-validation, release-escrow, expire-returns, reset-warnings, virements-vendredi` 
         });
     }
 

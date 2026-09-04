@@ -10,6 +10,7 @@ import {
   Truck
 } from "lucide-react";
 import type { ClientOrder } from "../../types/clientPayment";
+import { useClientI18n } from "../../services/i18n";
 
 interface NotificationsViewProps {
   orders: ClientOrder[];
@@ -29,6 +30,7 @@ export interface AppNotification {
 }
 
 export const NotificationsView: React.FC<NotificationsViewProps> = ({ orders, onClose, onSelectOrder }) => {
+  const { lang, t } = useClientI18n();
   const [filter, setFilter] = useState<"all" | "unread" | "urgent">("all");
 
   // Génération dynamique et professionnelle des notifications basées sur les CGV
@@ -36,18 +38,20 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ orders, on
 
   orders.forEach((o) => {
     const isCustom = ["personnalise", "sur_commande"].includes(o.productType);
-    const itemTitle = o.productTitle || "Produit Artisanal";
+    const itemTitle = o.productTitle || (lang === "ar" ? "تحفة تقليدية" : "Produit Artisanal");
 
     // 1. URGENT : Litige ou Réclamation de non-réception en cours
     if (o.status === "en_reclamation" || o.nonReceptionClaimedAt) {
       notifications.push({
         id: `notif-reclamation-${o.id}`,
         orderId: o.id,
-        title: "⚠️ Réclamation Ouverte — Escrow Gelé",
-        message: `Votre déclaration pour "${itemTitle}" est en cours d'instruction par la médiation Vork. Les fonds sont gelés (Art. 13.3).`,
+        title: lang === "ar" ? "⚠️ شكوى مفتوحة — الضمان معلق" : "⚠️ Réclamation Ouverte — Escrow Gelé",
+        message: lang === "ar"
+          ? `طلبكم الخاص بـ "${itemTitle}" قيد الدراسة لدى وساطة ڤورك. الأموال مجمدة ضماناً لحقكم (المادة ١٣.٣).`
+          : `Votre déclaration pour "${itemTitle}" est en cours d'instruction par la médiation Vork. Les fonds sont gelés (Art. 13.3).`,
         type: "urgent",
         isRead: false,
-        badgeText: "URGENT",
+        badgeText: lang === "ar" ? "عاجل" : "URGENT",
         createdAt: o.nonReceptionClaimedAt || o.createdAt,
       });
     }
@@ -60,11 +64,13 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ orders, on
         notifications.push({
           id: `notif-grace-${o.id}`,
           orderId: o.id,
-          title: `⏱️ Annulation Libre (${60 - diffMin} min restantes)`,
-          message: `Le Maâlem a débuté la fabrication de "${itemTitle}". [Art. 7.3] Vous avez encore ${60 - diffMin} minutes pour annuler sans aucun frais.`,
+          title: lang === "ar" ? `⏱️ إلغاء مجاني (متبقي ${60 - diffMin} د)` : `⏱️ Annulation Libre (${60 - diffMin} min restantes)`,
+          message: lang === "ar"
+            ? `شرع المعلم في صناعة "${itemTitle}". لديكم ${60 - diffMin} دقيقة للإلغاء بدون أية مصاريف (المادة ٧.٣).`
+            : `Le Maâlem a débuté la fabrication de "${itemTitle}". [Art. 7.3] Vous avez encore ${60 - diffMin} minutes pour annuler sans aucun frais.`,
           type: "warning",
           isRead: false,
-          badgeText: "DÉLAI DE GRÂCE",
+          badgeText: lang === "ar" ? "مهلة التراجع" : "DÉLAI DE GRÂCE",
           createdAt: o.acceptedAt,
         });
       }
@@ -78,11 +84,13 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ orders, on
         notifications.push({
           id: `notif-j2-${o.id}`,
           orderId: o.id,
-          title: "⌛ Relance Automatique Maâlem (J+2)",
-          message: `L'artisan n'a pas encore validé "${itemTitle}". [Art. 14.6] Vous pouvez prolonger son délai ou annuler avec remboursement 100%.`,
+          title: lang === "ar" ? "⌛ تذكير تلقائي للمعلم (اليوم + 2)" : "⌛ Relance Automatique Maâlem (J+2)",
+          message: lang === "ar"
+            ? `لم يؤكد الصانع بعد طلب "${itemTitle}". بإمكانكم تمديد المهلة أو إلغاء الطلب واسترداد كامل المبلغ.`
+            : `L'artisan n'a pas encore validé "${itemTitle}". [Art. 14.6] Vous pouvez prolonger son délai ou annuler avec remboursement 100%.`,
           type: "warning",
           isRead: false,
-          badgeText: "J+2 RELANCE",
+          badgeText: lang === "ar" ? "تذكير" : "J+2 RELANCE",
           createdAt: o.createdAt,
         });
       }
@@ -96,11 +104,13 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ orders, on
         notifications.push({
           id: `notif-valide-24h-${o.id}`,
           orderId: o.id,
-          title: `📦 Colis Remis — ${Math.max(0, Math.round(24 - hoursSinceDelivered))}h pour valider`,
-          message: `Le colis "${itemTitle}" a été remis à votre domicile. [Art. 13.3] Veuillez confirmer la bonne réception ou signaler une anomalie.`,
+          title: lang === "ar" ? `📦 وصلت الشحنة — ${Math.max(0, Math.round(24 - hoursSinceDelivered))}س للتأكيد` : `📦 Colis Remis — ${Math.max(0, Math.round(24 - hoursSinceDelivered))}h pour valider`,
+          message: lang === "ar"
+            ? `تم تسليم الشحنة "${itemTitle}" إلى عنوانكم. يرجى تأكيد الاستلام والتوقيع أو الإبلاغ عن ملاحظة.`
+            : `Le colis "${itemTitle}" a été remis à votre domicile. [Art. 13.3] Veuillez confirmer la bonne réception ou signaler une anomalie.`,
           type: "warning",
           isRead: hoursSinceDelivered >= 12,
-          badgeText: "ACTION REQUISE",
+          badgeText: lang === "ar" ? "مطلوب الإجراء" : "ACTION REQUISE",
           createdAt: o.deliveredAt,
         });
       }
@@ -111,26 +121,32 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ orders, on
       notifications.push({
         id: `notif-bl-${o.id}`,
         orderId: o.id,
-        title: "📄 Bon de Livraison Généré",
-        message: `L'étiquette de transport Sendit (${o.senditDeliveryCode}) a été émise pour "${itemTitle}". Emballage en cours.`,
+        title: lang === "ar" ? "📄 تم إصدار بوليصة الشحن" : "📄 Bon de Livraison Généré",
+        message: lang === "ar"
+          ? `تم تجهيز بوليصة التوصيل سينديت (${o.senditDeliveryCode}) لطلب "${itemTitle}". جاري التغليف.`
+          : `L'étiquette de transport Sendit (${o.senditDeliveryCode}) a été émise pour "${itemTitle}". Emballage en cours.`,
         type: "info",
         isRead: true,
-        badgeText: "INFO LOGISTIQUE",
+        badgeText: lang === "ar" ? "معلومات الشحن" : "INFO LOGISTIQUE",
         createdAt: o.createdAt,
       });
     }
 
     // 6. INFO : Colis en cours de transport
     if (o.status === "en_cours_de_transport") {
-      const providerLabel = o.transportProvider === "vendeur" ? "par l'Artisan directement" : "par notre partenaire Sendit";
+      const providerLabel = o.transportProvider === "vendeur" 
+        ? (lang === "ar" ? "عبر المعلم مباشرة" : "par l'Artisan directement") 
+        : (lang === "ar" ? "عبر شريكنا سينديت" : "par notre partenaire Sendit");
       notifications.push({
         id: `notif-ship-${o.id}`,
         orderId: o.id,
-        title: "🚚 Colis en cours de livraison",
-        message: `Votre commande "${itemTitle}" est en cours d'acheminement ${providerLabel}. Préparez votre signature à la réception.`,
+        title: lang === "ar" ? "🚚 الشحنة في طريقها إليك" : "🚚 Colis en cours de livraison",
+        message: lang === "ar"
+          ? `طلبكم "${itemTitle}" قيد التوصيل ${providerLabel}. يرجى تحضير توقيعكم عند الاستلام.`
+          : `Votre commande "${itemTitle}" est en cours d'acheminement ${providerLabel}. Préparez votre signature à la réception.`,
         type: "info",
         isRead: false,
-        badgeText: "EN TRANSIT",
+        badgeText: lang === "ar" ? "قيد التوصيل" : "EN TRANSIT",
         createdAt: o.shippedAt || o.createdAt,
       });
     }
@@ -140,11 +156,13 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ orders, on
       notifications.push({
         id: `notif-pay-${o.id}`,
         orderId: o.id,
-        title: "💳 Paiement Sécurisé Enregistré",
-        message: `Règlement confirmé pour "${itemTitle}". Les fonds sont placés sous le séquestre protecteur Vork jusqu'à la livraison.`,
+        title: lang === "ar" ? "💳 تم تسجيل الأداء بأمان" : "💳 Paiement Sécurisé Enregistré",
+        message: lang === "ar"
+          ? `تم تأكيد أداء "${itemTitle}". المبالغ محفوظة بأمان تحت ضمان ڤورك إلى حين تسلمك للقطعة.`
+          : `Règlement confirmé pour "${itemTitle}". Les fonds sont placés sous le séquestre protecteur Vork jusqu'à la livraison.`,
         type: "success",
         isRead: true,
-        badgeText: "SÉQUESTRÉ",
+        badgeText: lang === "ar" ? "مضمون" : "SÉQUESTRÉ",
         createdAt: o.createdAt,
       });
     }
@@ -154,11 +172,13 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ orders, on
       notifications.push({
         id: `notif-cancel-${o.id}`,
         orderId: o.id,
-        title: "✅ Annulation & Remboursement Validés",
-        message: `La commande "${itemTitle}" a été annulée conformément aux CGV. Les fonds ont été crédités sur votre Wallet Vork.`,
+        title: lang === "ar" ? "✅ تأكيد الإلغاء والاسترداد" : "✅ Annulation & Remboursement Validés",
+        message: lang === "ar"
+          ? `تم إلغاء الطلب "${itemTitle}" وإرجاع كامل المبالغ فوراً إلى محفظتكم المالية.`
+          : `La commande "${itemTitle}" a été annulée conformément aux CGV. Les fonds ont été crédités sur votre Wallet Vork.`,
         type: "success",
         isRead: true,
-        badgeText: "REMBOURSÉ",
+        badgeText: lang === "ar" ? "مسترجع" : "REMBOURSÉ",
         createdAt: o.createdAt,
       });
     }
@@ -168,11 +188,13 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ orders, on
       notifications.push({
         id: `notif-retractation-${o.id}`,
         orderId: o.id,
-        title: "🛡️ Droit de Rétractation Légal Actif (7 jours)",
-        message: `Vous disposez de 7 jours calendaires pour exercer votre droit de rétractation sans motif sur "${itemTitle}" (Art. 13.1).`,
+        title: lang === "ar" ? "🛡️ مهلة الإرجاع القانونية نشطة (٧ أيام)" : "🛡️ Droit de Rétractation Légal Actif (7 jours)",
+        message: lang === "ar"
+          ? `يحق لكم إرجاع القطعة "${itemTitle}" خلال ٧ أيام من التسليم بدون إبداء أسباب (المادة ١٣.١).`
+          : `Vous disposez de 7 jours calendaires pour exercer votre droit de rétractation sans motif sur "${itemTitle}" (Art. 13.1).`,
         type: "info",
         isRead: true,
-        badgeText: "PROTECTION 7J",
+        badgeText: lang === "ar" ? "حماية ٧ أيام" : "PROTECTION 7J",
         createdAt: o.deliveredAt,
       });
     }
@@ -232,15 +254,16 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ orders, on
             </div>
             <div>
               <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, color: "var(--primary)", margin: 0 }}>
-                Centre de Notifications
+                {t('notif_title')}
               </h3>
               <p style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text-secondary)", margin: 0 }}>
-                {unreadCount > 0 ? `${unreadCount} notification(s) non lue(s)` : "Toutes vos alertes sont à jour"}
+                {unreadCount > 0 ? (lang === "ar" ? `${unreadCount} إشعار(ات) غير مقروءة` : `${unreadCount} notification(s) non lue(s)`) : (lang === "ar" ? "جميع تنبيهاتك محدثة" : "Toutes vos alertes sont à jour")}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
+            aria-label={lang === "ar" ? "إغلاق" : "Fermer"}
             style={{
               background: "var(--surface)",
               border: "1px solid var(--border)",
@@ -275,7 +298,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ orders, on
               boxShadow: filter === "all" ? "0 2px 4px rgba(0,0,0,0.05)" : "none",
             }}
           >
-            Toutes ({notifications.length})
+            {lang === "ar" ? `الكل (${notifications.length})` : `Toutes (${notifications.length})`}
           </button>
 
           <button
@@ -294,7 +317,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ orders, on
               boxShadow: filter === "unread" ? "0 2px 4px rgba(0,0,0,0.05)" : "none",
             }}
           >
-            Non Lues ({unreadCount})
+            {lang === "ar" ? `غير مقروءة (${unreadCount})` : `Non Lues (${unreadCount})`}
           </button>
 
           <button
@@ -313,7 +336,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ orders, on
               boxShadow: filter === "urgent" ? "0 2px 4px rgba(0,0,0,0.05)" : "none",
             }}
           >
-            Urgentes ({notifications.filter(n => n.type === "urgent" || n.type === "warning").length})
+            {lang === "ar" ? `عاجلة (${notifications.filter(n => n.type === "urgent" || n.type === "warning").length})` : `Urgentes (${notifications.filter(n => n.type === "urgent" || n.type === "warning").length})`}
           </button>
         </div>
 
@@ -423,7 +446,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ orders, on
                     </p>
                   </div>
 
-                  <ChevronRight size={15} color="var(--text-secondary)" style={{ alignSelf: "center", opacity: 0.5 }} />
+                  <ChevronRight size={15} color="var(--text-secondary)" style={{ alignSelf: "center", opacity: 0.5, transform: lang === 'ar' ? 'rotate(180deg)' : 'none' }} />
                 </motion.div>
               );
             })
@@ -431,10 +454,12 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ orders, on
             <div style={{ textAlign: "center", padding: "40px 20px" }}>
               <Bell size={32} color="var(--text-secondary)" style={{ opacity: 0.4, marginBottom: 10 }} />
               <p style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 14, color: "var(--primary)", margin: "0 0 4px" }}>
-                Aucune notification trouvée
+                {lang === "ar" ? "لا توجد أي إشعارات" : "Aucune notification trouvée"}
               </p>
               <p style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text-secondary)", margin: 0 }}>
-                {filter === "unread" ? "Toutes vos notifications sont lues." : "Aucune alerte pour le moment."}
+                {filter === "unread" 
+                  ? (lang === "ar" ? "جميع إشعاراتك مقروءة." : "Toutes vos notifications sont lues.") 
+                  : (lang === "ar" ? "لا توجد تنبيهات جديدة في الوقت الراهن." : "Aucune alerte pour le moment.")}
               </p>
             </div>
           )}

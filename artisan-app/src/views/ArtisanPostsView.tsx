@@ -1,261 +1,155 @@
-import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Layers, Edit3, Trash2, Eye, EyeOff, Plus, Check, Clock } from "lucide-react";
+import React from "react";
+import { motion } from "framer-motion";
+import { Layers, Eye, Edit2, Package, Plus, Tag } from "lucide-react";
 import type { ArtisanProduct } from "../types/artisanTypes";
+import { useI18n } from "../services/i18n";
 
-interface ArtisanPostsViewProps {
+interface Props {
   products: ArtisanProduct[];
   onOpenCreateModal: () => void;
   onUpdateProduct: (productData: any) => Promise<void>;
 }
 
-export const ArtisanPostsView: React.FC<ArtisanPostsViewProps> = ({
-  products,
-  onOpenCreateModal,
-  onUpdateProduct,
-}) => {
-  const [editingProduct, setEditingProduct] = useState<ArtisanProduct | null>(null);
-  const [editPrice, setEditPrice] = useState<string>("");
-  const [editDays, setEditDays] = useState<string>("5");
-  const [editDescription, setEditDescription] = useState<string>("");
-  const [saving, setSaving] = useState<boolean>(false);
+export const ArtisanPostsView: React.FC<Props> = ({ products, onOpenCreateModal, onUpdateProduct }) => {
+  const { lang, t } = useI18n();
 
-  const handleStartEdit = (p: ArtisanProduct) => {
-    setEditingProduct(p);
-    setEditPrice(String(p.price));
-    setEditDays(String(p.manufacturingDays || 5));
-    setEditDescription(p.description || "");
+  const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
+    active:       { label: t("posts_status_active"),       className: "badge-success" },
+    hidden:       { label: t("posts_status_hidden"),       className: "badge-info" },
+    out_of_stock: { label: t("posts_status_out_of_stock"), className: "badge-urgent" },
   };
 
-  const handleSaveEdit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingProduct) return;
-    setSaving(true);
-    try {
-      await onUpdateProduct({
-        ...editingProduct,
-        price: Number(editPrice),
-        manufacturingDays: Number(editDays),
-        description: editDescription,
-      });
-      setEditingProduct(null);
-    } catch (err: any) {
-      alert(err.message || "Erreur modification post.");
-    } finally {
-      setSaving(false);
-    }
-  };
+  const activePosts = products.filter(p => p.status === "active").length;
+  const avgPrice = products.length > 0 ? Math.round(products.reduce((acc, p) => acc + p.price, 0) / products.length) : 0;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}
-    >
-      {/* Top Header Card */}
-      <div className="artisan-card" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div>
-          <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 900, fontSize: "var(--font-md)", color: "var(--primary)", margin: 0 }}>
-            Mes Posts & Catalogue ({products.length})
-          </h3>
-          <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: 0 }}>
-            Éditez prix, descriptions et délais de confection
-          </p>
-        </div>
+    <div className="app-view">
+      <div className="pattern-corner pattern-top-right" />
 
-        <motion.button
-          whileTap={{ scale: 0.95 }}
-          onClick={onOpenCreateModal}
-          className="btn-mobile-terracotta"
-          style={{ width: "auto", padding: "9px 16px", fontSize: 11 }}
-        >
-          <Plus size={15} />
-          <span>Nouveau Post</span>
-        </motion.button>
-      </div>
-
-      {/* Posts List */}
-      {products.length === 0 ? (
-        <div className="artisan-card" style={{ padding: "44px 20px", textAlign: "center", color: "var(--text-secondary)" }}>
-          <Layers size={38} style={{ opacity: 0.3, marginBottom: 8 }} />
-          <p style={{ fontSize: 13, fontWeight: 700, margin: 0 }}>Aucun post publié pour le moment.</p>
-        </div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-          {products.map((p, idx) => (
-            <motion.div
-              key={p.id}
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.25, delay: idx * 0.05 }}
-              className="artisan-card"
-            >
-              <div style={{ display: "flex", gap: "var(--space-3)", marginBottom: "var(--space-3)" }}>
-                {/* Photo Treatment Section 7 */}
-                <div className="artisan-photo-wrapper" style={{ width: 76, height: 76, flexShrink: 0, border: "1px solid var(--border)" }}>
-                  <img src={p.image} alt={p.title} />
-                  <span style={{
-                    position: "absolute",
-                    top: 4,
-                    left: 4,
-                    background: p.productType === "standard" ? "rgba(45, 106, 79, 0.95)" : "rgba(184, 98, 63, 0.95)",
-                    color: "#FFFFFF",
-                    fontSize: 8,
-                    fontWeight: 800,
-                    padding: "2px 6px",
-                    borderRadius: 4,
-                    zIndex: 2,
-                  }}>
-                    {p.productType === "standard" ? "Standard" : "Sur-mesure"}
-                  </span>
-                </div>
-
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                    <h4 style={{ fontFamily: "var(--font-display)", fontSize: "var(--font-sm)", fontWeight: 900, color: "var(--primary)", margin: 0 }}>
-                      {p.title}
-                    </h4>
-                    <span style={{ fontFamily: "var(--font-display)", fontSize: "var(--font-md)", fontWeight: 900, color: "var(--accent-warm)" }}>
-                      {p.price} MAD
-                    </span>
-                  </div>
-
-                  <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: "2px 0 6px" }}>
-                    Catégorie : {p.category}
-                  </p>
-
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 10, color: "var(--text-secondary)" }}>
-                    <span style={{ display: "flex", alignItems: "center", gap: 4, fontWeight: 700 }}>
-                      <Clock size={12} color="var(--accent-warm)" /> Confection : {p.manufacturingDays || 5} jours
-                    </span>
-                  </div>
-                </div>
+      {/* Stats Row */}
+      {products.length > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 18 }}>
+          {[
+            { icon: <Layers size={16} color="var(--primary)" />, label: t("posts_active"), value: activePosts },
+            { icon: <Package size={16} color="var(--accent-warm)" />, label: t("posts_total"), value: products.length },
+            { icon: <Tag size={16} color="var(--accent-emerald)" />, label: t("posts_avg_price"), value: `${avgPrice} ${t("currency_mad")}` },
+          ].map(stat => (
+            <div key={stat.label} className="artisan-card" style={{ padding: "12px 10px", textAlign: "center" }}>
+              <div style={{ marginBottom: 4 }}>{stat.icon}</div>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 800, color: "var(--primary)" }}>
+                {stat.value}
               </div>
-
-              {/* Action Toolbar */}
-              <div style={{ display: "flex", gap: 8, paddingTop: 10, borderTop: "1px solid var(--border-subtle)" }}>
-                <motion.button
-                  whileTap={{ scale: 0.96 }}
-                  onClick={() => handleStartEdit(p)}
-                  className="btn-mobile-outline"
-                  style={{ flex: 1, padding: "8px", fontSize: 11 }}
-                >
-                  <Edit3 size={14} /> Éditer le Post & Prix
-                </motion.button>
-              </div>
-            </motion.div>
+              <div style={{ fontSize: 9, color: "var(--text-secondary)", fontWeight: 600, marginTop: 1 }}>{stat.label}</div>
+            </div>
           ))}
         </div>
       )}
 
-      {/* Edit Product Glass Sheet Drawer */}
-      <AnimatePresence>
-        {editingProduct && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            style={{
-              position: "fixed",
-              inset: 0,
-              background: "rgba(0,0,0,0.6)",
-              backdropFilter: "blur(6px)",
-              zIndex: 200,
-              display: "flex",
-              alignItems: "flex-end",
-              justifyContent: "center",
-            }}
-          >
-            <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="glass-overlay"
-              style={{
-                background: "#FCFBF9",
-                width: "100%",
-                maxWidth: 440,
-                borderRadius: "28px 28px 0 0",
-                padding: "var(--space-5) var(--space-5) var(--space-7)",
-                boxShadow: "0 -14px 40px rgba(0,0,0,0.35)",
-              }}
-            >
-              <div style={{ width: 40, height: 4, background: "#CBD5E1", borderRadius: 2, margin: "0 auto var(--space-4)" }} />
+      {/* Section Header */}
+      <div className="section-header">
+        <div>
+          <div className="section-title">{t("posts_title")}</div>
+          <div className="section-subtitle">{products.length} {t("posts_subtitle")}</div>
+        </div>
+        <button
+          className="btn-terracotta"
+          onClick={onOpenCreateModal}
+          style={{ width: "auto", padding: "9px 14px", fontSize: 12, borderRadius: 16 }}
+        >
+          <Plus size={15} /> {t("posts_new_btn")}
+        </button>
+      </div>
 
-              <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 900, fontSize: "var(--font-md)", color: "var(--primary)", marginBottom: 2 }}>
-                ✏️ Éditer le Post : {editingProduct.title}
-              </h3>
-              <p style={{ fontSize: 11, color: "var(--text-secondary)", marginBottom: 16 }}>
-                Ajustez le prix et les délais en cas de surcharge d'atelier.
-              </p>
+      {/* Posts List */}
+      {products.length === 0 ? (
+        <div className="artisan-card" style={{ padding: "48px 20px", textAlign: "center" }}>
+          <Layers size={40} color="var(--text-placeholder)" style={{ marginBottom: 12 }} />
+          <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text-secondary)" }}>{t("posts_empty_title")}</p>
+          <p style={{ fontSize: 12, color: "var(--text-placeholder)", margin: "4px 0 16px" }}>{t("posts_empty_sub")}</p>
+          <button className="btn-terracotta" onClick={onOpenCreateModal} style={{ width: "auto", padding: "11px 20px" }}>
+            <Plus size={15} /> {t("posts_publish_first")}
+          </button>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {products.map((product, i) => {
+            const status = STATUS_CONFIG[product.status ?? "active"] ?? { label: product.status, className: "badge-info" };
+            return (
+              <motion.div
+                key={product.id}
+                className="artisan-card"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.04 }}
+                style={{ display: "flex", padding: 12, gap: 12, alignItems: "stretch" }}
+              >
+                {/* Thumbnail */}
+                <div style={{ width: 80, height: 80, borderRadius: 14, overflow: "hidden", flexShrink: 0 }} className="artisan-photo-wrapper">
+                  {product.image ? (
+                    <img src={product.image} alt={product.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  ) : (
+                    <div className="skeleton-box" style={{ width: "100%", height: "100%", borderRadius: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <Package size={24} color="var(--text-placeholder)" />
+                    </div>
+                  )}
+                </div>
 
-              <form onSubmit={handleSaveEdit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                  <div>
-                    <label style={{ fontSize: 10, fontWeight: 800, color: "var(--text-secondary)", display: "block", marginBottom: 4 }}>
-                      Prix (MAD) *
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      value={editPrice}
-                      onChange={(e) => setEditPrice(e.target.value)}
-                      style={{ width: "100%", padding: "12px", borderRadius: 12, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 14, fontWeight: 900, color: "var(--primary)" }}
-                    />
+                {/* Info */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 6, marginBottom: 3 }}>
+                    <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, color: "var(--primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+                      {product.title}
+                    </div>
+                    <span className={`badge ${status.className}`}>{status.label}</span>
                   </div>
 
-                  <div>
-                    <label style={{ fontSize: 10, fontWeight: 800, color: "var(--text-secondary)", display: "block", marginBottom: 4 }}>
-                      Délai Confection (Jours) *
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      value={editDays}
-                      onChange={(e) => setEditDays(e.target.value)}
-                      style={{ width: "100%", padding: "12px", borderRadius: 12, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 14, fontWeight: 900, color: "var(--primary)" }}
-                    />
+                  <div style={{ marginBottom: 6 }}>
+                    <span style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 800, color: "var(--primary)" }}>
+                      {product.price}
+                    </span>
+                    <span style={{ fontSize: 10, color: "var(--text-secondary)", marginInlineStart: 4 }}>
+                      {t("currency_mad")} {lang === "ar" ? "صافي" : "net"}
+                    </span>
+                  </div>
+
+                  {product.category && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 8 }}>
+                      <Tag size={10} color="var(--text-secondary)" />
+                      <span style={{ fontSize: 10, color: "var(--text-secondary)" }}>{product.category}</span>
+                      {product.manufacturingDays && (
+                        <>
+                          <span style={{ fontSize: 10, color: "var(--border)" }}>·</span>
+                          <span style={{ fontSize: 10, color: "var(--text-secondary)" }}>
+                            {product.manufacturingDays} {lang === "ar" ? "أيام إعداد" : "j confection"}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      className="btn-outline"
+                      style={{ flex: 1, padding: "7px 10px", fontSize: 11, borderRadius: 12 }}
+                      onClick={() => onUpdateProduct(product)}
+                    >
+                      <Edit2 size={12} /> {lang === "ar" ? "تعديل" : "Modifier"}
+                    </button>
+                    <button
+                      className="btn-outline"
+                      style={{ flex: 1, padding: "7px 10px", fontSize: 11, borderRadius: 12, borderColor: product.status === "hidden" ? "rgba(45,106,79,0.4)" : "rgba(107,114,128,0.3)" }}
+                      onClick={() => onUpdateProduct({ ...product, status: product.status === "hidden" ? "active" : "hidden" })}
+                    >
+                      <Eye size={12} /> {product.status === "hidden" ? (lang === "ar" ? "إظهار" : "Afficher") : (lang === "ar" ? "إخفاء" : "Masquer")}
+                    </button>
                   </div>
                 </div>
-
-                <div>
-                  <label style={{ fontSize: 10, fontWeight: 800, color: "var(--text-secondary)", display: "block", marginBottom: 4 }}>
-                    Description de la création
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={editDescription}
-                    onChange={(e) => setEditDescription(e.target.value)}
-                    style={{ width: "100%", padding: "12px", borderRadius: 12, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 12, color: "var(--primary)" }}
-                  />
-                </div>
-
-                <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
-                  <button
-                    type="button"
-                    onClick={() => setEditingProduct(null)}
-                    className="btn-mobile-outline"
-                    style={{ flex: 1 }}
-                  >
-                    Annuler
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="btn-mobile-primary"
-                    style={{ flex: 2 }}
-                  >
-                    <Check size={16} />
-                    <span>{saving ? "Sauvegarde..." : "Enregistrer les modifications"}</span>
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 };
