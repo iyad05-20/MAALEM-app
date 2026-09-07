@@ -251,6 +251,127 @@ export const translations = {
     auth_submit_register: "Créer mon Compte Artisan",
     auth_secure_note: "Espace professionnel sécurisé & données protégées",
 
+    // Order progress steps
+    order_number: "Commande #",
+    order_count_suffix: "commandes — ordre chronologique",
+    order_pending_validation: "à valider",
+    order_type_sendit: "Expédition Sendit",
+    order_type_direct: "Livraison Directe",
+    step_pending: "① À valider",
+    step_accepted: "① ✓ Acceptée",
+    step_photos_done: "② ✓ Photos",
+    step_photos_pending: "② 4 Photos",
+    step_shipped: "③ ✓ Livré",
+    step_in_transit: "③ Transit",
+    step_shipping: "③ Expédition",
+    order_accepting: "En cours...",
+    order_accept_action: "Accepter < 72h",
+    order_photos_upload_cta: "Uploader 4 photos d'atelier (Art. 8.1)",
+    order_generate_sendit: "Générer le Bon Sendit",
+    order_declare_direct: "Déclarer Livraison Directe",
+    order_validate_signed: "Valider avec Bordereau Signé (Art. 11.5)",
+    order_download_label: "Télécharger l'étiquette Sendit",
+
+    // Posts card actions
+    posts_price_net: "net",
+    posts_days_confection: "j confection",
+    posts_edit_btn: "Modifier",
+    posts_show_btn: "Afficher",
+    posts_hide_btn: "Masquer",
+
+    // Notifications
+    notif_view_file: "Voir le dossier",
+
+    // Marketplace
+    market_cat_cuivre: "Cuivre",
+    market_cat_zellige: "Zellige",
+    market_cat_tapis: "Tapis",
+    market_cat_cuir: "Cuir",
+    market_cat_bois: "Bois",
+    market_cat_textile: "Textile",
+    market_cat_ceramique: "Céramique",
+    market_quotes_count: "devis proposé(s)",
+    market_note_placeholder: "Expliquez votre approche artisanale…",
+    market_quote_edit: "Modifier mon devis",
+
+    // Returns
+    returns_order_ref: "Commande #",
+    returns_mode_sendit: "Sendit Express (35 MAD déduits)",
+    returns_mode_own: "Propres Moyens Client",
+    returns_forclusion: "Forclusion active. Si non retourné sous 17j, les fonds vous restent acquis.",
+
+    // Disputes
+    disputes_arbitration_label: "⚖️ Décision d'Arbitrage Officielle (Art. 20.5) :",
+    disputes_edit_defense: "Modifier ma Défense",
+
+    // Profile badges & footer
+    profile_verified_badge: "Maâlem Vérifié Vork",
+    profile_partner_badge: "Artisan Partenaire",
+    profile_footer: "Plateforme Vork · Espace Artisans du Maroc",
+
+    // Auth errors & placeholders
+    auth_error_required: "Veuillez renseigner tous les champs obligatoires.",
+    auth_error_password_length: "Le mot de passe doit comporter au moins 6 caractères.",
+    auth_error_invalid: "Identifiants invalides.",
+    auth_success_created: "Compte créé avec succès ! Connectez-vous.",
+    auth_error_signup: "Erreur lors de la création du compte.",
+    auth_error_server: "Erreur de connexion au serveur.",
+    auth_footer: "MAÂLEM PRO · Plateforme Vork de l'Artisanat Marocain",
+    auth_placeholder_name: "Ex: Maâlem Abdelkader Idrissi",
+    auth_placeholder_workshop: "Ex: Atelier Céramique Majorelle",
+    auth_placeholder_specialty: "Zellige, Cuir...",
+
+    // Withdrawal Modal
+    withdrawal_error_amount: "Montant de retrait invalide ou supérieur au solde disponible.",
+    withdrawal_error_rib: "Le RIB marocain doit comporter exactement 24 chiffres.",
+    withdrawal_digits: "chiffres",
+
+    // Sendit Shipping Modal
+    sendit_step_of: "Étape {n} sur 2 · Commande",
+    sendit_pickup_city: "Ville Ramassage (Atelier)",
+    sendit_delivery_city: "Ville Livraison (Client)",
+    sendit_pickup_address: "Adresse précise de ramassage",
+    sendit_pickup_placeholder: "Ex: Atelier 14, Derb El Horra, Médina",
+    sendit_generate_bl: "Générer le Bon de Livraison (BL)",
+    sendit_package_photo_label: "Photo du colis avec étiquette Sendit collée (Art. 11.2) *",
+    sendit_take_photo: "Prendre en photo ou uploader le colis",
+    sendit_file_hint: "PNG, JPG jusqu'à 5 Mo",
+
+    // Refuse Order Modal
+    refuse_order_ref: "Commande",
+    refuse_reason_placeholder: "Ex: Atelier surchargé jusqu'à la fin du mois, rupture de matières...",
+
+    // Prep Photos Modal
+    prep_order_ref: "Commande N°",
+    prep_cgv_rule: "Règle CGV Art. 11.1 :",
+    prep_instruction: "Prenez ou importez 4 photos d'atelier de confection",
+    prep_take_photo: "Prendre / Choisir Photo",
+    prep_add_file: "Fichier",
+    prep_url_placeholder: "Ou URL de la photo...",
+    prep_add_btn: "Ajouter",
+
+    // Dispute Reply Modal
+    dispute_reply_label: "Vos explications et contre-arguments d'atelier *",
+    dispute_reply_placeholder: "Décrivez la fabrication, les finitions, la conformité de la pièce livrée…",
+    dispute_evidence_label: "Photos justificatives d'atelier (Max 3)",
+    dispute_take_photo: "Prendre en photo ou choisir un fichier",
+    dispute_url_placeholder: "Ou coller une URL d'image…",
+    dispute_add_btn: "Ajouter",
+    dispute_submit_btn: "Transmettre ma Défense à l'Arbitrage",
+
+    // Direct Delivery Modal
+    direct_order_label: "Commande",
+    direct_rule_9_3: "Règle Art. 9.3 :",
+    direct_rule_9_3_text: "Les produits sur-mesure et fragiles sont livrés directement par l'artisan sans passer par Sendit.",
+    direct_start_btn: "Déclarer l'Expédition Directe",
+    direct_rule_11_5: "Règle Art. 11.5 :",
+    direct_rule_11_5_text: "Lors de la remise physique en main propre, faites signer votre bordereau papier par l'acheteur et uploadez la photo ci-dessous pour libérer vos fonds de séquestre.",
+    direct_take_photo: "Prendre en photo ou uploader le bordereau signé",
+    direct_file_hint: "PNG, JPG jusqu'à 5 Mo",
+
+    // Header
+    header_vacation_paused: "Congés",
+
     // Common
     cancel: "Annuler",
     save: "Enregistrer",
@@ -507,6 +628,127 @@ export const translations = {
     auth_submit_register: "تسجيل حساب حرفي جديد",
     auth_secure_note: "فضاء مهني مؤمن ومعاملات مشفرة بالكامل",
 
+    // Order progress steps
+    order_number: "الطلب رقم",
+    order_count_suffix: "طلبات جارية",
+    order_pending_validation: "بحاجة لموافقتك",
+    order_type_sendit: "شحن سينديت",
+    order_type_direct: "توصيل مباشر",
+    step_pending: "① بانتظار التأكيد",
+    step_accepted: "① ✓ تم القبول",
+    step_photos_done: "② ✓ ٤ صور جاهزة",
+    step_photos_pending: "② ٤ صور إعداد",
+    step_shipped: "③ ✓ تم التسليم",
+    step_in_transit: "③ في الطريق",
+    step_shipping: "③ الشحن",
+    order_accepting: "جارٍ القبول...",
+    order_accept_action: "قبول وبدء العمل",
+    order_photos_upload_cta: "إيداع ٤ صور لتوثيق الجاهزية (المادة ٨.١)",
+    order_generate_sendit: "توليد بوليصة الشحن سينديت",
+    order_declare_direct: "إقرار التسليم المباشر من المعلم",
+    order_validate_signed: "تأكيد التسليم بالوصل الموقع (مادة ١١.٥)",
+    order_download_label: "تحميل وطباعة ملصق سينديت",
+
+    // Posts card actions
+    posts_price_net: "صافي",
+    posts_days_confection: "أيام إعداد",
+    posts_edit_btn: "تعديل",
+    posts_show_btn: "إظهار",
+    posts_hide_btn: "إخفاء",
+
+    // Notifications
+    notif_view_file: "معاينة الملف",
+
+    // Marketplace
+    market_cat_cuivre: "النحاسيات",
+    market_cat_zellige: "الزليج والفخار",
+    market_cat_tapis: "الزرابي والنسيج",
+    market_cat_cuir: "المصنوعات الجلدية",
+    market_cat_bois: "النجارة الفنية والعود",
+    market_cat_textile: "الأثواب والقفطان",
+    market_cat_ceramique: "الخزف الفني",
+    market_quotes_count: "عرض سعر مقدم",
+    market_note_placeholder: "اشرح مقاربتك الحرفية والمواد...",
+    market_quote_edit: "تعديل عرض السعر",
+
+    // Returns
+    returns_order_ref: "الطلب رقم",
+    returns_mode_sendit: "سينديت إكسبريس",
+    returns_mode_own: "وسائل الزبون الخاصة",
+    returns_forclusion: "مهلة التقادم: في حال عدم الإرجاع خلال ١٧ يوماً تظل المستحقات محفوظة لك.",
+
+    // Disputes
+    disputes_arbitration_label: "⚖️ قرار التحكيم الرسمي (المادة ٢٠.٥):",
+    disputes_edit_defense: "تعديل دفوعات الورشة",
+
+    // Profile badges & footer
+    profile_verified_badge: "معلم معتمد وموثق",
+    profile_partner_badge: "حرفي شريك رسمي",
+    profile_footer: "منظومة فورك · فضاء الحرفيين والصناع التقليديين",
+
+    // Auth errors & placeholders
+    auth_error_required: "يرجى ملء جميع الحقول الإلزامية.",
+    auth_error_password_length: "يجب ألا تقل كلمة المرور عن ٦ أحرف.",
+    auth_error_invalid: "بيانات الدخول غير صحيحة.",
+    auth_success_created: "تم تسجيل حساب المعلم بنجاح! تفضل بالدخول.",
+    auth_error_signup: "حدث خطأ أثناء التسجيل.",
+    auth_error_server: "تعذر الاتصال بالخادم.",
+    auth_footer: "معلم برو · منصة فورك للحرف التقليدية المغربية",
+    auth_placeholder_name: "مثال: المعلم عبد القادر الإدريسي",
+    auth_placeholder_workshop: "مثال: دار الفخار والزليج العتيق",
+    auth_placeholder_specialty: "فخار، نحاس، زليج...",
+
+    // Withdrawal Modal
+    withdrawal_error_amount: "المبلغ غير صالح أو يفوق رصيدك المتاح.",
+    withdrawal_error_rib: "يجب أن يتكون رقم الحساب المغربي من ٢٤ رقماً.",
+    withdrawal_digits: "أرقام",
+
+    // Sendit Shipping Modal
+    sendit_step_of: "المرحلة {n} من ٢ · الطلب",
+    sendit_pickup_city: "مدينة الورشة (الاستلام)",
+    sendit_delivery_city: "مدينة الزبون (التسليم)",
+    sendit_pickup_address: "عنوان الورشة المفصل للاستلام",
+    sendit_pickup_placeholder: "مثال: الورشة رقم ١٤، درب الحرة، المدينة القديمة",
+    sendit_generate_bl: "إصدار ورقة الإرسال (BL)",
+    sendit_package_photo_label: "صورة الطرد مع ورقة الإرسال الملصقة (المادة ١١.٢) *",
+    sendit_take_photo: "التقاط أو تحميل صورة الطرد",
+    sendit_file_hint: "PNG, JPG حتى 5MB",
+
+    // Refuse Order Modal
+    refuse_order_ref: "الطلب رقم",
+    refuse_reason_placeholder: "اكتب سبب الاعتذار بالتفصيل للزبون...",
+
+    // Prep Photos Modal
+    prep_order_ref: "الطلب رقم",
+    prep_cgv_rule: "المادة ١١.١ من الشروط:",
+    prep_instruction: "التقط أو ارفع ٤ صور من الورشة لتوثيق الجاهزية",
+    prep_take_photo: "التقاط / رفع صورة",
+    prep_add_file: "إضافة",
+    prep_url_placeholder: "أو رابط URL للصورة...",
+    prep_add_btn: "إضافة",
+
+    // Dispute Reply Modal
+    dispute_reply_label: "دفوعات وإيضاحات الورشة بالتفصيل *",
+    dispute_reply_placeholder: "وضح خط سير العمل والمواصفات المعتمدة...",
+    dispute_evidence_label: "صور إثبات من الورشة (حد أقصى ٣ صور)",
+    dispute_take_photo: "التقاط أو اختيار صورة إثبات من الهاتف",
+    dispute_url_placeholder: "أو أدخل رابط صورة...",
+    dispute_add_btn: "إضافة",
+    dispute_submit_btn: "إرسال الدفوعات للتحكيم",
+
+    // Direct Delivery Modal
+    direct_order_label: "الطلب",
+    direct_rule_9_3: "المادة ٩.٣:",
+    direct_rule_9_3_text: "القطع المصنوعة حسب الطلب أو الحساسة يتم تسليمها مباشرة بواسطة المعلم للزبون.",
+    direct_start_btn: "بدء عملية النقل المباشر",
+    direct_rule_11_5: "المادة ١١.٥:",
+    direct_rule_11_5_text: "عند تسليم القطعة يدوياً، احصل على توقيع الزبون على وصل الاستلام وأرفق الصورة هنا لفك حجز الأرباح.",
+    direct_take_photo: "التقاط أو تحميل صورة الوصل الموقع",
+    direct_file_hint: "PNG, JPG حتى 5MB",
+
+    // Header
+    header_vacation_paused: "في عطلة",
+
     // Common
     cancel: "إلغاء",
     save: "حفظ",
@@ -516,6 +758,7 @@ export const translations = {
     currency_mad: "درهم",
   },
 };
+
 
 const LANG_KEY = "artisan_app_language";
 

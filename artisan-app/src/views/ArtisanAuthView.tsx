@@ -9,7 +9,7 @@ interface ArtisanAuthViewProps {
 }
 
 export const ArtisanAuthView: React.FC<ArtisanAuthViewProps> = ({ onAuthSuccess }) => {
-  const { lang, changeLanguage, t } = useI18n();
+  const { lang, isRTL, changeLanguage, t } = useI18n();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,12 +27,12 @@ export const ArtisanAuthView: React.FC<ArtisanAuthViewProps> = ({ onAuthSuccess 
     setSuccessMsg(null);
 
     if (!email || !password) {
-      setErrorMsg(lang === "ar" ? "يرجى ملء جميع الحقول الإلزامية." : "Veuillez renseigner tous les champs obligatoires.");
+      setErrorMsg(t("auth_error_required"));
       return;
     }
 
     if (password.length < 6) {
-      setErrorMsg(lang === "ar" ? "يجب ألا تقل كلمة المرور عن ٦ أحرف." : "Le mot de passe doit comporter au moins 6 caractères.");
+      setErrorMsg(t("auth_error_password_length"));
       return;
     }
 
@@ -44,21 +44,21 @@ export const ArtisanAuthView: React.FC<ArtisanAuthViewProps> = ({ onAuthSuccess 
         if (res.success && res.user) {
           onAuthSuccess(res.user);
         } else {
-          setErrorMsg(res.error || (lang === "ar" ? "بيانات الدخول غير صحيحة." : "Identifiants invalides."));
+          setErrorMsg(res.error || t("auth_error_invalid"));
         }
       } else {
         const res = await artisanAuthService.signup(email, password, fullName, workshopName, specialty, city);
         if (res.success && res.user) {
           onAuthSuccess(res.user);
         } else if (res.success) {
-          setSuccessMsg(lang === "ar" ? "تم تسجيل حساب المعلم بنجاح! تفضل بالدخول." : "Compte créé avec succès ! Connectez-vous.");
+          setSuccessMsg(t("auth_success_created"));
           setMode("login");
         } else {
-          setErrorMsg(res.error || (lang === "ar" ? "حدث خطأ أثناء التسجيل." : "Erreur lors de la création du compte."));
+          setErrorMsg(res.error || t("auth_error_signup"));
         }
       }
     } catch (err: any) {
-      setErrorMsg(err.message || (lang === "ar" ? "تعذر الاتصال بالخادم." : "Erreur de connexion au serveur."));
+      setErrorMsg(err.message || t("auth_error_server"));
     } finally {
       setLoading(false);
     }
@@ -261,7 +261,7 @@ export const ArtisanAuthView: React.FC<ArtisanAuthViewProps> = ({ onAuthSuccess 
                   className="form-input"
                   value={fullName}
                   onChange={e => setFullName(e.target.value)}
-                  placeholder={lang === "ar" ? "مثال: المعلم عبد القادر الإدريسي" : "Ex: Maâlem Abdelkader Idrissi"}
+                  placeholder={t("auth_placeholder_name")}
                 />
               </div>
 
@@ -272,7 +272,7 @@ export const ArtisanAuthView: React.FC<ArtisanAuthViewProps> = ({ onAuthSuccess 
                   className="form-input"
                   value={workshopName}
                   onChange={e => setWorkshopName(e.target.value)}
-                  placeholder={lang === "ar" ? "مثال: دار الفخار والزليج العتيق" : "Ex: Atelier Céramique Majorelle"}
+                  placeholder={t("auth_placeholder_workshop")}
                 />
               </div>
 
@@ -284,7 +284,7 @@ export const ArtisanAuthView: React.FC<ArtisanAuthViewProps> = ({ onAuthSuccess 
                     className="form-input"
                     value={specialty}
                     onChange={e => setSpecialty(e.target.value)}
-                    placeholder={lang === "ar" ? "فخار، نحاس، زليج..." : "Zellige, Cuir..."}
+                    placeholder={t("auth_placeholder_specialty")}
                   />
                 </div>
                 <div>
@@ -294,7 +294,7 @@ export const ArtisanAuthView: React.FC<ArtisanAuthViewProps> = ({ onAuthSuccess 
                     className="form-input"
                     value={city}
                     onChange={e => setCity(e.target.value)}
-                    placeholder="Fès, Marrakech..."
+                    placeholder={isRTL ? "فاس، مراكش..." : "Fès, Marrakech..."}
                   />
                 </div>
               </div>
@@ -341,7 +341,7 @@ export const ArtisanAuthView: React.FC<ArtisanAuthViewProps> = ({ onAuthSuccess 
             }}
           >
             {loading ? t("loading") : mode === "login" ? t("auth_submit_login") : t("auth_submit_register")}
-            <ArrowRight size={16} />
+            <ArrowRight size={16} style={{ transform: isRTL ? "rotate(180deg)" : "none" }} />
           </button>
 
           <div style={{
@@ -361,7 +361,7 @@ export const ArtisanAuthView: React.FC<ArtisanAuthViewProps> = ({ onAuthSuccess 
       </div>
 
       <p style={{ marginTop: 20, fontSize: "0.75rem", color: "var(--text-placeholder)", textAlign: "center", zIndex: 10 }}>
-        MAÂLEM PRO · Plateforme Vork de l'Artisanat Marocain
+        {t("auth_footer")}
       </p>
     </motion.div>
   );

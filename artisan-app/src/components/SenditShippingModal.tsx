@@ -20,7 +20,7 @@ export const SenditShippingModal: React.FC<SenditShippingModalProps> = ({
   onStep1,
   onStep2,
 }) => {
-  const { lang, t } = useI18n();
+  const { isRTL, t } = useI18n();
   const [step, setStep] = useState<1 | 2>(order.senditDeliveryCode ? 2 : 1);
   const [pickupDistrictId, setPickupDistrictId] = useState<number>(46);
   const [deliveryDistrictId, setDeliveryDistrictId] = useState<number>(1);
@@ -30,16 +30,16 @@ export const SenditShippingModal: React.FC<SenditShippingModalProps> = ({
   const [loading, setLoading] = useState(false);
 
   const districts = [
-    { id: 46, name: lang === "ar" ? "الدار البيضاء" : "Casablanca" },
-    { id: 1, name: lang === "ar" ? "الرباط" : "Rabat" },
-    { id: 2, name: lang === "ar" ? "فاس" : "Fès" },
-    { id: 3, name: lang === "ar" ? "مراكش" : "Marrakech" },
-    { id: 4, name: lang === "ar" ? "طنجة" : "Tanger" },
-    { id: 5, name: lang === "ar" ? "أكادير" : "Agadir" },
-    { id: 6, name: lang === "ar" ? "مكناس" : "Meknès" },
-    { id: 7, name: lang === "ar" ? "وجدة" : "Oujda" },
-    { id: 8, name: lang === "ar" ? "القنيطرة" : "Kénitra" },
-    { id: 9, name: lang === "ar" ? "تطوان" : "Tétouan" },
+    { id: 46, name: isRTL ? "الدار البيضاء" : "Casablanca" },
+    { id: 1,  name: isRTL ? "الرباط" : "Rabat" },
+    { id: 2,  name: isRTL ? "فاس" : "Fès" },
+    { id: 3,  name: isRTL ? "مراكش" : "Marrakech" },
+    { id: 4,  name: isRTL ? "طنجة" : "Tanger" },
+    { id: 5,  name: isRTL ? "أكادير" : "Agadir" },
+    { id: 6,  name: isRTL ? "مكناس" : "Meknès" },
+    { id: 7,  name: isRTL ? "وجدة" : "Oujda" },
+    { id: 8,  name: isRTL ? "القنيطرة" : "Kénitra" },
+    { id: 9,  name: isRTL ? "تطوان" : "Tétouan" },
   ];
 
   const handleExecuteStep1 = async (e: React.FormEvent) => {
@@ -57,7 +57,7 @@ export const SenditShippingModal: React.FC<SenditShippingModalProps> = ({
         setStep(2);
       }
     } catch (err: any) {
-      alert(err.message || "Erreur étape 1 Sendit.");
+      alert(err.message || t("auth_error_server"));
     } finally {
       setLoading(false);
     }
@@ -71,7 +71,7 @@ export const SenditShippingModal: React.FC<SenditShippingModalProps> = ({
       await onStep2(order.id, blAttachedPhoto);
       onClose();
     } catch (err: any) {
-      alert(err.message || "Erreur étape 2 Sendit.");
+      alert(err.message || t("auth_error_server"));
     } finally {
       setLoading(false);
     }
@@ -127,7 +127,7 @@ export const SenditShippingModal: React.FC<SenditShippingModalProps> = ({
                 {t("shipping_sendit_title")}
               </h3>
               <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: 0 }}>
-                {lang === "ar" ? `المرحلة ${step} من ٢ · الطلب` : `Étape ${step} sur 2 · Commande`} <strong style={{ color: "var(--accent-warm)" }}>{order.id}</strong>
+                {isRTL ? `المرحلة ${step} من ٢ · الطلب` : `Étape ${step} sur 2 · Commande`} <strong style={{ color: "var(--accent-warm)" }}>{order.id}</strong>
               </p>
             </div>
           </div>
@@ -150,7 +150,7 @@ export const SenditShippingModal: React.FC<SenditShippingModalProps> = ({
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
               <div>
-                <label className="form-label">{lang === "ar" ? "مدينة الورشة (الاستلام)" : "Ville Ramassage (Atelier)"}</label>
+                <label className="form-label">{t("sendit_pickup_city")}</label>
                 <select
                   value={pickupDistrictId}
                   onChange={(e) => setPickupDistrictId(Number(e.target.value))}
@@ -161,7 +161,7 @@ export const SenditShippingModal: React.FC<SenditShippingModalProps> = ({
               </div>
 
               <div>
-                <label className="form-label">{lang === "ar" ? "مدينة الزبون (التسليم)" : "Ville Livraison (Client)"}</label>
+                <label className="form-label">{t("sendit_delivery_city")}</label>
                 <select
                   value={deliveryDistrictId}
                   onChange={(e) => setDeliveryDistrictId(Number(e.target.value))}
@@ -173,12 +173,12 @@ export const SenditShippingModal: React.FC<SenditShippingModalProps> = ({
             </div>
 
             <div style={{ marginBottom: 16 }}>
-              <label className="form-label">{lang === "ar" ? "عنوان الورشة المفصل للاستلام" : "Adresse précise de ramassage"}</label>
+              <label className="form-label">{t("sendit_pickup_address")}</label>
               <input
                 type="text"
                 required
                 className="form-input"
-                placeholder={lang === "ar" ? "مثال: الورشة رقم ١٤، درب الحرة، المدينة القديمة" : "Ex: Atelier 14, Derb El Horra, Médina"}
+                placeholder={t("sendit_pickup_placeholder")}
                 value={artisanAddress}
                 onChange={(e) => setArtisanAddress(e.target.value)}
               />
@@ -188,7 +188,7 @@ export const SenditShippingModal: React.FC<SenditShippingModalProps> = ({
               <button type="button" onClick={onClose} className="btn-outline">{t("cancel")}</button>
               <button type="submit" disabled={loading || !artisanAddress.trim()} className="btn-terracotta">
                 <FileText size={16} />
-                <span>{loading ? t("loading") : (lang === "ar" ? "إصدار ورقة الإرسال (BL)" : "Générer le Bon de Livraison (BL)")}</span>
+                <span>{loading ? t("loading") : t("sendit_generate_bl")}</span>
               </button>
             </div>
           </form>
@@ -196,7 +196,7 @@ export const SenditShippingModal: React.FC<SenditShippingModalProps> = ({
           <form onSubmit={handleExecuteStep2}>
             <div style={{ background: "rgba(45, 106, 79, 0.08)", border: "1px solid rgba(45, 106, 79, 0.25)", borderRadius: 12, padding: 12, marginBottom: 16 }}>
               <p style={{ fontSize: 12, fontWeight: 700, color: "#2D6A4F", margin: "0 0 4px" }}>
-                ✓ {lang === "ar" ? `تم إصدار ورقة الإرسال بنجاح : ${waybillCode}` : `Bon de Livraison Généré : ${waybillCode}`}
+                ✓ {isRTL ? `تم إصدار ورقة الإرسال بنجاح : ${waybillCode}` : `Bon de Livraison Généré : ${waybillCode}`}
               </p>
               <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                 <a
@@ -216,7 +216,7 @@ export const SenditShippingModal: React.FC<SenditShippingModalProps> = ({
             </p>
 
             <div style={{ marginBottom: 16 }}>
-              <label className="form-label">{lang === "ar" ? "صورة الطرد مع ورقة الإرسال الملصقة (المادة ١١.٢) *" : "Photo du colis avec étiquette Sendit collée (Art. 11.2) *"}</label>
+              <label className="form-label">{t("sendit_package_photo_label")}</label>
               
               {blAttachedPhoto ? (
                 <div style={{ position: "relative", borderRadius: 12, overflow: "hidden", border: "1px solid var(--border)", maxHeight: 180, marginBottom: 8, textAlign: "center", background: "#000" }}>
@@ -245,10 +245,10 @@ export const SenditShippingModal: React.FC<SenditShippingModalProps> = ({
                 }}>
                   <Camera size={26} color="var(--accent-warm)" />
                   <span style={{ fontSize: 12, fontWeight: 600, color: "var(--primary)" }}>
-                    {lang === "ar" ? "التقاط أو تحميل صورة الطرد" : "Prendre en photo ou uploader le colis"}
+                    {t("sendit_take_photo")}
                   </span>
                   <span style={{ fontSize: 10, color: "var(--text-secondary)" }}>
-                    {lang === "ar" ? "PNG, JPG حتى 5MB" : "PNG, JPG jusqu'à 5 Mo"}
+                    {t("sendit_file_hint")}
                   </span>
                   <input
                     type="file"

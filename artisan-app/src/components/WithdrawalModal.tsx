@@ -16,7 +16,7 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
   onClose,
   onRequestWithdrawal,
 }) => {
-  const { lang, t } = useI18n();
+  const { t } = useI18n();
   const [amount, setAmount] = useState<string>(String(Math.floor(availableBalance)));
   const [rib, setRib] = useState<string>(defaultRib);
   const [loading, setLoading] = useState(false);
@@ -25,11 +25,11 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
     e.preventDefault();
     const num = Number(amount);
     if (!num || num <= 0 || num > availableBalance) {
-      alert(lang === "ar" ? "المبلغ غير صالح أو يفوق رصيدك المتاح." : "Montant de retrait invalide ou supérieur au solde disponible.");
+      alert(t("withdrawal_error_amount"));
       return;
     }
     if (rib.length !== 24 || !/^\d+$/.test(rib)) {
-      alert(lang === "ar" ? "يجب أن يتكون رقم الحساب المغربي من ٢٤ رقماً." : "Le RIB marocain doit comporter exactement 24 chiffres.");
+      alert(t("withdrawal_error_rib"));
       return;
     }
 
@@ -38,7 +38,7 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
       await onRequestWithdrawal(num, rib);
       onClose();
     } catch (err: any) {
-      alert(err.message || "Erreur lors du retrait.");
+      alert(err.message || t("auth_error_server"));
     } finally {
       setLoading(false);
     }
@@ -122,7 +122,7 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
               style={{ letterSpacing: 1 }}
             />
             <span style={{ fontSize: 10, color: rib.length === 24 ? "#2D6A4F" : "var(--text-secondary)", marginTop: 4, display: "block" }}>
-              {rib.length} / 24 {lang === "ar" ? "أرقام" : "chiffres"} {rib.length === 24 ? "✓" : ""}
+              {rib.length} / 24 {t("withdrawal_digits")} {rib.length === 24 ? "✓" : ""}
             </span>
           </div>
 

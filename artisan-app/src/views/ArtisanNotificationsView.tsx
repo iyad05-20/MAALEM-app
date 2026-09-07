@@ -12,7 +12,7 @@ export const ArtisanNotificationsView: React.FC<ArtisanNotificationsViewProps> =
   notifications,
   onNavigateTab,
 }) => {
-  const { lang, isRTL, t } = useI18n();
+  const { isRTL, t } = useI18n();
   const [filter, setFilter] = useState<"all" | "orders" | "disputes" | "wallet">("all");
 
   const filteredNotifications = notifications.filter(n => {
@@ -106,7 +106,7 @@ export const ArtisanNotificationsView: React.FC<ArtisanNotificationsViewProps> =
                   </h4>
                 </div>
                 <span style={{ fontSize: 10, color: "var(--text-secondary)" }}>
-                  {new Date(n.date).toLocaleTimeString(lang === "ar" ? "ar-MA" : "fr-FR", { hour: "2-digit", minute: "2-digit" })}
+                  {new Date(n.date).toLocaleTimeString(isRTL ? "ar-MA" : "fr-FR", { hour: "2-digit", minute: "2-digit" })}
                 </span>
               </div>
 
@@ -115,7 +115,7 @@ export const ArtisanNotificationsView: React.FC<ArtisanNotificationsViewProps> =
               </p>
 
               <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 4, fontSize: 10, color: "var(--accent-warm)", fontWeight: 700 }}>
-                <span>{lang === "ar" ? "معاينة الملف" : "Voir le dossier"}</span>
+                <span>{t("notif_view_file")}</span>
                 <ChevronRight size={12} style={{ transform: isRTL ? "rotate(180deg)" : "none" }} />
               </div>
             </div>

@@ -10,7 +10,7 @@ interface PrepPhotosModalProps {
 }
 
 export const PrepPhotosModal: React.FC<PrepPhotosModalProps> = ({ orderId, onClose, onUpload }) => {
-  const { lang, t } = useI18n();
+  const { isRTL, t } = useI18n();
   const [photos, setPhotos] = useState<string[]>([]);
   const [photoInput, setPhotoInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -48,7 +48,7 @@ export const PrepPhotosModal: React.FC<PrepPhotosModalProps> = ({ orderId, onClo
       await onUpload(orderId, photos);
       onClose();
     } catch (err: any) {
-      alert(err.message || "Erreur upload photos.");
+      alert(err.message || t("auth_error_server"));
     } finally {
       setSubmitting(false);
     }
@@ -91,7 +91,7 @@ export const PrepPhotosModal: React.FC<PrepPhotosModalProps> = ({ orderId, onClo
                 {t("prep_photos_title")}
               </h3>
               <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: 0 }}>
-                {lang === "ar" ? "الطلب رقم" : "Commande N°"} <strong style={{ color: "var(--accent-warm)" }}>{orderId}</strong>
+                {t("prep_order_ref")} <strong style={{ color: "var(--accent-warm)" }}>{orderId}</strong>
               </p>
             </div>
           </div>
@@ -102,7 +102,7 @@ export const PrepPhotosModal: React.FC<PrepPhotosModalProps> = ({ orderId, onClo
 
         <div style={{ background: "rgba(184, 98, 63, 0.08)", border: "1px solid rgba(184, 98, 63, 0.25)", borderRadius: 12, padding: 12, marginBottom: 16 }}>
           <p style={{ fontSize: 11, color: "var(--primary)", lineHeight: 1.4, margin: 0 }}>
-            📌 <strong>{lang === "ar" ? "المادة ١١.١ من الشروط:" : "Règle CGV Art. 11.1 :"}</strong> {t("prep_photos_desc")}
+            📌 <strong>{t("prep_cgv_rule")}</strong> {t("prep_photos_desc")}
           </p>
         </div>
 
@@ -120,7 +120,7 @@ export const PrepPhotosModal: React.FC<PrepPhotosModalProps> = ({ orderId, onClo
               }}>
                 <Camera size={28} color="var(--text-placeholder)" style={{ margin: "0 auto 8px" }} />
                 <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", margin: 0 }}>
-                  {lang === "ar" ? "التقط أو ارفع ٤ صور من الورشة لتوثيق الجاهزية" : "Prenez ou importez 4 photos d'atelier de confection"}
+                  {t("prep_instruction")}
                 </p>
                 <label style={{
                   display: "inline-flex",
@@ -136,7 +136,7 @@ export const PrepPhotosModal: React.FC<PrepPhotosModalProps> = ({ orderId, onClo
                   cursor: "pointer",
                 }}>
                   <Camera size={14} />
-                  <span>{lang === "ar" ? "التقاط / رفع صورة" : "Prendre / Choisir Photo"}</span>
+                  <span>{t("prep_take_photo")}</span>
                   <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: "none" }} />
                 </label>
               </div>
@@ -152,7 +152,7 @@ export const PrepPhotosModal: React.FC<PrepPhotosModalProps> = ({ orderId, onClo
                     <X size={12} />
                   </button>
                   <span style={{ position: "absolute", bottom: 6, left: 6, background: "rgba(0,0,0,0.6)", color: "#FFF", fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 4 }}>
-                    {lang === "ar" ? `صورة ${i + 1}` : `Photo ${i + 1}`}
+                    {isRTL ? `صورة ${i + 1}` : `Photo ${i + 1}`}
                   </span>
                 </div>
               ))
@@ -163,19 +163,19 @@ export const PrepPhotosModal: React.FC<PrepPhotosModalProps> = ({ orderId, onClo
             <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
               <label className="btn-outline" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, cursor: "pointer" }}>
                 <Camera size={14} />
-                <span>{lang === "ar" ? "إضافة" : "Fichier"}</span>
+                <span>{t("prep_add_file")}</span>
                 <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: "none" }} />
               </label>
               <input
                 type="text"
-                placeholder={lang === "ar" ? "أو رابط URL للصورة..." : "Ou URL de la photo..."}
+                placeholder={t("prep_url_placeholder")}
                 value={photoInput}
                 onChange={(e) => setPhotoInput(e.target.value)}
                 className="form-input"
                 style={{ flex: 1, fontSize: 11 }}
               />
               <button type="button" onClick={handleAddPhoto} className="btn-outline" style={{ fontSize: 11 }}>
-                <Plus size={14} /> {lang === "ar" ? "إضافة" : "Ajouter"}
+                <Plus size={14} /> {t("prep_add_btn")}
               </button>
             </div>
           )}

@@ -24,7 +24,7 @@ export const ArtisanProfileView: React.FC<Props> = ({
   currentUser, onLogout,
   onUpdateProfile, onOpenReturns, onOpenDisputes, onOpenCGV,
 }) => {
-  const { lang, t } = useI18n();
+  const { isRTL, t } = useI18n();
   const [showEditModal, setShowEditModal] = useState(false);
   const [updating, setUpdating] = useState(false);
 
@@ -103,7 +103,7 @@ export const ArtisanProfileView: React.FC<Props> = ({
             </div>
             {health.suspendedUntil && (
               <div style={{ fontSize: 10, color: "var(--text-secondary)" }}>
-                {t("profile_suspended_until")} {new Date(health.suspendedUntil).toLocaleDateString(lang === "ar" ? "ar-MA" : "fr-FR")}
+                {t("profile_suspended_until")} {new Date(health.suspendedUntil).toLocaleDateString(isRTL ? "ar-MA" : "fr-FR")}
               </div>
             )}
           </div>
@@ -196,7 +196,7 @@ export const ArtisanProfileView: React.FC<Props> = ({
                 background: "rgba(45, 106, 79, 0.12)", color: "#2D6A4F",
                 fontSize: 10, fontWeight: 700,
               }}>
-                <ShieldCheck size={12} /> {lang === "ar" ? "معلم معتمد وموثق" : "Maâlem Vérifié Vork"}
+                <ShieldCheck size={12} /> {t("profile_verified_badge")}
               </span>
               <span style={{
                 display: "inline-flex", alignItems: "center", gap: 4,
@@ -204,7 +204,7 @@ export const ArtisanProfileView: React.FC<Props> = ({
                 background: "rgba(212, 175, 55, 0.12)", color: "#8A6D1C",
                 fontSize: 10, fontWeight: 700,
               }}>
-                <Award size={11} /> {lang === "ar" ? "حرفي شريك رسمي" : "Artisan Partenaire"}
+                <Award size={11} /> {t("profile_partner_badge")}
               </span>
             </div>
 
@@ -413,7 +413,7 @@ export const ArtisanProfileView: React.FC<Props> = ({
       )}
 
       <div style={{ textAlign: "center", fontSize: 10, color: "var(--text-placeholder)", marginTop: 12 }}>
-        {lang === "ar" ? "منظومة فورك · فضاء الحرفيين والصناع التقليديين" : "Plateforme Vork · Espace Artisans du Maroc"}
+        {t("profile_footer")}
       </div>
     </div>
   );

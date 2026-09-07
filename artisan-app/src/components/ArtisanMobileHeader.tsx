@@ -20,7 +20,7 @@ export const ArtisanMobileHeader: React.FC<ArtisanMobileHeaderProps> = ({
   loading,
   shopStatus = "active",
 }) => {
-  const { lang, changeLanguage } = useI18n();
+  const { lang, isRTL, changeLanguage, t } = useI18n();
 
   return (
     <>
@@ -46,7 +46,7 @@ export const ArtisanMobileHeader: React.FC<ArtisanMobileHeaderProps> = ({
             <span>{title}</span>
             {shopStatus !== "active" && (
               <span className="badge badge-warning" style={{ fontSize: 8, padding: "2px 6px" }}>
-                {shopStatus === "paused" ? (lang === "ar" ? "في عطلة" : "Congés") : shopStatus}
+                {shopStatus === "paused" ? t("header_vacation_paused") : shopStatus}
               </span>
             )}
           </div>
@@ -68,18 +68,18 @@ export const ArtisanMobileHeader: React.FC<ArtisanMobileHeaderProps> = ({
               borderRadius: 8
             }}
             onClick={() => changeLanguage(lang === "ar" ? "fr" : "ar")}
-            title="Changer de langue (العربية / Français)"
+            title={isRTL ? "تغيير اللغة (العربية / Français)" : "Changer de langue (العربية / Français)"}
           >
             {lang === "ar" ? "Français" : "العربية"}
           </button>
 
-          <button className="icon-btn" onClick={onOpenNotifications} title="Notifications">
+          <button className="icon-btn" onClick={onOpenNotifications} title={t("header_notifications")}>
             <Bell size={18} color="var(--text-secondary)" />
             {unreadNotifsCount > 0 && (
               <span className="notif-count">{unreadNotifsCount}</span>
             )}
           </button>
-          <button className="icon-btn" onClick={onRefresh} disabled={loading} title="Actualiser">
+          <button className="icon-btn" onClick={onRefresh} disabled={loading} title={t("header_refresh")}>
             <RefreshCw size={16} color="var(--text-secondary)" style={{ animation: loading ? "spin 1s linear infinite" : "none" }} />
           </button>
         </div>

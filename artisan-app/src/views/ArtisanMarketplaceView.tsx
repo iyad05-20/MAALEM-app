@@ -10,7 +10,7 @@ interface Props {
 }
 
 export const ArtisanMarketplaceView: React.FC<Props> = ({ customRequests, onSubmitQuote }) => {
-  const { lang, t } = useI18n();
+  const { isRTL, t } = useI18n();
   const [category, setCategory] = useState("all");
   const [submittingId, setSubmittingId] = useState<string | null>(null);
   const [quoteForm, setQuoteForm] = useState<{ price: string; days: string; note: string }>({ price: "", days: "", note: "" });
@@ -18,13 +18,13 @@ export const ArtisanMarketplaceView: React.FC<Props> = ({ customRequests, onSubm
 
   const CATEGORIES = [
     { id: "all", label: t("market_cat_all") },
-    { id: "Cuivre", label: lang === "ar" ? "النحاسيات" : "Cuivre" },
-    { id: "Zellige", label: lang === "ar" ? "الزليج والفخار" : "Zellige" },
-    { id: "Tapis", label: lang === "ar" ? "الزرابي والنسيج" : "Tapis" },
-    { id: "Cuir", label: lang === "ar" ? "المصنوعات الجلدية" : "Cuir" },
-    { id: "Bois", label: lang === "ar" ? "النجارة الفنية والعود" : "Bois" },
-    { id: "Textile", label: lang === "ar" ? "الأثواب والقفطان" : "Textile" },
-    { id: "Céramique", label: lang === "ar" ? "الخزف الفني" : "Céramique" },
+    { id: "Cuivre", label: t("market_cat_cuivre") },
+    { id: "Zellige", label: t("market_cat_zellige") },
+    { id: "Tapis", label: t("market_cat_tapis") },
+    { id: "Cuir", label: t("market_cat_cuir") },
+    { id: "Bois", label: t("market_cat_bois") },
+    { id: "Textile", label: t("market_cat_textile") },
+    { id: "Céramique", label: t("market_cat_ceramique") },
   ];
 
   const filtered = customRequests.filter(r =>
@@ -123,7 +123,7 @@ export const ArtisanMarketplaceView: React.FC<Props> = ({ customRequests, onSubm
                       <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
                         <Clock size={10} color="var(--text-secondary)" />
                         <span style={{ fontSize: 10, color: "var(--text-secondary)" }}>
-                          {new Date(req.createdAt).toLocaleDateString(lang === "ar" ? "ar-MA" : "fr-FR", { day: "numeric", month: "short" })}
+                        {new Date(req.createdAt).toLocaleDateString(isRTL ? "ar-MA" : "fr-FR", { day: "numeric", month: "short" })}
                         </span>
                       </div>
                     </div>
@@ -143,7 +143,7 @@ export const ArtisanMarketplaceView: React.FC<Props> = ({ customRequests, onSubm
                 {req.quotes?.length > 0 && (
                   <div style={{ paddingInlineStart: 14, paddingInlineEnd: 14, paddingBottom: 10 }}>
                     <span className="badge badge-gold">
-                      <CheckCircle size={9} /> {req.quotes.length} {lang === "ar" ? "عرض سعر مقدم" : "devis proposé(s)"}
+                      <CheckCircle size={9} /> {req.quotes.length} {t("market_quotes_count")}
                     </span>
                   </div>
                 )}
@@ -171,7 +171,7 @@ export const ArtisanMarketplaceView: React.FC<Props> = ({ customRequests, onSubm
                       <label className="form-label">{t("market_quote_note")}</label>
                       <textarea
                         className="form-input" rows={2} style={{ resize: "none" }}
-                        placeholder={lang === "ar" ? "اشرح مقاربتك الحرفية والمواد..." : "Expliquez votre approche artisanale…"}
+                        placeholder={t("market_note_placeholder")}
                         value={quoteForm.note} onChange={e => setQuoteForm(p => ({ ...p, note: e.target.value }))}
                       />
                     </div>
@@ -189,7 +189,7 @@ export const ArtisanMarketplaceView: React.FC<Props> = ({ customRequests, onSubm
                       style={{ fontSize: 12, padding: "9px 14px" }}
                       onClick={() => setActiveQuoteId(req.id)}
                     >
-                      <Send size={14} /> {hasAlreadyQuoted ? (lang === "ar" ? "تعديل عرض السعر" : "Modifier mon devis") : t("market_propose_quote")}
+                      <Send size={14} /> {hasAlreadyQuoted ? t("market_quote_edit") : t("market_propose_quote")}
                     </button>
                   </div>
                 )}

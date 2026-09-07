@@ -11,7 +11,7 @@ interface Props {
 }
 
 export const ArtisanPostsView: React.FC<Props> = ({ products, onOpenCreateModal, onUpdateProduct }) => {
-  const { lang, t } = useI18n();
+  const { t } = useI18n();
 
   const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
     active:       { label: t("posts_status_active"),       className: "badge-success" },
@@ -108,7 +108,7 @@ export const ArtisanPostsView: React.FC<Props> = ({ products, onOpenCreateModal,
                       {product.price}
                     </span>
                     <span style={{ fontSize: 10, color: "var(--text-secondary)", marginInlineStart: 4 }}>
-                      {t("currency_mad")} {lang === "ar" ? "صافي" : "net"}
+                      {t("currency_mad")} {t("posts_price_net")}
                     </span>
                   </div>
 
@@ -120,7 +120,7 @@ export const ArtisanPostsView: React.FC<Props> = ({ products, onOpenCreateModal,
                         <>
                           <span style={{ fontSize: 10, color: "var(--border)" }}>·</span>
                           <span style={{ fontSize: 10, color: "var(--text-secondary)" }}>
-                            {product.manufacturingDays} {lang === "ar" ? "أيام إعداد" : "j confection"}
+                            {product.manufacturingDays} {t("posts_days_confection")}
                           </span>
                         </>
                       )}
@@ -134,14 +134,14 @@ export const ArtisanPostsView: React.FC<Props> = ({ products, onOpenCreateModal,
                       style={{ flex: 1, padding: "7px 10px", fontSize: 11, borderRadius: 12 }}
                       onClick={() => onUpdateProduct(product)}
                     >
-                      <Edit2 size={12} /> {lang === "ar" ? "تعديل" : "Modifier"}
+                      <Edit2 size={12} /> {t("posts_edit_btn")}
                     </button>
                     <button
                       className="btn-outline"
                       style={{ flex: 1, padding: "7px 10px", fontSize: 11, borderRadius: 12, borderColor: product.status === "hidden" ? "rgba(45,106,79,0.4)" : "rgba(107,114,128,0.3)" }}
                       onClick={() => onUpdateProduct({ ...product, status: product.status === "hidden" ? "active" : "hidden" })}
                     >
-                      <Eye size={12} /> {product.status === "hidden" ? (lang === "ar" ? "إظهار" : "Afficher") : (lang === "ar" ? "إخفاء" : "Masquer")}
+                      <Eye size={12} /> {product.status === "hidden" ? t("posts_show_btn") : t("posts_hide_btn")}
                     </button>
                   </div>
                 </div>

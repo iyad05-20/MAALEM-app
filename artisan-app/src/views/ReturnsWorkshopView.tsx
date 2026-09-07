@@ -12,7 +12,7 @@ export const ReturnsWorkshopView: React.FC<ReturnsWorkshopViewProps> = ({
   returns,
   onConfirmReturn,
 }) => {
-  const { lang, t } = useI18n();
+  const { isRTL, t } = useI18n();
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
   const handleConfirm = async (returnId: string) => {
@@ -21,7 +21,7 @@ export const ReturnsWorkshopView: React.FC<ReturnsWorkshopViewProps> = ({
     try {
       await onConfirmReturn(returnId);
     } catch (err: any) {
-      alert(err.message || "Erreur validation retour.");
+      alert(err.message || t("auth_error_server"));
     } finally {
       setLoadingId(null);
     }
@@ -64,13 +64,13 @@ export const ReturnsWorkshopView: React.FC<ReturnsWorkshopViewProps> = ({
                         {ret.status.replace(/_/g, " ")}
                       </span>
                     </div>
-                    <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: 0 }}>
-                      {lang === "ar" ? "الطلب رقم" : "Commande #"} {ret.orderId} · {ret.mode === "sendit" ? (lang === "ar" ? "سينديت إكسبريس" : "Sendit Express (35 MAD déduits)") : (lang === "ar" ? "وسائل الزبون الخاصة" : "Propres Moyens Client")}
-                    </p>
+                  <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: 0 }}>
+                    {t("returns_order_ref")} {ret.orderId} · {ret.mode === "sendit" ? t("returns_mode_sendit") : t("returns_mode_own")}
+                  </p>
                   </div>
 
                   <p style={{ fontSize: 10, color: "var(--text-secondary)", margin: 0 }}>
-                    {new Date(ret.createdAt).toLocaleDateString(lang === "ar" ? "ar-MA" : "fr-FR")}
+                    {new Date(ret.createdAt).toLocaleDateString(isRTL ? "ar-MA" : "fr-FR")}
                   </p>
                 </div>
 
@@ -78,7 +78,7 @@ export const ReturnsWorkshopView: React.FC<ReturnsWorkshopViewProps> = ({
                   <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--text-secondary)" }}>
                       <Clock size={14} color="var(--accent-premium)" />
-                      <span>{lang === "ar" ? "مهلة التقادم: في حال عدم الإرجاع خلال ١٧ يوماً تظل المستحقات محفوظة لك." : "Forclusion active. Si non retourné sous 17j, les fonds vous restent acquis."}</span>
+                      <span>{t("returns_forclusion")}</span>
                     </div>
                     <button
                       onClick={() => handleConfirm(ret.id)}

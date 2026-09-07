@@ -22,7 +22,7 @@ export const CreatePostModalSheet: React.FC<CreatePostModalSheetProps> = ({
   onClose,
   onCreateProduct,
 }) => {
-  const { t, lang } = useI18n();
+  const { t, lang, isRTL } = useI18n();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [netPrice, setNetPrice] = useState("");
@@ -57,7 +57,7 @@ export const CreatePostModalSheet: React.FC<CreatePostModalSheetProps> = ({
       });
       onClose();
     } catch (err: any) {
-      alert(err.message || "Erreur lors de la publication.");
+      alert(err.message || t("auth_error_server"));
     } finally {
       setLoading(false);
     }
@@ -157,7 +157,7 @@ export const CreatePostModalSheet: React.FC<CreatePostModalSheetProps> = ({
                       onChange={e => setNetPrice(e.target.value)}
                       style={{
                         width: "100%",
-                        padding: "11px 40px 11px 14px",
+                        padding: isRTL ? "11px 14px 11px 40px" : "11px 40px 11px 14px",
                         borderRadius: 14,
                         border: "1.5px solid var(--accent-warm)",
                         background: "var(--surface)",
@@ -168,7 +168,7 @@ export const CreatePostModalSheet: React.FC<CreatePostModalSheetProps> = ({
                         outline: "none",
                       }}
                     />
-                    <span style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "var(--text-secondary)", fontWeight: 700 }}>
+                    <span style={{ position: "absolute", [isRTL ? "left" : "right"]: 12, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "var(--text-secondary)", fontWeight: 700 }}>
                       {t("currency_mad")}
                     </span>
                   </div>
@@ -232,7 +232,7 @@ export const CreatePostModalSheet: React.FC<CreatePostModalSheetProps> = ({
                     value={categoryKey}
                     onChange={e => setCategoryKey(e.target.value)}
                     className="form-input"
-                    style={{ paddingRight: 32, appearance: "none", cursor: "pointer" }}
+                    style={{ [isRTL ? "paddingLeft" : "paddingRight"]: 32, appearance: "none", cursor: "pointer" }}
                   >
                     {CATEGORIES.map(c => (
                       <option key={c.key} value={c.key}>
@@ -240,7 +240,7 @@ export const CreatePostModalSheet: React.FC<CreatePostModalSheetProps> = ({
                       </option>
                     ))}
                   </select>
-                  <ChevronDown size={14} color="var(--text-secondary)" style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+                  <ChevronDown size={14} color="var(--text-secondary)" style={{ position: "absolute", [isRTL ? "left" : "right"]: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
                 </div>
               </div>
               <div>

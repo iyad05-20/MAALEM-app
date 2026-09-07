@@ -117,7 +117,7 @@ export const DisputeReplyModal: React.FC<DisputeReplyModalProps> = ({
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: 14 }}>
             <label className="form-label">
-              {lang === "ar" ? "دفوعات وإيضاحات الورشة بالتفصيل *" : "Vos explications et contre-arguments d'atelier *"}
+              {t("dispute_reply_label")}
             </label>
             <textarea
               required
@@ -125,14 +125,14 @@ export const DisputeReplyModal: React.FC<DisputeReplyModalProps> = ({
               className="form-input"
               value={responseText}
               onChange={(e) => setResponseText(e.target.value)}
-              placeholder={lang === "ar" ? "وضح خط سير العمل والمواصفات المعتمدة..." : "Décrivez la fabrication, les finitions, la conformité de la pièce livrée…"}
+              placeholder={t("dispute_reply_placeholder")}
               style={{ resize: "vertical" }}
             />
           </div>
 
           <div style={{ marginBottom: 16 }}>
             <label className="form-label">
-              {lang === "ar" ? "صور إثبات من الورشة (حد أقصى ٣ صور)" : "Photos justificatives d'atelier (Max 3)"}
+              {t("dispute_evidence_label")}
             </label>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 8 }}>
@@ -167,7 +167,7 @@ export const DisputeReplyModal: React.FC<DisputeReplyModalProps> = ({
                   color: "var(--primary)"
                 }}>
                   <Camera size={16} color="var(--accent-warm)" />
-                  <span>{lang === "ar" ? "التقاط أو اختيار صورة إثبات من الهاتف" : "Prendre en photo ou choisir un fichier"}</span>
+                  <span>{t("dispute_take_photo")}</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -180,14 +180,14 @@ export const DisputeReplyModal: React.FC<DisputeReplyModalProps> = ({
                 <div style={{ display: "flex", gap: 8 }}>
                   <input
                     type="text"
-                    placeholder={lang === "ar" ? "أو أدخل رابط صورة..." : "Ou coller une URL d'image…"}
+                    placeholder={t("dispute_url_placeholder")}
                     value={photoInput}
                     onChange={(e) => setPhotoInput(e.target.value)}
                     className="form-input"
                     style={{ flex: 1, fontSize: 11 }}
                   />
                   <button type="button" onClick={handleAddPhoto} className="btn-outline" style={{ fontSize: 11 }}>
-                    <Plus size={14} /> {lang === "ar" ? "إضافة" : "Ajouter"}
+                     <Plus size={14} /> {t("dispute_add_btn")}
                   </button>
                 </div>
               </div>
@@ -198,7 +198,7 @@ export const DisputeReplyModal: React.FC<DisputeReplyModalProps> = ({
             <button type="button" onClick={onClose} className="btn-outline">{t("cancel")}</button>
             <button type="submit" disabled={loading || !responseText.trim()} className="btn-terracotta">
               <Send size={15} />
-              <span>{loading ? t("loading") : (lang === "ar" ? "إرسال الدفوعات للتحكيم" : "Transmettre ma Défense à l'Arbitrage")}</span>
+              <span>{loading ? t("loading") : t("dispute_submit_btn")}</span>
             </button>
           </div>
         </form>

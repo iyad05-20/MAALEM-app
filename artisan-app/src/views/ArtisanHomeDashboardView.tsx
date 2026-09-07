@@ -24,7 +24,7 @@ export const ArtisanHomeDashboardView: React.FC<Props> = ({
   onOpenRefuseModal, onOpenPrepPhotosModal,
   onOpenSenditModal, onOpenDirectDeliveryModal,
 }) => {
-  const { lang, t } = useI18n();
+  const { isRTL, t } = useI18n();
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const getStatusLabel = (status: string) => {
@@ -117,12 +117,12 @@ export const ArtisanHomeDashboardView: React.FC<Props> = ({
             {toAcceptCount > 0 ? t("orders_to_treat") : t("orders_active_list")}
           </div>
           <div className="section-subtitle">
-            {activeOrders.length} {lang === "ar" ? "طلبات جارية" : `commande${activeOrders.length !== 1 ? "s" : ""} — ordre chronologique`}
+          {activeOrders.length} {t("order_count_suffix")}
           </div>
         </div>
         {toAcceptCount > 0 && (
           <span className="badge badge-urgent">
-            ⚡ {toAcceptCount} {lang === "ar" ? "بحاجة لموافقتك" : "à valider"}
+            ⚡ {toAcceptCount} {t("order_pending_validation")}
           </span>
         )}
       </div>
@@ -157,26 +157,28 @@ export const ArtisanHomeDashboardView: React.FC<Props> = ({
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
                       <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 15, color: "var(--primary)" }}>
-                        {lang === "ar" ? `طلب #${order.id}` : `Commande #${order.id}`}
+                        {t("order_number")}{order.id}
                       </span>
                       <span className={`badge badge-${toAccept ? "urgent" : inPrep ? "warning" : inTransit ? "info" : "success"}`}>
                         {getStatusLabel(order.status)}
                       </span>
                     </div>
                     <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
-                      {new Date(order.createdAt).toLocaleDateString(lang === "ar" ? "ar-MA" : "fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                      {new Date(order.createdAt).toLocaleDateString(isRTL ? "ar-MA" : "fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                       {" · "}
-                      {order.productType === "standard" 
-                        ? (lang === "ar" ? "شحن سينديت" : "Expédition Sendit")
-                        : (lang === "ar" ? "توصيل مباشر" : "Livraison Directe")}
+                      {order.productType === "standard"
+                        ? t("order_type_sendit")
+                        : t("order_type_direct")}
                     </div>
                   </div>
-                  <div style={{ textAlign: lang === "ar" ? "left" : "right" }}>
+                  <div style={{ textAlign: isRTL ? "left" : "right" }}>
                     <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 16, color: "var(--primary)" }}>
                       {order.totalPrice} <span style={{ fontSize: 11, fontWeight: 500, color: "var(--text-secondary)" }}>MAD</span>
                     </div>
                     <div style={{ fontSize: 10, color: "var(--accent-emerald)", fontWeight: 700 }}>
-                      {lang === "ar" ? `الصافي ≈ ${Math.round(order.totalPrice * 0.95)} درهم` : `Net ≈ ${Math.round(order.totalPrice * 0.95)} MAD`}
+                      {isRTL
+                        ? `الصافي ≈ ${Math.round(order.totalPrice * 0.95)} درهم`
+                        : `Net ≈ ${Math.round(order.totalPrice * 0.95)} MAD`}
                     </div>
                   </div>
                 </div>
@@ -194,15 +196,15 @@ export const ArtisanHomeDashboardView: React.FC<Props> = ({
                   color: "var(--text-secondary)",
                 }}>
                   <span style={{ color: toAccept ? "var(--accent-warm)" : "var(--accent-emerald)", fontWeight: 700 }}>
-                    {toAccept ? (lang === "ar" ? "① بانتظار التأكيد" : "① À valider") : (lang === "ar" ? "① ✓ تم القبول" : "① ✓ Acceptée")}
+                    {toAccept ? t("step_pending") : t("step_accepted")}
                   </span>
-                  <ChevronRight size={10} style={{ transform: lang === "ar" ? "rotate(180deg)" : "none" }} />
+                  <ChevronRight size={10} style={{ transform: isRTL ? "rotate(180deg)" : "none" }} />
                   <span style={{ color: inPrep ? "var(--accent-warm)" : (hasPhotos || done || inTransit) ? "var(--accent-emerald)" : "var(--text-placeholder)", fontWeight: 700 }}>
-                    {hasPhotos ? (lang === "ar" ? "② ✓ ٤ صور جاهزة" : "② ✓ Photos") : (lang === "ar" ? "② ٤ صور إعداد" : "② 4 Photos")}
+                    {hasPhotos ? t("step_photos_done") : t("step_photos_pending")}
                   </span>
-                  <ChevronRight size={10} style={{ transform: lang === "ar" ? "rotate(180deg)" : "none" }} />
+                  <ChevronRight size={10} style={{ transform: isRTL ? "rotate(180deg)" : "none" }} />
                   <span style={{ color: done ? "var(--accent-emerald)" : inTransit ? "var(--accent-warm)" : "var(--text-placeholder)", fontWeight: 700 }}>
-                    {done ? (lang === "ar" ? "③ ✓ تم التسليم" : "③ ✓ Livré") : inTransit ? (lang === "ar" ? "③ في الطريق" : "③ Transit") : (lang === "ar" ? "③ الشحن" : "③ Expédition")}
+                    {done ? t("step_shipped") : inTransit ? t("step_in_transit") : t("step_shipping")}
                   </span>
                 </div>
 
@@ -215,7 +217,7 @@ export const ArtisanHomeDashboardView: React.FC<Props> = ({
                       </button>
                       <button className="btn-terracotta" style={{ flex: 2 }} disabled={actionLoading === order.id} onClick={() => handleAccept(order.id)}>
                         <Check size={16} />
-                        {actionLoading === order.id ? (lang === "ar" ? "جارٍ القبول..." : "En cours...") : (lang === "ar" ? "قبول وبدء العمل" : "Accepter < 72h")}
+                        {actionLoading === order.id ? t("order_accepting") : t("order_accept_action")}
                       </button>
                     </div>
                   )}
@@ -228,29 +230,29 @@ export const ArtisanHomeDashboardView: React.FC<Props> = ({
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <Camera size={15} />
-                        {hasPhotos 
-                          ? (lang === "ar" ? `✓ تم إيداع ${order.prepPhotos?.length} صور للورشة` : `✓ ${order.prepPhotos?.length} photos d'atelier`) 
-                          : (lang === "ar" ? "إيداع ٤ صور لتوثيق الجاهزية (المادة ٨.١)" : "Uploader 4 photos d'atelier (Art. 8.1)")}
+                        {hasPhotos
+                          ? (isRTL ? `✓ تم إيداع ${order.prepPhotos?.length} صور للورشة` : `✓ ${order.prepPhotos?.length} photos d'atelier`)
+                          : t("order_photos_upload_cta")}
                       </div>
-                      <ChevronRight size={14} style={{ transform: lang === "ar" ? "rotate(180deg)" : "none" }} />
+                      <ChevronRight size={14} style={{ transform: isRTL ? "rotate(180deg)" : "none" }} />
                     </button>
                   )}
 
                   {inPrep && (
                     order.productType === "standard" ? (
                       <button className="btn-primary" onClick={() => onOpenSenditModal(order)} disabled={!hasPhotos} style={{ opacity: hasPhotos ? 1 : 0.45 }}>
-                        <Truck size={16} /> {lang === "ar" ? "توليد بوليصة الشحن سينديت" : "Générer le Bon Sendit"}
+                        <Truck size={16} /> {t("order_generate_sendit")}
                       </button>
                     ) : (
                       <button className="btn-primary" onClick={() => onOpenDirectDeliveryModal(order)} disabled={!hasPhotos} style={{ opacity: hasPhotos ? 1 : 0.45 }}>
-                        <FileSignature size={16} /> {lang === "ar" ? "إقرار التسليم المباشر من المعلم" : "Déclarer Livraison Directe"}
+                        <FileSignature size={16} /> {t("order_declare_direct")}
                       </button>
                     )
                   )}
 
                   {inTransit && order.productType !== "standard" && (
                     <button className="btn-primary" style={{ background: "var(--accent-emerald)" }} onClick={() => onOpenDirectDeliveryModal(order)}>
-                      <FileSignature size={16} /> {lang === "ar" ? "تأكيد التسليم بالوصل الموقع (مادة ١١.٥)" : "Valider avec Bordereau Signé (Art. 11.5)"}
+                      <FileSignature size={16} /> {t("order_validate_signed")}
                     </button>
                   )}
 
@@ -261,7 +263,7 @@ export const ArtisanHomeDashboardView: React.FC<Props> = ({
                       target="_blank" rel="noopener noreferrer"
                       style={{ textDecoration: "none", justifyContent: "center", fontSize: 12 }}
                     >
-                      <Printer size={14} /> {lang === "ar" ? "تحميل وطباعة ملصق سينديت" : "Télécharger l'étiquette Sendit"}
+                      <Printer size={14} /> {t("order_download_label")}
                     </a>
                   )}
                 </div>

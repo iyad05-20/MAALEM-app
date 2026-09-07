@@ -12,7 +12,7 @@ export const DisputesWorkshopView: React.FC<DisputesWorkshopViewProps> = ({
   disputes,
   onOpenReplyModal,
 }) => {
-  const { lang, t } = useI18n();
+  const { lang, isRTL, t } = useI18n();
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -58,7 +58,7 @@ export const DisputesWorkshopView: React.FC<DisputesWorkshopViewProps> = ({
                   </div>
 
                   <p style={{ fontSize: 10, color: "var(--text-secondary)", margin: 0 }}>
-                    {new Date(d.createdAt).toLocaleDateString(lang === "ar" ? "ar-MA" : "fr-FR")}
+                    {new Date(d.createdAt).toLocaleDateString(isRTL ? "ar-MA" : "fr-FR")}
                   </p>
                 </div>
 
@@ -88,7 +88,7 @@ export const DisputesWorkshopView: React.FC<DisputesWorkshopViewProps> = ({
                 {d.arbitrationDecision && (
                   <div style={{ background: "rgba(212, 175, 55, 0.08)", border: "1px solid rgba(212, 175, 55, 0.3)", borderRadius: 12, padding: 10, marginBottom: 10 }}>
                     <p style={{ fontSize: 10, fontWeight: 700, color: "var(--accent-premium)", margin: "0 0 2px" }}>
-                      ⚖️ {lang === "ar" ? "قرار التحكيم الرسمي (المادة ٢٠.٥):" : "Décision d'Arbitrage Officielle (Art. 20.5) :"}
+                      {t("disputes_arbitration_label")}
                     </p>
                     <p style={{ fontSize: 11, color: "var(--primary)", margin: 0 }}>
                       {d.arbitrationDecision}
@@ -103,7 +103,7 @@ export const DisputesWorkshopView: React.FC<DisputesWorkshopViewProps> = ({
                     style={{ padding: "10px", fontSize: 12 }}
                   >
                     <MessageSquare size={14} />
-                    <span>{hasArtisanResponded ? (lang === "ar" ? "تعديل دفوعات الورشة" : "Modifier ma Défense") : t("disputes_reply_btn")}</span>
+                    <span>{hasArtisanResponded ? t("disputes_edit_defense") : t("disputes_reply_btn")}</span>
                   </button>
                 )}
               </div>

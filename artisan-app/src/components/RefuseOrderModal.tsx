@@ -65,7 +65,7 @@ export const RefuseOrderModal: React.FC<RefuseOrderModalProps> = ({ orderId, onC
                 {t("refuse_modal_title")}
               </h3>
               <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: 0 }}>
-                {lang === "ar" ? "الطلب رقم" : "Commande"} <strong style={{ color: "#DC3545" }}>{orderId}</strong>
+                {t("refuse_order_ref")} <strong style={{ color: "#DC3545" }}>{orderId}</strong>
               </p>
             </div>
           </div>
@@ -89,7 +89,7 @@ export const RefuseOrderModal: React.FC<RefuseOrderModalProps> = ({ orderId, onC
               className="form-input"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder={lang === "ar" ? "اكتب سبب الاعتذار بالتفصيل للزبون..." : "Ex: Atelier surchargé jusqu'à la fin du mois, rupture de matières..."}
+              placeholder={t("refuse_reason_placeholder")}
               style={{ resize: "vertical" }}
             />
           </div>

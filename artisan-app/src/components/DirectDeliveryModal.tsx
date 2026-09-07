@@ -100,7 +100,7 @@ export const DirectDeliveryModal: React.FC<DirectDeliveryModalProps> = ({
                 {t("shipping_direct_title")}
               </h3>
               <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: 0 }}>
-                {t("shipping_direct_desc")} · {lang === "ar" ? "الطلب" : "Commande"} <strong style={{ color: "var(--accent-warm)" }}>{order.id}</strong>
+                {t("shipping_direct_desc")} · {t("direct_order_label")} <strong style={{ color: "var(--accent-warm)" }}>{order.id}</strong>
               </p>
             </div>
           </div>
@@ -113,7 +113,7 @@ export const DirectDeliveryModal: React.FC<DirectDeliveryModalProps> = ({
           <form onSubmit={handleShip}>
             <div style={{ background: "rgba(212, 175, 55, 0.08)", border: "1px solid rgba(212, 175, 55, 0.25)", borderRadius: 12, padding: 12, marginBottom: 16 }}>
               <p style={{ fontSize: 11, color: "var(--primary)", margin: 0, lineHeight: 1.4 }}>
-                ℹ️ <strong>{lang === "ar" ? "المادة ٩.٣:" : "Règle Art. 9.3 :"}</strong> {lang === "ar" ? "القطع المصنوعة حسب الطلب أو الحساسة يتم تسليمها مباشرة بواسطة المعلم للزبون." : "Les produits sur-mesure et fragiles sont livrés directement par l'artisan sans passer par Sendit."}
+                ℹ️ <strong>{t("direct_rule_9_3")}</strong> {t("direct_rule_9_3_text")}
               </p>
             </div>
 
@@ -136,7 +136,7 @@ export const DirectDeliveryModal: React.FC<DirectDeliveryModalProps> = ({
               <button type="button" onClick={onClose} className="btn-outline">{t("cancel")}</button>
               <button type="submit" disabled={loading} className="btn-terracotta">
                 <Clock size={16} />
-                <span>{loading ? t("loading") : (lang === "ar" ? "بدء عملية النقل المباشر" : "Déclarer l'Expédition Directe")}</span>
+                <span>{loading ? t("loading") : t("direct_start_btn")}</span>
               </button>
             </div>
           </form>
@@ -144,7 +144,7 @@ export const DirectDeliveryModal: React.FC<DirectDeliveryModalProps> = ({
           <form onSubmit={handleComplete}>
             <div style={{ background: "rgba(45, 106, 79, 0.08)", border: "1px solid rgba(45, 106, 79, 0.25)", borderRadius: 12, padding: 12, marginBottom: 16 }}>
               <p style={{ fontSize: 11, color: "#2D6A4F", margin: 0, lineHeight: 1.4 }}>
-                ✍️ <strong>{lang === "ar" ? "المادة ١١.٥:" : "Règle Art. 11.5 :"}</strong> {lang === "ar" ? "عند تسليم القطعة يدوياً، احصل على توقيع الزبون على وصل الاستلام وأرفق الصورة هنا لفك حجز الأرباح." : "Lors de la remise physique en main propre, faites signer votre bordereau papier par l'acheteur et uploadez la photo ci-dessous pour libérer vos fonds de séquestre."}
+                ✍️ <strong>{t("direct_rule_11_5")}</strong> {t("direct_rule_11_5_text")}
               </p>
             </div>
 
@@ -180,10 +180,10 @@ export const DirectDeliveryModal: React.FC<DirectDeliveryModalProps> = ({
                 }}>
                   <Camera size={26} color="var(--accent-warm)" />
                   <span style={{ fontSize: 12, fontWeight: 600, color: "var(--primary)" }}>
-                    {lang === "ar" ? "التقاط أو تحميل صورة الوصل الموقع" : "Prendre en photo ou uploader le bordereau signé"}
+                    {t("direct_take_photo")}
                   </span>
                   <span style={{ fontSize: 10, color: "var(--text-secondary)" }}>
-                    {lang === "ar" ? "PNG, JPG حتى 5MB" : "PNG, JPG jusqu'à 5 Mo"}
+                    {t("direct_file_hint")}
                   </span>
                   <input
                     type="file"
